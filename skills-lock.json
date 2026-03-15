@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "research-methodology": {
+      "source": "poemswe/co-researcher",
+      "sourceType": "github",
+      "computedHash": "c0978403ea8c3968e32e809722fe6182ea1456ce1e2a104502af982a95fb4807"
+    }
+  }
+}
