@@ -42,7 +42,7 @@ SWIFT OS/
 - Sempre responder em **portugues brasileiro**
 - Usar o contexto dos documentos em `context/Swift/` como base de conhecimento
 - O usuario (Vinicius) e consultor da IONIX liderando este projeto
-- Stack de vibe coding: **Lovable, Lindy, N8N**
+- Stack de vibe coding: **claude, claude code, lovable, n8n** nao se limite somente a isso
 - Ao criar documentos, manter consistencia com os frameworks ja definidos (esteira, matriz de letramento, trilhas de capacitacao)
 - Considerar o perfil demografico da Swift (~198 colaboradores, 81% Gen Y+Z) ao recomendar abordagens de capacitacao
 
@@ -50,7 +50,13 @@ SWIFT OS/
 
 - **Cliente:** Swift
 - **Consultoria:** IONIX (Oliver Cunningham)
-- **Investimento Ano 1:** R$ 640.000
 - **Colaboradores Swift:** ~198
 - **Escola interna:** Germinare (modelo train-the-trainer)
 - **Parceiro tecnico:** Artefact (AI Lab)
+
+## Gestao de Conhecimento
+
+- Tratar `context/Swift/` como base de conhecimento hierarquica — ler indice primeiro, aprofundar sob demanda
+- Ao encontrar erros recorrentes em processos do projeto, registrar em memoria para nao repetir
+- Manter documentos em `context/Swift/` consistentes entre si — ao criar ou editar um, verificar impacto nos demais
+- Quando perceber informacao que deveria estar documentada e nao esta, propor a criacao
