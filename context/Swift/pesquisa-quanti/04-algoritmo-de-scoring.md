@@ -48,7 +48,7 @@ Antes de processar, **excluir ou sinalizar** respostas invalidas:
 
 ### 1.1 Itens Likert padrao (escala 1-5)
 
-Aplica-se a: Q12, Q13, Q14, Q15, Q18, Q19, Q20, Q21, Q22, Q24, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q35, Q37, Q38, Q39, Q50
+Aplica-se a: Q12, Q13, Q14, Q15, Q18, Q19, Q20, Q21, Q22, Q24, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q35, Q37, Q38, Q39, Q50, Q58, Q60
 
 | Resposta Likert | Score | O que significa no contexto da Matriz |
 |---|---|---|
@@ -249,6 +249,49 @@ Conversao: Likert padrao (mesma tabela da secao 1.1).
 
 ---
 
+### 1.13 Likert padrao — conhece vies algoritmico (Q58)
+
+**Q58:** "Sei o que e vies algoritmico e como ele pode impactar decisoes tomadas com IA (ex.: triagem de curriculos, aprovacao de credito, atendimento segmentado)."
+
+Conversao: Likert padrao (mesma tabela da secao 1.1).
+
+**ENTRA NO SCORE COMUM → Dimensao Governanca (todos os respondentes).**
+
+> **CSD:** Valida S16 (desconhecem vies algoritmico). Score baixo indica que o modulo de etica precisa cobrir vies explicitamente — nao e apenas "nao cole dados sigilosos".
+
+---
+
+### 1.14 Cenario Etica — IA com vies em contratacao (Q59)
+
+**Q59:** "Uma ferramenta de IA usada pela Swift aprova consistentemente candidatos com determinado perfil e rejeita outros para a mesma vaga, sem criterio claro. O que voce faria?"
+
+| Opcao escolhida | Score | Nivel | Racional |
+|---|---|---|---|
+| a) Continuaria usando — os resultados parecem adequados | **1.0** | Iniciante | Ignora o risco — uso irresponsavel |
+| b) Reportaria ao gestor, mas continuaria usando | **2.0** | Basico | Tem alguma sensibilidade mas sem acao de contencao |
+| d) Suspenderia o uso e escalaria para TI ou Compliance | **3.0** | Intermediario | Age com prudencia, mas sem diagnostico da causa |
+| c) Investigaria a causa antes de continuar — entenderia o padrao e documentaria o risco | **4.0** | Avancado | Aplica governanca real: diagnostico + documentacao + decisao informada |
+
+**Por que (d) e nivel 3 e nao 4?** Suspender sem entender e uma resposta cautelosa (bom instinto), mas nao demonstra capacidade de **diagnosticar e gerenciar** o risco. Nivel 4 requer investigacao ativa — a postura de quem sabe que governanca e processo, nao apenas reacao.
+
+**ENTRA NO SCORE COMUM → Dimensao Governanca (todos os respondentes).**
+
+> **CSD:** Teste comportamental de S16. Complementa Q58 (declarativo) — quem diz que "sabe o que e vies" mas marca (a) no cenario tem autopercepçao inflada. Detecta Dunning-Kruger de etica.
+
+---
+
+### 1.15 Likert padrao — conhece riscos legais/LGPD (Q60)
+
+**Q60:** "Conheco os riscos legais de usar IA com dados pessoais de clientes ou colaboradores (ex.: LGPD, privacidade, responsabilidade civil)."
+
+Conversao: Likert padrao (mesma tabela da secao 1.1).
+
+**ENTRA NO SCORE COMUM → Dimensao Governanca (todos os respondentes).**
+
+> **CSD:** Valida S16 — vetor legal. Enquanto Q58 testa vies (risco para terceiros), Q60 testa compliance (risco para a empresa). Juntas cobrem os dois vetores de S16. Score baixo em Q60 indica exposicao juridica nao percebida.
+
+---
+
 ## Etapa 2 — Composicao: Scores individuais → Score por dimensao
 
 ### O que e o Score Comum e o Score Estendido
@@ -279,11 +322,11 @@ A pesquisa tem dois blocos que geram scores:
 |---|---|---|---|
 | **Utilizacao** | Q12 + Q13 + Q14 + Q15 + Q16(reverso) + Q17(confianca) + Q18 | 7 | Media simples |
 | **Dados** | Q19 + Q20 + Q21 + Q22 + Q23(cenario) | 5 | Media simples |
-| **Governanca** | Q24 + Q25(cenario) + Q26 + Q27 + Q28 + Q29(cenario) | 6 | Media simples |
+| **Governanca** | Q24 + Q25(cenario) + Q26 + Q27 + Q28 + Q29(cenario) + Q58 + Q59(cenario) + Q60 | 9 | Media simples |
 | **Impacto no Negocio** | Q30 + Q31 + Q32 + Q33 + Q34 | 5 | Media simples |
 | **Cultura** | Q35 + Q36(reverso) + Q37 + Q38 + Q39 | 5 | Media simples |
 
-**Total: 7 + 5 + 6 + 5 + 5 = 28 itens**
+**Total: 7 + 5 + 9 + 5 + 5 = 31 itens**
 
 **Formula:**
 
@@ -308,7 +351,7 @@ Score_comum_dimensao = soma(scores dos itens da dimensao) / quantidade de itens 
 |---|---|---|---|
 | **Utilizacao** | Q12-Q18 (7) | + Q43, Q44 | **9** |
 | Dados | Q19-Q23 (5) | — | 5 |
-| Governanca | Q24-Q29 (6) | — | 6 |
+| Governanca | Q24-Q29 + Q58-Q60 (9) | — | 9 |
 | Impacto | Q30-Q34 (5) | — | 5 |
 | Cultura | Q35-Q39 (5) | — | 5 |
 | **Total** | **28** | **+2** | **30** |
@@ -330,7 +373,7 @@ Score_comum_dimensao = soma(scores dos itens da dimensao) / quantidade de itens 
 |---|---|---|---|
 | Utilizacao | Q12-Q18 (7) | — | 7 |
 | Dados | Q19-Q23 (5) | — | 5 |
-| **Governanca** | Q24-Q29 (6) | + Q51 | **7** |
+| **Governanca** | Q24-Q29 + Q58-Q60 (9) | + Q51 | **10** |
 | **Impacto** | Q30-Q34 (5) | + Q48, Q49, Q50 | **8** |
 | Cultura | Q35-Q39 (5) | — | 5 |
 | **Total** | **28** | **+4** | **32** |
@@ -700,7 +743,7 @@ Apos coleta, calcular **Cronbach's alpha** por dimensao (usar Score Comum):
 |---|---|---|---|
 | Utilizacao | Q12-Q18 (7) | >= 0.7 | Verificar se Q17 (confianca) destoa |
 | Dados | Q19-Q23 (5) | >= 0.7 | Q20 pode ter efeito teto — verificar variancia |
-| Governanca | Q24-Q29 (6) | >= 0.7 | Robusto — 6 itens, 2 cenarios |
+| Governanca | Q24-Q29 + Q58-Q60 (9) | >= 0.7 | Robusto — 9 itens, 3 cenarios (Q25, Q29, Q59) |
 | Impacto | Q30-Q34 (5) | >= 0.7 | Se alpha baixo, Q32 pode medir algo diferente |
 | Cultura | Q35-Q39 (5) | >= 0.7 | Se alpha baixo, Q36 (reverso) pode destoar dos itens de acao |
 
@@ -725,9 +768,10 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 | Q52 | O que ajudaria a decidir (Gestao) | D6 |
 | Q53 | Tarefa que nao quer fazer manualmente (obrigatoria) | Backlog |
 | Q54 | Tentou IA e nao deu certo | D2, D5 |
-| Q55 | O que preocupa sobre IA na Swift | S10, S12 |
+| Q55 | O que preocupa sobre IA na Swift | S10, S12, S17 |
 | Q56 | Mudar UMA coisa amanha | S12 |
 | Q57 | Algo que ninguem perguntou | D2, D5 |
+| Q61 | Avaliacao dos mecanismos de governanca da Swift hoje | S17 |
 
 ---
 
@@ -739,7 +783,7 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 | Fase 0.5 — Mapa de uso | Q6-Q11 | — | — |
 | **Fase 1 — Utilizacao** | **Q12-Q18** | **Sim (7)** | **Sim (7)** |
 | **Fase 1 — Dados** | **Q19-Q23** | **Sim (5)** | **Sim (5)** |
-| **Fase 1 — Governanca** | **Q24-Q29** | **Sim (6)** | **Sim (6)** |
+| **Fase 1 — Governanca** | **Q24-Q29, Q58-Q60** | **Sim (9)** | **Sim (9)** |
 | **Fase 1 — Impacto** | **Q30-Q34** | **Sim (5)** | **Sim (5)** |
 | **Fase 1 — Cultura** | **Q35-Q39** | **Sim (5)** | **Sim (5)** |
 | Fase 1 — Controle/Mult. | Q40-Q42 | — | — |
@@ -753,9 +797,9 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 
 | | Score Comum | Score Estendido (Exec) | Score Estendido (Gestao) |
 |---|---|---|---|
-| Itens no scoring | **28** | **30** | **32** |
-| Itens fora do scoring | 29 | 27 | 25 |
-| **Total pesquisa** | **57** | **57** | **57** |
+| Itens no scoring | **31** | **33** | **35** |
+| Itens fora do scoring | 30 | 28 | 26 |
+| **Total pesquisa** | **61** | **61** | **61** |
 
 ### Tabela de conversao rapida — todos os itens que entram no scoring
 
@@ -779,6 +823,9 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 | Q27 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q28 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q29 | Governanca | **Cenario** | **a=1.0, d=2.0, b=2.5, c=4.0** |
+| Q58 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
+| Q59 | Governanca | **Cenario** | **a=1.0, b=2.0, d=3.0, c=4.0** |
+| Q60 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q30 | Impacto | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q31 | Impacto | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q32 | Impacto | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |

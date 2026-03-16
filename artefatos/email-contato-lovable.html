@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Email de Contato — Lovable</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .wrapper { max-width: 720px; width: 100%; }
+
+  /* Label de contexto */
+  .context-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #64748b;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .context-label::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #8b5cf6;
+  }
+
+  /* Card principal */
+  .email-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+
+  /* Topo */
+  .email-header {
+    background: linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #6d28d9 100%);
+    padding: 32px 40px;
+    color: white;
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .brand-ionix {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    color: #fff;
+  }
+  .brand-ionix span { color: #a78bfa; }
+  .player-badge {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,.85);
+    letter-spacing: .04em;
+  }
+
+  .email-subject {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  .email-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,.65);
+  }
+  .email-meta strong { color: rgba(255,255,255,.9); font-weight: 500; }
+
+  /* Corpo */
+  .email-body {
+    padding: 36px 40px;
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .salutation { font-weight: 600; color: #4c1d95; margin-bottom: 20px; }
+  p { margin-bottom: 16px; color: #334155; }
+  p:last-of-type { margin-bottom: 0; }
+
+  /* Bloco de contexto Swift */
+  .context-block {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #8b5cf6;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .context-block h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #7c3aed;
+    margin-bottom: 12px;
+  }
+  .context-block ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .context-block li {
+    font-size: 13.5px;
+    color: #475569;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .context-block li::before {
+    content: '→';
+    color: #8b5cf6;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Casos de uso */
+  .usecase-block {
+    background: #faf5ff;
+    border: 1px solid #ddd6fe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .usecase-block h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #6d28d9;
+    margin-bottom: 14px;
+  }
+  .usecase-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ede9fe;
+    font-size: 13.5px;
+    color: #4c1d95;
+    line-height: 1.5;
+  }
+  .usecase-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .uc-icon {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    background: #7c3aed;
+    color: white;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Perguntas chave */
+  .questions-block {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .questions-block h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #15803d;
+    margin-bottom: 14px;
+  }
+  .question-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #dcfce7;
+    font-size: 13.5px;
+    color: #14532d;
+    line-height: 1.5;
+  }
+  .question-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .q-num {
+    background: #16a34a;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* CTA */
+  .cta-block {
+    background: linear-gradient(135deg, #faf5ff, #ede9fe);
+    border: 1px solid #ddd6fe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    text-align: center;
+  }
+  .cta-block p {
+    font-size: 14px;
+    color: #4c1d95;
+    margin: 0;
+  }
+  .cta-block strong { color: #2d1b69; }
+
+  /* Assinatura */
+  .signature {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 28px;
+    padding-top: 24px;
+  }
+  .sig-name { font-weight: 700; font-size: 15px; color: #2d1b69; }
+  .sig-role { font-size: 13px; color: #64748b; margin-top: 3px; }
+  .sig-company { font-size: 13px; color: #8b5cf6; font-weight: 600; margin-top: 2px; }
+  .sig-contact { font-size: 12px; color: #94a3b8; margin-top: 10px; }
+
+  /* Footer do card */
+  .email-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .footer-tag {
+    background: #ede9fe;
+    color: #6d28d9;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .email-card { box-shadow: none; border-radius: 0; }
+    .context-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <div class="context-label">
+    Artefato IONIX · Contato Comercial com Player de IA
+  </div>
+
+  <div class="email-card">
+
+    <!-- Header -->
+    <div class="email-header">
+      <div class="brand-row">
+        <div class="brand-ionix">ION<span>IX</span></div>
+        <div class="player-badge">Para: Lovable</div>
+      </div>
+      <div class="email-subject">
+        Uso de Lovable em Projetos Corporativos: IONIX × Lovable — Parceria e Modelo de Consultoria
+      </div>
+      <div class="email-meta">
+        <div><strong>De:</strong> Vinicius · Consultor Sênior, IONIX</div>
+        <div><strong>Para:</strong> Equipe de Parcerias / Growth — Lovable</div>
+        <div><strong>Data:</strong> Março 2026</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="email-body">
+
+      <div class="salutation">Olá, equipe Lovable,</div>
+
+      <p>
+        Meu nome é Vinicius, sou consultor sênior na <strong>IONIX</strong> — consultoria especializada em transformação de IA para empresas B2B no Brasil. Estamos liderando um projeto de <strong>transformação escalável em IA</strong> para a <strong>Swift</strong>, empresa do setor alimentício com ~198 colaboradores, e o Lovable entrou no nosso radar como ferramenta estratégica para a esteira de prototipagem rápida que estamos construindo.
+      </p>
+
+      <p>
+        Nossa proposta é usar o Lovable como <strong>acelerador de prototipagem de aplicações internas</strong> — permitindo que o time da Swift construa interfaces e ferramentas com IA sem depender inteiramente de desenvolvedores tradicionais. O conceito de vibe coding se alinha perfeitamente com nossa abordagem de autonomia crescente para equipes de negócio.
+      </p>
+
+      <div class="context-block">
+        <h4>Contexto do Projeto Swift</h4>
+        <ul>
+          <li>Empresa B2B alimentícia · ~198 colaboradores · 81% Geração Y+Z — alto potencial de adoção de ferramentas modernas</li>
+          <li>Squad interna de IA sendo estruturada do zero com autonomia crescente (meta: 20% → 95% em 12 meses)</li>
+          <li>Pod Volante: núcleo ágil para prototipagem e quick wins — onde o Lovable se encaixa diretamente</li>
+          <li>Stack atual: Claude API, Claude Code, n8n — Lovable seria a camada de front-end/prototipagem rápida</li>
+          <li>Escola interna Germinare: modelo train-the-trainer para capacitação escalável em IA</li>
+        </ul>
+      </div>
+
+      <div class="usecase-block">
+        <h4>Casos de Uso que Queremos Explorar com Lovable</h4>
+
+        <div class="usecase-item">
+          <div class="uc-icon">⚡</div>
+          <div><strong>Dashboards internos rápidos</strong> — interfaces para visualização de dados operacionais sem backlog de TI, criados pelo próprio time de negócio com apoio do Pod Volante</div>
+        </div>
+
+        <div class="usecase-item">
+          <div class="uc-icon">🤖</div>
+          <div><strong>Interfaces para agentes de IA</strong> — front-end para fluxos n8n + Claude, tornando automações acessíveis para usuários não-técnicos da Swift</div>
+        </div>
+
+        <div class="usecase-item">
+          <div class="uc-icon">🧪</div>
+          <div><strong>MVPs de ferramentas internas</strong> — prototipagem de soluções para validar hipóteses antes de desenvolver em produção, reduzindo risco e custo de experimentação</div>
+        </div>
+
+        <div class="usecase-item">
+          <div class="uc-icon">📋</div>
+          <div><strong>Formulários e coletores de dados inteligentes</strong> — substituindo planilhas e processos manuais com aplicações simples construídas em horas, não semanas</div>
+        </div>
+      </div>
+
+      <div class="questions-block">
+        <h4>Pontos que precisamos esclarecer antes de avançar</h4>
+
+        <div class="question-item">
+          <div class="q-num">1</div>
+          <div>Como funciona o <strong>modelo de uso para consultorias</strong> — a IONIX pode criar e gerenciar projetos de clientes dentro de uma conta própria, ou cada cliente precisa de conta separada?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">2</div>
+          <div>Qual é o <strong>modelo de precificação para uso intensivo</strong> em projetos (múltiplos projetos por mês, vários colaboradores)? Há desconto para volume ou plano de parceiro?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">3</div>
+          <div>O <strong>código gerado pode ser exportado e hospedado</strong> na infraestrutura do cliente (AWS/Azure/on-premise)? Ou há lock-in na plataforma Lovable?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">4</div>
+          <div>Como funciona a <strong>integração com APIs externas e n8n</strong>? Existe documentação ou exemplos de workflows conectando Lovable com automações de back-end?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">5</div>
+          <div>Qual é a política de <strong>privacidade dos projetos</strong> — o código e os dados dos projetos são usados para treinar os modelos do Lovable ou de terceiros?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">6</div>
+          <div>Existe <strong>controle de acesso granular</strong> — é possível restringir quem visualiza e edita cada projeto? Há logs de auditoria para uso corporativo?</div>
+        </div>
+      </div>
+
+      <p>
+        Acredito que o Lovable pode se tornar uma peça importante na esteira de prototipagem da Swift — e que a IONIX pode ser um <strong>canal de adoção para o mercado corporativo brasileiro</strong>, levando a ferramenta a outros clientes de perfil similar. Quero entender se há interesse em estruturar essa relação de forma mais formal.
+      </p>
+
+      <div class="cta-block">
+        <p>
+          <strong>Proposta:</strong> Uma conversa de 45 minutos com a equipe de parcerias do Lovable para explorar os pontos acima e fazer uma demo ao vivo de um caso de uso real do projeto Swift. Temos disponibilidade a partir de abril/2026.
+        </p>
+      </div>
+
+      <p>
+        Aguardo o retorno de vocês para alinharmos o melhor horário. Fico à disposição para qualquer esclarecimento inicial por aqui.
+      </p>
+
+      <div class="signature">
+        <div class="sig-name">Vinicius</div>
+        <div class="sig-role">Consultor Sênior · Transformação em IA</div>
+        <div class="sig-company">IONIX</div>
+        <div class="sig-contact">vinicius@ionix.com.br · linkedin.com/in/vinicius-ionix</div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="email-footer">
+      <span>IONIX · Projeto Swift · Março 2026</span>
+      <span class="footer-tag">Contato Comercial · Lovable</span>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

@@ -267,6 +267,32 @@ Cada suposicao, se confirmada ou refutada, **muda decisoes concretas** sobre o p
 | **Se confirmada** | Trilha Estrategica precisa de modulo especifico: "governanca aplicada — como avaliar riscos e definir politicas de IA na sua area". Nao basta letramento conceitual. |
 | **Se refutada** | Se gestores ja sabem aplicar, a governanca pode ser descentralizada mais rapido. Reduz carga no Comite de IA. |
 
+**S16 — Colaboradores desconhecem vies algoritmico e riscos legais de IA com dados pessoais** *(NOVA)*
+
+| | |
+|---|---|
+| **Prioridade** | **Alta** |
+| **Dimensao da Matriz** | **Governanca** — testa transicao nivel 2→3 (transversal, ambos os clusters) |
+| **Transicao que testa** | Nivel 2→3: "Nocoes basicas de uso responsavel" → "Entende principios e boas praticas" |
+| **Gap que cobre** | S10 testa a camada basica: nao compartilhar informacoes confidenciais (nivel 1→2). Nenhuma hipotese testava riscos mais sofisticados do nivel 2→3: **vies algoritmico** (IA pode perpetuar discriminacao de genero, raca, etc. com dados enviesados) e **riscos legais** (LGPD, responsabilidade civil por uso inadequado de dados pessoais). Sem esses dois vetores, o nivel 3 real em Governanca nao e atingido. |
+| **Validacao** | Q58 (conhece vies algoritmico e seu impacto), Q59 (cenario comportamental: IA com vies em contratacao), Q60 (conhece riscos legais/LGPD) |
+| **Por que importa** | Colaboradores que nao conhecem vies podem replicar discriminacao de forma involuntaria ao usar IA em selecao, avaliacao de credito ou atendimento segmentado. Quem nao conhece riscos legais pode expor a Swift a notificacoes da ANPD ou acoes de colaboradores e clientes — mesmo com uso aparentemente inocente de IA. |
+| **Se confirmada** | Modulo obrigatorio de "etica e compliance de IA" precisa cobrir vies + LGPD, nao so "nao cole dados sigilosos no ChatGPT". A intervencao de governanca e mais profunda do que S10 sugere. |
+| **Se refutada** | Se a maioria ja conhece vies e LGPD, o baseline de governanca e mais alto que o esperado — capacitacao pode focar direto em aplicacao pratica em vez de conceitos. |
+
+**S17 — A percepcao dominante e de que a Swift nao tem mecanismos de governanca de IA suficientes hoje** *(NOVA)*
+
+| | |
+|---|---|
+| **Prioridade** | **Alta** |
+| **Dimensao da Matriz** | **Governanca** — contexto transversal para toda a intervencao |
+| **Transicao que testa** | Nao e uma transicao de nivel — e uma medicao de **sentimento sobre o estado atual** da governanca organizacional |
+| **Gap que cobre** | S10 e S15 medem **conhecimento individual** sobre governanca. Nenhuma hipotese media a **percepcao coletiva** de adequacao dos mecanismos institucionais. Colaboradores podem saber o que nao compartilhar (S10 refutada) e ainda assim sentir que a empresa nao tem politicas claras — ou vice-versa. Sao dimensoes distintas. |
+| **Validacao** | Q61 (avaliacao direta da governanca atual da Swift: Inexistente / Insuficiente / Adequada / Madura), Q55 aberta (preocupacoes qualitativas sobre IA na Swift) |
+| **Por que importa** | Percepcao de vazio → programa precisa primeiro comunicar o que existe e criar o que falta antes de ampliar uso. Percepcao de estrutura adequada → risco de complacencia: as pessoas acham que estao protegidas quando nao estao. Cada percepcao exige comunicacao radicalmente diferente. |
+| **Se confirmada (vazio)** | Primeiro ato do programa: publicar politica basica de uso de IA + comunicar o Comite de IA. Nao e possivel escalar uso sem esse ancoragem simbolica. |
+| **Se refutada (percepcao de estrutura)** | Auditar o que as pessoas acreditam que existe vs. o que de fato existe. Pode revelar falsa sensacao de seguranca — risco silencioso. |
+
 ---
 
 ### D — Duvidas
@@ -354,13 +380,15 @@ Duvidas sao exploratorias — o valor e gerar **insight novo** que nenhuma supos
 | 1 | **S6** — gestores formulam hipoteses? | Impacto | Define se a esteira funciona ou morre na origem |
 | 2 | **S10** — governanca esta baixa? | Governanca | Define se podemos acelerar ou precisamos frear |
 | 3 | **S3** — conectam IA com dados reais? | Dados | Define se experimentacao gera valor ou e cosmetica |
-| 4 | **S7** — gestores delegam IA pra TI? | Impacto | Define se governanca distribuida funciona |
-| 5 | **D2** — processos candidatos a IA | Impacto | Backlog da esteira — sem materia-prima, sem esteira |
-| 6 | **S1** — nivel real de uso hoje | Utilizacao | Calibra ponto de partida das trilhas |
-| 7 | **S13** — avaliam/corrigem outputs? | Utilizacao | Diferencia uso raso de uso com profundidade |
-| 8 | **S14** — sabem preparar dados? | Dados | Determina sequencia da capacitacao |
-| 9 | **S11** — early adopters existem? | Cultura | Define viabilidade da escala via Germinare |
-| 10 | **S15** — gestores aplicam governanca? | Governanca | Define se governanca pode ser descentralizada |
+| 4 | **S16** — desconhecem vies e riscos legais? | Governanca | Define profundidade real da intervencao de etica/compliance |
+| 5 | **S7** — gestores delegam IA pra TI? | Impacto | Define se governanca distribuida funciona |
+| 6 | **D2** — processos candidatos a IA | Impacto | Backlog da esteira — sem materia-prima, sem esteira |
+| 7 | **S1** — nivel real de uso hoje | Utilizacao | Calibra ponto de partida das trilhas |
+| 8 | **S13** — avaliam/corrigem outputs? | Utilizacao | Diferencia uso raso de uso com profundidade |
+| 9 | **S17** — percepcao de vazio de governanca? | Governanca | Define comunicacao e primeiro ato do programa |
+| 10 | **S14** — sabem preparar dados? | Dados | Determina sequencia da capacitacao |
+| 11 | **S11** — early adopters existem? | Cultura | Define viabilidade da escala via Germinare |
+| 12 | **S15** — gestores aplicam governanca? | Governanca | Define se governanca pode ser descentralizada |
 
 ---
 

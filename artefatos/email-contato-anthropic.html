@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Email de Contato — Anthropic</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .wrapper { max-width: 720px; width: 100%; }
+
+  /* Label de contexto */
+  .context-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #64748b;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .context-label::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #f97316;
+  }
+
+  /* Card principal */
+  .email-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+
+  /* Topo — header do email */
+  .email-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    padding: 32px 40px;
+    color: white;
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .brand-ionix {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    color: #fff;
+  }
+  .brand-ionix span { color: #f97316; }
+  .player-badge {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,.85);
+    letter-spacing: .04em;
+  }
+
+  .email-subject {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  .email-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,.65);
+  }
+  .email-meta strong { color: rgba(255,255,255,.9); font-weight: 500; }
+
+  /* Corpo */
+  .email-body {
+    padding: 36px 40px;
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .salutation { font-weight: 600; color: #0f3460; margin-bottom: 20px; }
+  p { margin-bottom: 16px; color: #334155; }
+  p:last-of-type { margin-bottom: 0; }
+
+  /* Bloco de contexto Swift */
+  .context-block {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #f97316;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .context-block h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #f97316;
+    margin-bottom: 12px;
+  }
+  .context-block ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .context-block li {
+    font-size: 13.5px;
+    color: #475569;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .context-block li::before {
+    content: '→';
+    color: #f97316;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Perguntas chave */
+  .questions-block {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .questions-block h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #1d4ed8;
+    margin-bottom: 14px;
+  }
+  .question-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #dbeafe;
+    font-size: 13.5px;
+    color: #1e40af;
+    line-height: 1.5;
+  }
+  .question-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .q-num {
+    background: #1d4ed8;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* CTA */
+  .cta-block {
+    background: linear-gradient(135deg, #fff7ed, #fef3c7);
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    text-align: center;
+  }
+  .cta-block p {
+    font-size: 14px;
+    color: #92400e;
+    margin: 0;
+  }
+  .cta-block strong { color: #7c2d12; }
+
+  /* Assinatura */
+  .signature {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 28px;
+    padding-top: 24px;
+  }
+  .sig-name { font-weight: 700; font-size: 15px; color: #1a1a2e; }
+  .sig-role { font-size: 13px; color: #64748b; margin-top: 3px; }
+  .sig-company { font-size: 13px; color: #f97316; font-weight: 600; margin-top: 2px; }
+  .sig-contact { font-size: 12px; color: #94a3b8; margin-top: 10px; }
+
+  /* Footer do card */
+  .email-footer {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .footer-tag {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .email-card { box-shadow: none; border-radius: 0; }
+    .context-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <div class="context-label">
+    Artefato IONIX · Contato Comercial com Player de IA
+  </div>
+
+  <div class="email-card">
+
+    <!-- Header -->
+    <div class="email-header">
+      <div class="brand-row">
+        <div class="brand-ionix">ION<span>IX</span></div>
+        <div class="player-badge">Para: Anthropic · Claude</div>
+      </div>
+      <div class="email-subject">
+        Parceria Estratégica em IA: IONIX × Anthropic — Projeto de Transformação Swift
+      </div>
+      <div class="email-meta">
+        <div><strong>De:</strong> Vinicius · Consultor Sênior, IONIX</div>
+        <div><strong>Para:</strong> Equipe de Parcerias Corporativas — Anthropic</div>
+        <div><strong>Data:</strong> Março 2026</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="email-body">
+
+      <div class="salutation">Olá, equipe Anthropic,</div>
+
+      <p>
+        Meu nome é Vinicius, sou consultor sênior na <strong>IONIX</strong> — consultoria especializada em transformação de IA para empresas B2B no Brasil. Atualmente, lideramos um projeto de <strong>transformação escalável em IA</strong> para a <strong>Swift</strong>, uma das maiores empresas do setor alimentício do país, com operação em ~198 colaboradores.
+      </p>
+
+      <p>
+        O Claude já faz parte da nossa stack de trabalho. Usamos a API e o Claude Code como base de desenvolvimento inteligente na esteira de produção que estamos construindo para a Swift. O resultado tem sido consistentemente superior às alternativas que avaliamos — e é justamente por isso que quero evoluir essa relação de <em>uso</em> para <em>parceria</em>.
+      </p>
+
+      <div class="context-block">
+        <h4>Contexto do Projeto Swift</h4>
+        <ul>
+          <li>Transformação em IA com 3 pilares: Esteira de Produção, Squad Interna e Pod Volante de experimentação ágil</li>
+          <li>Público interno: ~198 colaboradores, 81% Geração Y+Z — alta receptividade a novas tecnologias</li>
+          <li>Escola interna Germinare com modelo train-the-trainer para capacitação escalável</li>
+          <li>Stack atual: Claude API, Claude Code, Lovable, n8n — com plano de expansão progressiva</li>
+          <li>Meta: quick wins em 90 dias e autonomia organizacional sustentável em 12 meses</li>
+        </ul>
+      </div>
+
+      <p>
+        A IONIX atua como orquestradora de múltiplos squads neste projeto — o que nos coloca em posição de <strong>recomendar, integrar e escalar</strong> tecnologias para o cliente. Queremos entender como podemos estruturar uma relação formal com a Anthropic que nos permita fazer isso com mais segurança, suporte e modelo comercial adequado.
+      </p>
+
+      <div class="questions-block">
+        <h4>Temas que gostaríamos de explorar na conversa</h4>
+
+        <div class="question-item">
+          <div class="q-num">1</div>
+          <div>Existe um <strong>programa formal de parceiros</strong> para consultorias que usam Claude como base de soluções para clientes corporativos? Quais são os critérios e benefícios?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">2</div>
+          <div>Como funciona o <strong>modelo comercial para uso via API em projetos de clientes</strong> — a IONIX pode revender/embutir no serviço ou cada cliente precisa de conta própria?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">3</div>
+          <div>Qual é a política de <strong>zero data retention</strong> para uso corporativo via API? Os dados processados são usados para treinamento dos modelos?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">4</div>
+          <div>Existe suporte a <strong>implantação em VPC privada</strong> ou o processamento é sempre na infraestrutura da Anthropic? Há opção de região Brasil?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">5</div>
+          <div>Como funciona o acesso a <strong>rate limits maiores e novos modelos antecipadamente</strong> para parceiros que têm projetos de maior escala?</div>
+        </div>
+
+        <div class="question-item">
+          <div class="q-num">6</div>
+          <div>Há interesse da Anthropic em <strong>co-marketing ou casos de uso documentados</strong> a partir de projetos como o da Swift — com potencial de visibilidade para ambos os lados?</div>
+        </div>
+      </div>
+
+      <p>
+        Acredito que há uma oportunidade real de construirmos algo sólido juntos. A IONIX está posicionada para ser um multiplicador do Claude no mercado corporativo brasileiro — e gostaríamos de entender como fazer isso da forma mais estruturada possível.
+      </p>
+
+      <div class="cta-block">
+        <p>
+          <strong>Proposta:</strong> Uma conversa de 45–60 minutos com a equipe de parcerias da Anthropic para explorar os pontos acima. Temos disponibilidade a partir de abril/2026 e podemos nos adaptar ao fuso horário de vocês.
+        </p>
+      </div>
+
+      <p>
+        Fico à disposição para qualquer esclarecimento inicial por e-mail e aguardo o retorno de vocês para alinharmos o melhor formato.
+      </p>
+
+      <div class="signature">
+        <div class="sig-name">Vinicius</div>
+        <div class="sig-role">Consultor Sênior · Transformação em IA</div>
+        <div class="sig-company">IONIX</div>
+        <div class="sig-contact">vinicius@ionix.com.br · linkedin.com/in/vinicius-ionix</div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="email-footer">
+      <span>IONIX · Projeto Swift · Março 2026</span>
+      <span class="footer-tag">Contato Comercial · Anthropic</span>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

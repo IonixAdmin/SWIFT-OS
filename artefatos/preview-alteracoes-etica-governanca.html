@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Preview — Alterações: Ética, Viés e Governança</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; background: #f8fafc; }
+.new-badge { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.score-badge { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.desc-badge { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.file-chip { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 2px 10px; border-radius: 6px; font-size: 11px; font-family: monospace; }
+.card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 16px; }
+.card-new { border-left: 4px solid #22c55e; }
+.card-update { border-left: 4px solid #3b82f6; }
+.option-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; }
+.option-a { background: #fef2f2; }
+.option-b { background: #fffbeb; }
+.option-c { background: #f0fdf4; }
+.option-d { background: #eff6ff; }
+.score-pill { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.n1 { background: #f1f5f9; color: #64748b; }
+.n2 { background: #dcfce7; color: #16a34a; }
+.n3 { background: #fef9c3; color: #854d0e; }
+.n4 { background: #fed7aa; color: #c2410c; }
+.section-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+.impact-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #0c4a6e; }
+.if-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #14532d; }
+.ifnot-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #7c2d12; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #f8fafc; color: #475569; font-weight: 600; padding: 8px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.tag-gov { background: #ede9fe; color: #5b21b6; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.tag-crit { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.tag-alta { background: #fef3c7; color: #78350f; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.likert-demo { display: flex; gap: 6px; margin-top: 10px; }
+.likert-opt { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 4px; text-align: center; font-size: 11px; color: #64748b; background: #f8fafc; }
+</style>
+</head>
+<body class="p-6">
+
+<div class="max-w-4xl mx-auto">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="text-2xl">🔍</span>
+      <h1 class="text-2xl font-bold text-gray-900">Preview de Alterações</h1>
+      <span class="new-badge">Para aprovação</span>
+    </div>
+    <p class="text-gray-500 text-sm">Ética, viés algorítmico, riscos legais e sentimento sobre governança atual — <strong>2 novas hipóteses + 4 novas perguntas</strong></p>
+    <div class="flex gap-2 mt-3 flex-wrap">
+      <span class="file-chip">01-hipoteses-csd.md</span>
+      <span class="file-chip">02-pesquisa-completa.md</span>
+      <span class="file-chip">03-cross-check-perguntas-csd-matriz.md</span>
+      <span class="file-chip">04-algoritmo-de-scoring.md</span>
+      <span class="file-chip">pesquisa-maturidade-ia.html</span>
+    </div>
+  </div>
+
+  <!-- ─── SEÇÃO 1: NOVAS HIPÓTESES ─── -->
+  <div class="section-header">1 · Novas Hipóteses CSD</div>
+
+  <!-- S16 -->
+  <div class="card card-new mb-4">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-bold text-gray-900 text-base">S16</span>
+          <span class="new-badge">NOVA</span>
+          <span class="tag-gov">Governança</span>
+          <span class="tag-alta">Alta</span>
+        </div>
+        <p class="font-semibold text-gray-800">Colaboradores desconhecem viés algorítmico e riscos legais de IA com dados pessoais</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">CLUSTER</div>
+        <div class="font-medium text-gray-800">Transversal (ambos)</div>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">TRANSIÇÃO QUE TESTA</div>
+        <div class="font-medium text-gray-800">N2 → N3</div>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">VALIDAÇÃO</div>
+        <div class="font-medium text-gray-800">Q58 + Q59 + Q60</div>
+      </div>
+    </div>
+
+    <p class="text-sm text-gray-700 mb-3">S10 testa a camada básica: "não cole dados sigilosos no ChatGPT" (N1→N2). S16 testa a camada seguinte: conhecimento de <strong>viés algorítmico</strong> (IA pode perpetuar discriminação de gênero, raça, etc.) e <strong>riscos legais</strong> (LGPD, responsabilidade civil). Sem esses dois vetores, o nível 3 real em Governança não é atingido.</p>
+
+    <div class="impact-box mb-3">
+      <strong>Por que importa:</strong> Colaboradores que não conhecem viés podem replicar discriminação involuntariamente ao usar IA em seleção, avaliação de crédito ou atendimento segmentado. Quem ignora a LGPD pode expor a Swift a notificações da ANPD ou ações judiciais — mesmo com uso "inocente" de IA.
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="if-box"><strong>Se confirmada:</strong> módulo obrigatório de ética e compliance precisa cobrir viés + LGPD, não só "não cole dados sigilosos". Intervenção de governança é mais profunda que S10 sugere.</div>
+      <div class="ifnot-box"><strong>Se refutada:</strong> baseline de governança é mais alto que o esperado — capacitação pode focar direto em aplicação prática em vez de conceitos.</div>
+    </div>
+  </div>
+
+  <!-- S17 -->
+  <div class="card card-new mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-bold text-gray-900 text-base">S17</span>
+          <span class="new-badge">NOVA</span>
+          <span class="tag-gov">Governança</span>
+          <span class="tag-alta">Alta</span>
+        </div>
+        <p class="font-semibold text-gray-800">A percepção dominante é de que a Swift não tem mecanismos de governança de IA suficientes hoje</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">CLUSTER</div>
+        <div class="font-medium text-gray-800">Transversal (ambos)</div>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">O QUE MEDE</div>
+        <div class="font-medium text-gray-800">Sentimento institucional</div>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 font-medium mb-1">VALIDAÇÃO</div>
+        <div class="font-medium text-gray-800">Q61 + Q55 (aberta)</div>
+      </div>
+    </div>
+
+    <p class="text-sm text-gray-700 mb-3">S10 e S15 medem <strong>conhecimento individual</strong> sobre governança. S17 mede o <strong>sentimento coletivo</strong> sobre a adequação dos mecanismos institucionais da Swift. Colaboradores podem saber o que não compartilhar (S10 refutada) e ainda assim sentir que a empresa não tem políticas claras — ou vice-versa. São dimensões distintas.</p>
+
+    <div class="impact-box mb-3">
+      <strong>Por que importa:</strong> Percepção de vácuo → programa precisa primeiro comunicar o que já existe e criar o que falta antes de ampliar uso. Percepção de estrutura adequada → risco de complacência ("já estamos protegidos"). Cada cenário exige comunicação radicalmente diferente.
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="if-box"><strong>Se confirmada (vácuo):</strong> publicar política básica de uso de IA + comunicar o Comitê de IA como primeiro ato do programa — antes de qualquer capacitação técnica.</div>
+      <div class="ifnot-box"><strong>Se refutada (percepção de estrutura):</strong> auditar o que as pessoas acreditam que existe vs. o que de fato existe. Pode revelar falsa sensação de segurança.</div>
+    </div>
+  </div>
+
+  <!-- ─── SEÇÃO 2: NOVAS PERGUNTAS ─── -->
+  <div class="section-header">2 · Novas Perguntas (Q58 – Q61) — inseridas na Fase 1, bloco Governança</div>
+
+  <!-- Q58 -->
+  <div class="card card-new mb-4">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="font-bold text-purple-700 text-lg">Q58</span>
+      <span class="new-badge">NOVA</span>
+      <span class="score-badge">Score Comum → Governança</span>
+      <span class="tag-gov">Likert padrão</span>
+    </div>
+    <p class="font-semibold text-gray-900 mb-1">Sei o que é viés algorítmico e como ele pode impactar decisões tomadas com IA (ex.: triagem de currículos, aprovação de crédito, atendimento segmentado).</p>
+
+    <div class="likert-demo">
+      <div class="likert-opt">1<br/><span class="text-xs">Discordo<br/>totalmente</span></div>
+      <div class="likert-opt">2<br/><span class="text-xs">Discordo<br/>parcialmente</span></div>
+      <div class="likert-opt">3<br/><span class="text-xs">Neutro</span></div>
+      <div class="likert-opt">4<br/><span class="text-xs">Concordo<br/>parcialmente</span></div>
+      <div class="likert-opt">5<br/><span class="text-xs">Concordo<br/>totalmente</span></div>
+    </div>
+
+    <div class="mt-3 text-sm">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 font-medium mb-1">HIPÓTESE</div>
+          <div class="font-medium text-gray-800">S16</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 font-medium mb-1">NÍVEL QUE DISCRIMINA</div>
+          <div class="font-medium text-gray-800">N2 → N3 em Governança</div>
+        </div>
+      </div>
+      <div class="impact-box mt-3">
+        <strong>Por que importa:</strong> Identifica se o time conhece um dos riscos mais sérios e menos discutidos de IA no contexto corporativo. Score baixo confirma S16 — o módulo de ética precisa cobrir viés explicitamente.
+      </div>
+    </div>
+  </div>
+
+  <!-- Q59 -->
+  <div class="card card-new mb-4">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="font-bold text-purple-700 text-lg">Q59</span>
+      <span class="new-badge">NOVA</span>
+      <span class="score-badge">Score Comum → Governança</span>
+      <span class="tag-gov">Cenário comportamental</span>
+    </div>
+    <p class="font-semibold text-gray-900 mb-3"><strong>Cenário:</strong> Uma ferramenta de IA usada pela Swift aprova consistentemente candidatos com determinado perfil e rejeita outros para a mesma vaga, sem critério claro. O que você faria?</p>
+
+    <div class="space-y-2">
+      <div class="option-row option-a">
+        <span class="score-pill n1">N1 — 1.0</span>
+        <span class="text-sm text-gray-700"><strong>a)</strong> Continuaria usando — os resultados parecem adequados para a empresa</span>
+      </div>
+      <div class="option-row option-b">
+        <span class="score-pill n2">N2 — 2.0</span>
+        <span class="text-sm text-gray-700"><strong>b)</strong> Reportaria ao meu gestor, mas continuaria usando enquanto isso</span>
+      </div>
+      <div class="option-row option-d">
+        <span class="score-pill n3">N3 — 3.0</span>
+        <span class="text-sm text-gray-700"><strong>d)</strong> Suspenderia o uso e escalaria imediatamente para TI ou Compliance</span>
+      </div>
+      <div class="option-row option-c">
+        <span class="score-pill n4">N4 — 4.0</span>
+        <span class="text-sm text-gray-700"><strong>c)</strong> Investigaria a causa antes de continuar usando — entenderia de onde vem o padrão e documentaria o risco</span>
+      </div>
+    </div>
+
+    <div class="mt-3 text-sm text-gray-500 italic">
+      <strong>Lógica:</strong> a) ignora o risco = N1. b) reporta mas não para = N2 (tem alguma sensibilidade mas sem ação concreta). d) para sem entender = N3 (age com prudência mas sem diagnóstico). c) investiga + documenta = N4 (aplica governança real).
+    </div>
+
+    <div class="mt-3">
+      <div class="impact-box">
+        <strong>Por que importa:</strong> Teste comportamental — revela o que a pessoa FARIA, não o que SABE (diferente do Q58). Quem marca (a) está no N1 mesmo que marque alto em Q58. Detecta Dunning-Kruger de ética.
+      </div>
+    </div>
+  </div>
+
+  <!-- Q60 -->
+  <div class="card card-new mb-4">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="font-bold text-purple-700 text-lg">Q60</span>
+      <span class="new-badge">NOVA</span>
+      <span class="score-badge">Score Comum → Governança</span>
+      <span class="tag-gov">Likert padrão</span>
+    </div>
+    <p class="font-semibold text-gray-900 mb-1">Conheço os riscos legais de usar IA com dados pessoais de clientes ou colaboradores (ex.: LGPD, privacidade, responsabilidade civil).</p>
+
+    <div class="likert-demo">
+      <div class="likert-opt">1<br/><span class="text-xs">Discordo<br/>totalmente</span></div>
+      <div class="likert-opt">2<br/><span class="text-xs">Discordo<br/>parcialmente</span></div>
+      <div class="likert-opt">3<br/><span class="text-xs">Neutro</span></div>
+      <div class="likert-opt">4<br/><span class="text-xs">Concordo<br/>parcialmente</span></div>
+      <div class="likert-opt">5<br/><span class="text-xs">Concordo<br/>totalmente</span></div>
+    </div>
+
+    <div class="mt-3 text-sm">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 font-medium mb-1">HIPÓTESE</div>
+          <div class="font-medium text-gray-800">S16</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 font-medium mb-1">NÍVEL QUE DISCRIMINA</div>
+          <div class="font-medium text-gray-800">N2 → N3 em Governança</div>
+        </div>
+      </div>
+      <div class="impact-box mt-3">
+        <strong>Por que importa:</strong> Complementa Q58 — enquanto Q58 testa viés (risco para terceiros), Q60 testa compliance legal (risco para a empresa). Juntas cobrem os dois vetores de S16. Baixo score em Q60 indica exposição jurídica não percebida.
+      </div>
+    </div>
+  </div>
+
+  <!-- Q61 -->
+  <div class="card card-new mb-6">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="font-bold text-purple-700 text-lg">Q61</span>
+      <span class="new-badge">NOVA</span>
+      <span class="desc-badge">Descritivo (sem score)</span>
+      <span class="tag-gov">Escala de adequação</span>
+    </div>
+    <p class="font-semibold text-gray-900 mb-3">Como você avalia os mecanismos de governança de IA que a Swift tem hoje?</p>
+
+    <div class="space-y-2">
+      <div class="option-row option-a">
+        <div class="w-3 h-3 rounded-full bg-red-400 mt-0.5 shrink-0"></div>
+        <span class="text-sm text-gray-700"><strong>Inexistentes</strong> — não há nenhuma diretriz ou política sobre uso de IA</span>
+      </div>
+      <div class="option-row option-b">
+        <div class="w-3 h-3 rounded-full bg-amber-400 mt-0.5 shrink-0"></div>
+        <span class="text-sm text-gray-700"><strong>Insuficientes</strong> — há algo, mas é muito pouco ou pouco claro</span>
+      </div>
+      <div class="option-row option-c">
+        <div class="w-3 h-3 rounded-full bg-green-400 mt-0.5 shrink-0"></div>
+        <span class="text-sm text-gray-700"><strong>Adequados</strong> — temos diretrizes razoáveis para o momento atual</span>
+      </div>
+      <div class="option-row option-d">
+        <div class="w-3 h-3 rounded-full bg-blue-400 mt-0.5 shrink-0"></div>
+        <span class="text-sm text-gray-700"><strong>Maduros</strong> — temos processos, políticas e responsáveis bem definidos</span>
+      </div>
+    </div>
+
+    <div class="mt-3 text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800">
+      <strong>Nota sobre scoring:</strong> Esta pergunta é <strong>descritiva</strong> — não entra no Score Comum nem no Estendido. Ela mede percepção de adequação institucional (hipótese S17), não maturidade individual. Será analisada como distribuição de frequência e cruzada com Q55 (aberta).
+    </div>
+
+    <div class="mt-3">
+      <div class="impact-box">
+        <strong>Por que importa:</strong> Valida S17. Se "Inexistentes" + "Insuficientes" > 70%, o programa precisa começar comunicando o que existe e criando estrutura mínima — antes de ampliar uso. Pode ser cruzada com cargo (Execução vs. Gestão) para ver se a percepção varia por nível hierárquico.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SEÇÃO 3: IMPACTO NO SCORING ─── -->
+  <div class="section-header">3 · Impacto no Scoring da Dimensão Governança</div>
+
+  <div class="card card-update mb-6">
+    <p class="text-sm text-gray-600 mb-4">A dimensão Governança no Score Comum passa de <strong>6 itens para 9 itens</strong>. Q61 é descritiva e não entra no score.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Pergunta</th>
+          <th>Tipo</th>
+          <th>Score</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Q24 — Sei quais infos não compartilhar</td><td>Likert padrão</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr><td>Q25 — Cenário: relatório confidencial</td><td>Cenário</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr><td>Q26 — Conheço diretrizes da empresa</td><td>Likert padrão</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr><td>Q27 — Verifico com outras fontes</td><td>Likert padrão</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr><td>Q28 — Sei quem é responsável quando IA erra</td><td>Likert padrão</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr><td>Q29 — Cenário: e-mail para cliente</td><td>Cenário</td><td>Score Comum</td><td>✅ Existente</td></tr>
+        <tr style="background:#f0fdf4"><td><strong>Q58 — Conheço viés algorítmico</strong></td><td>Likert padrão</td><td>Score Comum</td><td><span class="new-badge">NOVA</span></td></tr>
+        <tr style="background:#f0fdf4"><td><strong>Q59 — Cenário: IA com viés em contratação</strong></td><td>Cenário comportamental</td><td>Score Comum</td><td><span class="new-badge">NOVA</span></td></tr>
+        <tr style="background:#f0fdf4"><td><strong>Q60 — Conheço riscos legais / LGPD</strong></td><td>Likert padrão</td><td>Score Comum</td><td><span class="new-badge">NOVA</span></td></tr>
+        <tr style="background:#fffbeb"><td><strong>Q61 — Avaliação da governança atual da Swift</strong></td><td>Escala de adequação</td><td><em>Descritivo (sem score)</em></td><td><span class="new-badge">NOVA</span></td></tr>
+        <tr style="background:#f8fafc"><td><strong>Q51 — Aplicou orientação na área (Gestão)</strong></td><td>Escala</td><td>Score Estendido Gestão</td><td>✅ Existente</td></tr>
+      </tbody>
+    </table>
+
+    <div class="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-2xl font-bold text-gray-400">6</div>
+        <div class="text-gray-500">itens antes</div>
+      </div>
+      <div class="flex items-center justify-center text-2xl text-gray-400">→</div>
+      <div class="bg-green-50 rounded-lg p-3">
+        <div class="text-2xl font-bold text-green-600">9</div>
+        <div class="text-gray-500">itens depois</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SEÇÃO 4: ARQUIVOS AFETADOS ─── -->
+  <div class="section-header">4 · Resumo dos Arquivos Afetados</div>
+
+  <div class="card mb-4">
+    <table>
+      <thead>
+        <tr>
+          <th>Arquivo</th>
+          <th>O que muda</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="file-chip">01-hipoteses-csd.md</span></td>
+          <td>Adiciona S16 e S17 após S15. Atualiza Ranking Top 10 (S16 entra na posição 4, deslocando S14 e S9).</td>
+        </tr>
+        <tr>
+          <td><span class="file-chip">02-pesquisa-completa.md</span></td>
+          <td>Adiciona Q58–Q61 ao final do bloco Dimensão 3 — Governança (após Q29, antes da Dimensão 4).</td>
+        </tr>
+        <tr>
+          <td><span class="file-chip">03-cross-check-perguntas-csd-matriz.md</span></td>
+          <td>Adiciona Q58–Q61 na tabela de Governança. Atualiza composição (6→9). Adiciona S16 e S17 na verificação inversa. Atualiza resumo executivo de cobertura.</td>
+        </tr>
+        <tr>
+          <td><span class="file-chip">04-algoritmo-de-scoring.md</span></td>
+          <td>Adiciona seções 1.13 (Q58 Likert), 1.14 (Q59 Cenário viés) e 1.15 (Q60 Likert). Q61 vai para Etapa 8 (descritivas). Atualiza tabela 2.1 Governança (6→9 itens). Atualiza Cronbach alpha e tabela de conversão rápida.</td>
+        </tr>
+        <tr>
+          <td><span class="file-chip">pesquisa-maturidade-ia.html</span></td>
+          <td>Adiciona S16, S17 em SUPOSICOES[]. Adiciona Q58–Q61 em PERGUNTAS[]. Atualiza SCORE_COMUM_MAP.Governanca com Q58, Q59, Q60. Q61 fica como descritivo sem score.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center text-xs text-gray-400 mt-8 pb-6">
+    Preview para aprovação — nenhum arquivo foi alterado ainda · SWIFT OS × IONIX
+  </div>
+
+</div>
+</body>
+</html>

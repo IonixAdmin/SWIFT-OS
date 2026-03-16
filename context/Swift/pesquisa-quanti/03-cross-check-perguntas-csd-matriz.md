@@ -1,6 +1,6 @@
 # Cross-Check — Perguntas x CSD x Matriz de Letramento
 
-> Mapeamento completo e bidirecional entre as 57 perguntas (Q1-Q57), hipoteses CSD (S1-S15, D1-D8) e Matriz de Letramento (5 dimensoes x 4 niveis).
+> Mapeamento completo e bidirecional entre as 61 perguntas (Q1-Q61), hipoteses CSD (S1-S17, D1-D8) e Matriz de Letramento (5 dimensoes x 4 niveis).
 > Inclui composicao detalhada do scoring (Score Comum + Score Estendido).
 
 ---
@@ -80,11 +80,17 @@
 | Q27 | Verifico informacoes com outras fontes antes de decisao importante | S10 | 2→3 (pensamento critico) | **Score Comum — Governanca** |
 | Q28 | Saberia identificar responsavel se IA gerasse recomendacao errada | S10 | 3→4 (accountability) | **Score Comum — Governanca** |
 | Q29 | Cenario e-mail para cliente — o que faz antes de enviar (a/b/c/d) | S10 | 2→4 (cenario comportamental) | **Score Comum — Governanca (conversao cenario)** |
+| Q58 | Sei o que e vies algoritmico e seu impacto em decisoes de IA | S16 | 2→3 (principios de etica/vies) | **Score Comum — Governanca** |
+| Q59 | Cenario: IA com vies em contratacao — o que faria (a/b/c/d) | S16 | 1→4 (cenario comportamental etica) | **Score Comum — Governanca (conversao cenario)** |
+| Q60 | Conheco os riscos legais de usar IA com dados pessoais (LGPD) | S16 | 2→3 (compliance/legal) | **Score Comum — Governanca** |
+| Q61 | Como avalia os mecanismos de governanca de IA da Swift hoje | S17 | — (percepção institucional) | **Nenhum (descritivo — valida S17)** |
 
-**Composicao:** Q24 + Q25(cenario) + Q26 + Q27 + Q28 + Q29(cenario) = 6 itens
+**Composicao:** Q24 + Q25(cenario) + Q26 + Q27 + Q28 + Q29(cenario) + Q58 + Q59(cenario) + Q60 = 9 itens
+*(Q61 e descritivo — nao entra no scoring)*
 
-**Conversao cenario Q25:** a=1, e=1, d=2, b=3, c=5
-**Conversao cenario Q29:** a=1, d=2, b=3, c=5
+**Conversao cenario Q25:** a=1, e=1, d=2, b=3, c=4
+**Conversao cenario Q29:** a=1, d=2, b=2.5, c=4
+**Conversao cenario Q59:** a=1, b=2, d=3, c=4
 
 ---
 
@@ -194,8 +200,10 @@
 | S13 | Nao avaliam/corrigem outputs | Q13, Q14, Q15, Q16(reverso), Q43 | 5 | **Coberta** |
 | S14 | Nao sabem preparar dados | Q19, Q20, Q21, Q22, Q23 | 5 | **Coberta** |
 | S15 | Gestores nao aplicam governanca | Q26, Q50, Q51, Q55 | 4 | **Coberta** (Q51 testa acao real) |
+| S16 | Desconhecem vies algoritmico e riscos legais/LGPD | Q58, Q59, Q60 | 3 | **Coberta** (vies + cenario + legal) |
+| S17 | Percepcao de vazio de governanca na Swift | Q61, Q55 | 2 | **Coberta** (escala direta + aberta) |
 
-**Resultado:** 15/15 suposicoes cobertas. Nenhuma orfa.
+**Resultado:** 17/17 suposicoes cobertas. Nenhuma orfa.
 
 ---
 
@@ -247,10 +255,10 @@
 | Transicao | Descritor da Matriz | Perguntas que discriminam |
 |---|---|---|
 | **Nivel 1→2** | "Sem conhecimento" → "Nocoes basicas de uso responsavel" | Q24 baixo, Q25 opcoes a/e (sem nocao de risco) |
-| **Nivel 2→3** | "Nocoes basicas" → "Entende principios e boas praticas" | Q24 alto, Q25 opcao b→d, Q26, Q27, Q29 opcao b→c |
+| **Nivel 2→3** | "Nocoes basicas" → "Entende principios e boas praticas" | Q24 alto, Q25 opcao b→d, Q26, Q27, Q29 opcao b→c, Q58 (vies), Q59 cenario (etica comportamental), Q60 (LGPD) |
 | **Nivel 3→4** | "Entende principios" → "Aplica governanca, etica e compliance" | Q25 opcao c, Q28, Q29 opcao c, Q51 (Gestao: aplica orientacao) |
 
-**Status:** Cobertura completa. Q51 garante teste comportamental para nivel 4 no cluster Gestao.
+**Status:** Cobertura forte. Transicao 2→3 reforçada com 3 novos itens (Q58, Q59, Q60) cobrindo etica, vies e compliance legal. Q51 garante teste comportamental para nivel 4 no cluster Gestao.
 
 ---
 
@@ -286,10 +294,10 @@
 |---|---|---|
 | **Utilizacao** | Q12, Q13, Q14, Q15, Q16(reverso), Q17(confianca), Q18 | 7 |
 | **Dados** | Q19, Q20, Q21, Q22, Q23(cenario) | 5 |
-| **Governanca** | Q24, Q25(cenario), Q26, Q27, Q28, Q29(cenario) | 6 |
+| **Governanca** | Q24, Q25(cenario), Q26, Q27, Q28, Q29(cenario), Q58, Q59(cenario), Q60 | 9 |
 | **Impacto** | Q30, Q31, Q32, Q33, Q34 | 5 |
 | **Cultura** | Q35, Q36(reverso), Q37, Q38, Q39 | 5 |
-| **TOTAL** | | **28** |
+| **TOTAL** | | **31** |
 
 ---
 
@@ -332,7 +340,8 @@
 | Q6-Q11 | Mapa descritivo | Validacao de hipoteses (sem score) |
 | Q12-Q18 | **Score Comum** | **Utilizacao (7 itens)** |
 | Q19-Q23 | **Score Comum** | **Dados (5 itens)** |
-| Q24-Q29 | **Score Comum** | **Governanca (6 itens)** |
+| Q24-Q29, Q58-Q60 | **Score Comum** | **Governanca (9 itens)** |
+| Q61 | Descritivo | Valida S17 (sentimento institucional) |
 | Q30-Q34 | **Score Comum** | **Impacto (5 itens)** |
 | Q35-Q39 | **Score Comum** | **Cultura (5 itens)** |
 | Q40 | Diagnostico | Barreiras (descritivo) |
@@ -354,12 +363,12 @@
 
 | Criterio | Status |
 |---|---|
-| Todas as 15 suposicoes (S1-S15) cobertas por perguntas | **OK — 15/15** |
+| Todas as 17 suposicoes (S1-S17) cobertas por perguntas | **OK — 17/17** |
 | Todas as 8 duvidas (D1-D8) cobertas por perguntas/analises | **OK — 8/8** |
 | Todas as 15 transicoes de nivel (5 dimensoes x 3) cobertas | **OK — 15/15** |
-| Minimo 3 itens por dimensao no Score Comum | **OK (7+5+6+5+5 = 28)** |
+| Minimo 3 itens por dimensao no Score Comum | **OK (7+5+9+5+5 = 31)** |
 | Itens reversos presentes | **OK — Q16 (Utilizacao), Q36 (Cultura)** |
-| Cenarios comportamentais presentes | **OK — Q23 (Dados), Q25 (Governanca), Q29 (Governanca)** |
+| Cenarios comportamentais presentes | **OK — Q23 (Dados), Q25 (Governanca), Q29 (Governanca), Q59 (Governanca/Etica)** |
 | Attention check presente | **OK — Q41** |
 | Perguntas orfas substantivas | **Nenhuma** |
 | Hipoteses orfas (sem pergunta) | **Nenhuma** |
@@ -368,11 +377,11 @@
 
 | Funcao | Quantidade | Perguntas |
 |---|---|---|
-| Score Comum (todos respondem) | 28 | Q12-Q39 |
+| Score Comum (todos respondem) | 31 | Q12-Q39 + Q58, Q59, Q60 |
 | Score Estendido Execucao | +2 | Q43, Q44 |
 | Score Estendido Gestao | +4 | Q48, Q49, Q50, Q51 |
-| Descritivas / Diagnostico | 23 | Q1-Q11, Q40-Q42, Q45-Q47, Q52-Q57 |
-| **Total** | **57** | |
+| Descritivas / Diagnostico | 26 | Q1-Q11, Q40-Q42, Q45-Q47, Q52-Q57, Q61 |
+| **Total** | **61** | |
 
 ### Composicao final dos scores por dimensao
 
@@ -380,10 +389,10 @@
 |---|---|---|---|---|---|
 | **Utilizacao** | 7 itens | +2 (Q43, Q44) | — | 9 | 7 |
 | **Dados** | 5 itens | — | — | 5 | 5 |
-| **Governanca** | 6 itens | — | +1 (Q51) | 6 | 7 |
+| **Governanca** | 9 itens (Q24-Q29+Q58-Q60) | — | +1 (Q51) | 9 | 10 |
 | **Impacto** | 5 itens | — | +3 (Q48, Q49, Q50) | 5 | 8 |
 | **Cultura** | 5 itens | — | — | 5 | 5 |
-| **TOTAL** | **28** | **+2** | **+4** | **30** | **32** |
+| **TOTAL** | **31** | **+2** | **+4** | **33** | **35** |
 
 ### Observacoes sobre fidelidade Matriz-perguntas
 

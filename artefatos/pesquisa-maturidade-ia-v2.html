@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pesquisa de Maturidade em IA — Swift v2</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] }
+    }
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.drawer-overlay { animation: overlayIn 0.2s ease; }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+.drawer-panel { animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+// ─── COLOR CONSTANTS ───
+const DIM_COLORS = {
+  Utilizacao: '#3B82F6',
+  Dados: '#10B981',
+  Governanca: '#8B5CF6',
+  Impacto: '#F59E0B',
+  Cultura: '#EC4899'
+};
+const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316' };
+const PRIO_COLORS = { Critica: '#EF4444', Alta: '#F97316', Media: '#EAB308' };
+const CLUSTER_COLORS = { Execucao: '#3B82F6', Gestao: '#8B5CF6', Transversal: '#6B7280' };
+
+const DIMENSIONS = ['Utilizacao','Dados','Governanca','Impacto','Cultura'];
+const LEVELS = ['Iniciante','Básico','Intermediário','Avançado'];
+const LEVEL_KEYS = ['N1','N2','N3','N4'];
+
+// ─── MATRIX DESCRIPTORS ───
+const MATRIX = {
+  Utilizacao: {
+    N1: 'Não usa IA',
+    N2: 'Uso pontual e operacional',
+    N3: 'Uso regular com prompts eficientes',
+    N4: 'Uso estratégico para decisões complexas'
+  },
+  Dados: {
+    N1: 'Desconhece a relação dados e IA',
+    N2: 'Sabe que dados são importantes',
+    N3: 'Compreende qualidade e organização',
+    N4: 'Domina preparação e aplicação em modelos'
+  },
+  Governanca: {
+    N1: 'Sem conhecimento',
+    N2: 'Noções básicas de uso responsável',
+    N3: 'Entende princípios e boas práticas',
+    N4: 'Aplica governança, ética e compliance'
+  },
+  Impacto: {
+    N1: 'Não identifica oportunidades',
+    N2: 'Identifica casos simples',
+    N3: 'Sugere melhorias em processos',
+    N4: 'Estrutura business cases'
+  },
+  Cultura: {
+    N1: 'Curiosidade inicial',
+    N2: 'Interesse ativo em aprender',
+    N3: 'Incentivador na equipe',
+    N4: 'Agente de transformação'
+  }
+};
+
+// ─── SUPOSIÇÕES ───
+const SUPOSICOES = [
+  { id:'S1', titulo:'Maioria já usa IA de forma rasa', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['Q6','Q7','Q8','Q9','Q12','Q18','Q43'],
+    desc:'A maioria dos colaboradores já utiliza ferramentas de IA generativa (ChatGPT, Copilot), porém de forma pontual e superficial — gerar textos, tirar dúvidas rápidas. Não exploram recursos avançados nem integram ao fluxo de trabalho.',
+    importa:'Define de onde a capacitação parte. Se confirmada, não precisa evangelizar — o time já usa, só falta profundidade e estrutura.',
+    confirmada:'Capacitação parte do nível 2 (Básico), foco em profundidade e dados. Argumento para Comite: "o time já usa, só falta estrutura."',
+    refutada:'Se o uso for mais profundo que o imaginado, trilha pode começar mais avançada — economia de tempo e investimento.' },
+  { id:'S2', titulo:'Uso por iniciativa própria', dimensao:'Cultura', cluster:'Execucao', prioridade:'Alta', transicao:'1→2', validacao:['Q10'],
+    desc:'Os colaboradores que já usam IA começaram por conta própria, sem incentivo formal da empresa. Indica energia orgânica reprimida que a esteira pode canalizar.',
+    importa:'Se a adoção é orgânica, o programa tem vento a favor. A esteira não precisa criar demanda — precisa estruturar a demanda que já existe.',
+    confirmada:'Confirma energia orgânica. Argumento forte para o CIO: "seu time já quer, só falta estrutura."',
+    refutada:'Se a empresa já incentivou, há tentativas passadas que podem ter falhado — investigar por que.' },
+  { id:'S3', titulo:'Não conectam com dados reais', dimensao:'Dados', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['Q11','Q19','Q20','Q23'],
+    desc:'Colaboradores usam IA com dados genéricos (perguntas gerais, textos públicos), mas não alimentam com dados reais do negócio — planilhas de vendas, bases de clientes, indicadores de desempenho.',
+    importa:'Sem dados reais, toda experimentação é cosmética. Prototipar com dados genéricos não gera valor de negócio.',
+    confirmada:'Trilha de Execução precisa priorizar letramento em dados ANTES de vibe coding. Muda a sequência da capacitação.',
+    refutada:'Se já conectam, capacitação pode ir direto para automação avançada. Acelera o cronograma.' },
+  { id:'S4', titulo:'Gen Z usa mais, profundidade igual', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Media', transicao:'2→3', validacao:['Q4','Q13','Q14','Q15','Q43'],
+    desc:'A Gen Z (23% do time) usa IA com mais frequência que outras gerações, mas a profundidade do uso (avaliar outputs, adaptar prompts, corrigir erros) é similar à da Gen Y.',
+    importa:'Evita falsa sensação de maturidade por ter time jovem. "Jovem e digital" não significa "pronto pra IA aplicada". Calibra expectativas do Comite.',
+    confirmada:'Reforço de que frequência de uso não equivale a profundidade. Evita atalhos na capacitação.',
+    refutada:'Se Gen Z for mais profunda, identificar como multiplicadores prioritários para Germinare.' },
+  { id:'S5', titulo:'Medo de substituição', dimensao:'Cultura', cluster:'Execucao', prioridade:'Media', transicao:'2→3', validacao:['Q40','Q46'],
+    desc:'Mesmo entre colaboradores entusiastas com IA, existe um medo subjacente de que a automação possa substituir suas funções. Esse medo gera adoção seletiva — usam para coisas "seguras" mas evitam aplicações que transformam.',
+    importa:'Entusiasmo com medo por baixo trava a transição de "usuário curioso" para "incentivador na equipe". A pessoa não quer ser vista promovendo algo que pode tirar empregos.',
+    confirmada:'Comunicação do programa precisa endereçar explicitamente: "IA como copiloto, não substituto".',
+    refutada:'Um risco a menos. Comunicação pode focar 100% em potência e oportunidade.' },
+  { id:'S6', titulo:'Gestores não formulam hipóteses', dimensao:'Impacto', cluster:'Gestao', prioridade:'Critica', transicao:'2→3, 3→4', validacao:['Q31','Q33','Q34','Q48','Q49','Q50'],
+    desc:'Gestores (~65 pessoas) não conseguem traduzir problemas de negócio em hipóteses testáveis com IA. Sabem que IA é importante, mas não sabem formular "quero testar se X melhora Y em Z%".',
+    importa:'É o gargalo número 1 da esteira. Se a liderança não sabe formular hipóteses, o intake recebe demandas vagas e de baixa qualidade. A esteira nasce morta na origem.',
+    confirmada:'Trilha Estratégica começa por "pensamento de hipótese", não por ferramentas. Framework de formulação de hipóteses é prioridade absoluta.',
+    refutada:'Esteira pode ser ativada mais rápido — o bottleneck está em outro lugar. Muda radicalmente prioridade de investimento.' },
+  { id:'S7', titulo:'IA como coisa de TI', dimensao:'Impacto', cluster:'Gestao', prioridade:'Critica', transicao:'1→2', validacao:['Q47'],
+    desc:'Gestores veem IA como responsabilidade do time de TI/Dados, não como ferramenta do seu domínio de negócio. Delegam ownership e esperam que "TI resolva".',
+    importa:'Se delegam ownership para TI, nunca alimentam a esteira. O modelo de governança distribuída depende de gestores assumirem responsabilidade por identificar oportunidades na sua área.',
+    confirmada:'Capacitação estratégica foca em "IA é ferramenta de negócio, responsabilidade sua". Mindset antes de método.',
+    refutada:'O desafio é dar ferramentas de priorização, não convencer sobre responsabilidade. Mais fácil e mais rápido.' },
+  { id:'S8', titulo:'Não diferenciam cosmético de impacto', dimensao:'Impacto', cluster:'Gestao', prioridade:'Alta', transicao:'3→4', validacao:['Q32','Q48'],
+    desc:'Gestores não conseguem diferenciar quando IA só economiza tempo (eficiência cosmética) de quando muda o resultado entregue (impacto real). Priorizam por "o que é mais fácil" em vez de "o que gera mais valor".',
+    importa:'Se não conseguem priorizar por impacto, o Comite de IA recebe demandas de baixa qualidade e o pipeline fica poluído com projetos cosméticos.',
+    confirmada:'Precisa de framework de priorização urgente (parte da trilha Estratégica). Ensinar a diferenciar eficiência de alavanca.',
+    refutada:'O problema é "só" operacionalizar — a esteira resolve com processo.' },
+  { id:'S9', titulo:'Capturam ideias desestruturadamente', dimensao:'Impacto', cluster:'Gestao', prioridade:'Media', transicao:'2→3', validacao:['Q49'],
+    desc:'Gestores até identificam oportunidades de uso de IA, mas registram de forma informal (post-its, conversas, e-mails soltos). Não há processo estruturado de captura e priorização.',
+    importa:'Sem processo, boas ideias se perdem. A esteira fornece o processo, mas precisa saber o tamanho do gap para dimensionar o onboarding.',
+    confirmada:'Incluir etapa de "onboarding de gestores na esteira" antes de ativar o pipeline. Ensinar o processo de intake.',
+    refutada:'Se já há alguma estruturação, a esteira se acopla mais fácil. Reduz atrito de adoção.' },
+  { id:'S10', titulo:'Governança muito baixa', dimensao:'Governanca', cluster:'Transversal', prioridade:'Critica', transicao:'1→2', validacao:['Q24','Q25','Q26','Q27','Q28','Q29','Q55'],
+    desc:'O nível de conhecimento sobre governança, ética e riscos de IA é muito baixo em todos os níveis hierárquicos. Colaboradores não sabem quais informações não compartilhar, não conhecem diretrizes, e podem estar colando dados confidenciais em ferramentas públicas.',
+    importa:'Acelerar uso sem governança é perigoso. Risco jurídico e de compliance real. Se confirmada, muda a sequência do programa inteiro.',
+    confirmada:'Governança precisa ser a PRIMEIRA intervenção transversal, antes de ampliar uso. Módulo obrigatório para todos.',
+    refutada:'Pode avançar em uso e dados com mais velocidade. Grande impacto positivo no cronograma.' },
+  { id:'S11', titulo:'15-20% early adopters', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'3→4', validacao:['Q8','Q37','Q38','Q39','Q42','Q43','Q44'],
+    desc:'Entre 15% e 20% dos colaboradores já são early adopters — usam IA com frequência, experimentam ferramentas novas, e compartilham aprendizados com colegas. São multiplicadores naturais.',
+    importa:'Cada multiplicador impacta 5-8 colegas via Germinare. Sem eles, a IONIX faz todo o trabalho de disseminação sozinha — mais caro e mais lento.',
+    confirmada:'Ativar via Germinare imediatamente como "embaixadores de IA".',
+    refutada:'Se forem menos de 10%, Germinare precisa de mais suporte externo. Se forem mais de 30%, transformação mais rápida e barata que o previsto.' },
+  { id:'S12', titulo:'Gap quero vs sei como', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q35','Q38','Q39','Q40','Q45','Q46','Q52','Q56'],
+    desc:'Existe um gap entre "quero aprender sobre IA" (interesse declarado alto) e "sei por onde começar" (ação concreta baixa). As pessoas querem, mas não sabem o primeiro passo.',
+    importa:'Se o problema é falta de direção e não falta de interesse, a solução é curadoria e ponto de entrada claro — não campanha de engajamento.',
+    confirmada:'Trilha guiada com curadoria de conteúdo, ferramentas aprovadas e ponto de entrada claro. A solução é dar direção.',
+    refutada:'Se a barreira for outra (medo, falta de tempo, gestor não apoia), a intervenção é completamente diferente.' },
+  { id:'S13', titulo:'Não avaliam outputs', dimensao:'Utilizacao', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q13','Q14','Q15','Q16','Q43'],
+    desc:'A maioria dos colaboradores que usa IA não sabe avaliar criticamente se o resultado é bom, adaptar prompts, ou corrigir erros. Aceitam o primeiro output sem questionar. Hipótese NOVA — cobria gap na transição 2→3 de Utilização.',
+    importa:'A Matriz define nível 3 como "formular prompts eficientes e avaliar resultados". Sem avaliação crítica, estão no nível 2 mesmo que usem com frequência.',
+    confirmada:'Trilha de Execução precisa incluir módulo de "avaliação crítica de outputs" e "engenharia de prompt com critério".',
+    refutada:'Se já avaliam criticamente, o cluster Execução está mais avançado em Utilização. Capacitação pode focar direto em automação e casos complexos.' },
+  { id:'S14', titulo:'Não preparam dados', dimensao:'Dados', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q19','Q20','Q21','Q22','Q23'],
+    desc:'Colaboradores sabem que dados são importantes para IA (nível 2), mas não sabem preparar, limpar ou estruturar dados antes de usar (gap para nível 3). Hipótese NOVA — Dados era a dimensão mais subrepresentada no CSD original.',
+    importa:'A Matriz define nível 3 em Dados como "compreende qualidade, organização e relevância". Sem preparação prática, estão travados.',
+    confirmada:'Incluir na trilha de Execução: módulo prático de limpeza, estruturação e qualidade de dados com cases reais da Swift.',
+    refutada:'Se já preparam dados, o gap em Dados é menor que o esperado. Focar capacitação nas outras dimensões.' },
+  { id:'S15', titulo:'Gestores não aplicam governança', dimensao:'Governanca', cluster:'Gestao', prioridade:'Alta', transicao:'3→4', validacao:['Q26','Q50','Q51','Q55'],
+    desc:'Gestores podem até conhecer princípios de governança de IA, mas não traduzem em políticas e práticas concretas nas suas áreas. Não definem diretrizes para o time. Hipótese NOVA — diferencia "conhecer" de "aplicar".',
+    importa:'A esteira precisa de sponsors que saibam avaliar riscos. Se gestores não aplicam governança, cada projeto vira um risco não gerenciado e o Comite de IA fica sobrecarregado.',
+    confirmada:'Trilha Estratégica precisa de módulo: "governança aplicada — como avaliar riscos e definir políticas de IA na sua área".',
+    refutada:'Se gestores já sabem aplicar, a governança pode ser descentralizada mais rápido. Reduz carga no Comite de IA.' },
+  { id:'S16', titulo:'Desconhecem viés algorítmico e riscos legais/LGPD', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q58','Q59','Q60'],
+    desc:'S10 testa a camada básica: não compartilhar dados confidenciais (N1→N2). S16 testa riscos mais sofisticados: viés algorítmico (IA pode perpetuar discriminação de gênero, raça, etc.) e riscos legais (LGPD, responsabilidade civil). Sem esses dois vetores, o nível 3 real em Governança não é atingido.',
+    importa:'Colaboradores que não conhecem viés podem replicar discriminação involuntariamente. Quem ignora a LGPD pode expor a Swift a notificações da ANPD ou ações judiciais — mesmo com uso aparentemente inocente de IA.',
+    confirmada:'Módulo obrigatório de ética e compliance precisa cobrir viés + LGPD, não só "não cole dados sigilosos". A intervenção de governança é mais profunda do que S10 sugere.',
+    refutada:'Se a maioria já conhece viés e LGPD, o baseline de governança é mais alto que o esperado — capacitação pode focar em aplicação prática em vez de conceitos.' },
+  { id:'S17', titulo:'Percepção de vazio de governança na Swift', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'Transversal', validacao:['Q61','Q55'],
+    desc:'S10 e S15 medem conhecimento individual sobre governança. S17 mede a percepção coletiva de adequação dos mecanismos institucionais da Swift. Colaboradores podem saber o que não compartilhar e ainda assim sentir que a empresa não tem políticas claras — ou vice-versa. São dimensões distintas.',
+    importa:'Percepção de vazio: programa precisa publicar política básica de uso de IA antes de ampliar uso. Percepção de estrutura adequada: risco de complacência — as pessoas acham que estão protegidas quando não estão.',
+    confirmada:'Primeiro ato do programa: publicar política básica de uso de IA + comunicar o Comite de IA. Não é possível escalar uso sem essa ancoragem simbólica.',
+    refutada:'Auditar o que as pessoas acreditam que existe vs. o que de fato existe. Pode revelar falsa sensação de segurança — risco silencioso.' }
+];
+
+const DUVIDAS = [
+  { id:'D1', titulo:'Áreas com iniciativas informais', dimensao:'Transversal', prioridade:'Alta', validacao:['Q2','Q6','Q7','Q8','Q9','Q10','Q11'],
+    desc:'Quais áreas/departamentos já têm colaboradores usando IA por conta própria? Existem "bolsões de maturidade" espontâneos?',
+    desbloqueia:'Identifica áreas que podem ser pilotos da esteira ou showcase interno. Mostra onde a energia orgânica já existe.' },
+  { id:'D2', titulo:'Processos candidatos à IA', dimensao:'Impacto', prioridade:'Critica', validacao:['Q34','Q53'],
+    desc:'Quais processos e tarefas os próprios colaboradores enxergam como candidatos à automação ou melhoria com IA?',
+    desbloqueia:'Backlog da esteira. Q53 gera ideias qualitativas, Q34 indica quem já agiu. Respostas viram matéria-prima para o Pod Volante.' },
+  { id:'D3', titulo:'Variação entre áreas', dimensao:'Transversal', prioridade:'Alta', validacao:['Q2'],
+    desc:'A maturidade em IA varia significativamente entre áreas/departamentos, ou é relativamente homogênea?',
+    desbloqueia:'Variação grande → customizar capacitação por área. Homogênea → trilha unificada por cluster. Impacta custo e complexidade do programa.' },
+  { id:'D4', titulo:'Nível de confiança', dimensao:'Utilizacao/Governanca', prioridade:'Media', validacao:['Q16','Q17'],
+    desc:'Qual o nível de confiança que os colaboradores depositam nos resultados de IA? Confiança calibrada, excessiva ou insuficiente?',
+    desbloqueia:'Confiança excessiva = risco de governança (usam sem questionar). Confiança baixa = barreira de adoção (não confiam, não usam). Extremos exigem intervenções diferentes.' },
+  { id:'D5', titulo:'Experiência negativa', dimensao:'Cultura', prioridade:'Media', validacao:['Q54'],
+    desc:'Colaboradores já tiveram experiências negativas com IA ou automação? Tentaram usar e não funcionou? Houve frustrações?',
+    desbloqueia:'Frustrações passadas criam resistência oculta. Se existirem, precisam ser endereçadas na comunicação do programa antes de avançar.' },
+  { id:'D6', titulo:'Como preferem aprender', dimensao:'Cultura', prioridade:'Alta', validacao:['Q45','Q52'],
+    desc:'Qual formato de aprendizado os colaboradores preferem? Workshops práticos, mentoria, vídeos, pair work, cursos online?',
+    desbloqueia:'Calibra formato da Germinare e trilhas de capacitação. Errar o formato queima engajamento — é mais difícil reconquistar depois.' },
+  { id:'D7', titulo:'Quais dados lidam', dimensao:'Dados', prioridade:'Alta', validacao:['Q11','Q21','Q53'],
+    desc:'Quais tipos de dados os colaboradores manipulam no dia a dia? Planilhas, bases de clientes, indicadores, textos, imagens?',
+    desbloqueia:'Mapa da "matéria-prima" disponível para IA. Define quais cases de uso o Pod Volante vai prototipar e quais áreas têm dados mais ricos.' },
+  { id:'D8', titulo:'Articulam modelo de negócio ou só eficiência', dimensao:'Impacto', prioridade:'Alta', validacao:['Q32','Q48'],
+    desc:'Quando gestores pensam em IA, articulam impacto no modelo de negócio (receita, diferenciação) ou pensam apenas em eficiência operacional (cortar custos, economizar tempo)?',
+    desbloqueia:'Se só veem custo, a narrativa de alavanca de negócio precisa ser construída. Se articulam receita/diferenciação, Comite pode priorizar projetos mais ambiciosos.' }
+];
+
+// ─── CERTEZAS ───
+const CERTEZAS = [
+  { id:'C1', titulo:'81% Gen Y+Z — entusiastas, resistência cultural baixa', dimensao:'Cultura', fonte:'Perfil demográfico',
+    desc:'A composição geracional da Swift (81% Millennials + Gen Z) indica um público naturalmente receptivo à tecnologia. A resistência cultural à IA é baixa — o desafio não é convencer, é direcionar.',
+    importa:'Define o tom da pesquisa inteira e do programa. Não estamos tentando vencer resistência — estamos tentando canalizar energia que já existe. O programa deve focar em profundidade e estrutura, não em evangelização.' },
+  { id:'C2', titulo:'Analistas = 50% do headcount (~99 pessoas)', dimensao:'Utilizacao', fonte:'Perfil demográfico',
+    desc:'Analistas são o maior grupo da Swift, representando metade dos colaboradores. São o público-alvo natural da capacitação técnica e os que mais vão alimentar a esteira de produção de IA.',
+    importa:'É o grupo que define sucesso ou fracasso da esteira. Se os analistas não evoluírem, a transformação não escala. Qualquer intervenção precisa ser calibrada para esse perfil.' },
+  { id:'C3', titulo:'Gerentes/Diretores com ~8.8 anos de casa', dimensao:'Impacto', fonte:'Perfil demográfico',
+    desc:'A liderança tem alto tempo de empresa, o que significa profundo conhecimento do negócio. Essa é a matéria-prima para formular hipóteses de IA relevantes — eles sabem onde está a dor.',
+    importa:'Conhecem o negócio (potencial latente para hipóteses de IA), mas podem estar desconectados das capacidades da tecnologia. A capacitação estratégica precisa conectar o conhecimento de negócio com as possibilidades da IA.' },
+  { id:'C4', titulo:'Sem programa formal de IA — começando do zero', dimensao:'Transversal', fonte:'Proposta IONIX',
+    desc:'A Swift não tem programa formal de capacitação ou governança de IA. Qualquer nível de maturidade encontrado na pesquisa é orgânico — surgiu espontaneamente, sem investimento estruturado.',
+    importa:'O baseline é o ponto zero real. Isso significa que qualquer maturidade encontrada é potencial reprimido que a esteira pode canalizar. Argumento forte para o investimento: "já existe energia, só falta estrutura".' },
+  { id:'C5', titulo:'Germinare existe como plataforma train-the-trainer', dimensao:'Cultura', fonte:'Proposta IONIX',
+    desc:'A Swift já possui a Germinare, uma escola interna com modelo train-the-trainer. É o canal de escala pronto para multiplicar conhecimento de IA — a pesquisa identifica quem serão os multiplicadores.',
+    importa:'Canal de escala já existe. A pesquisa alimenta a Germinare com os early adopters certos. Sem eles, a IONIX faz todo o trabalho de disseminação sozinha — mais caro e mais lento.' },
+  { id:'C6', titulo:'Stack: Lovable + Lindy + N8N + Claude/Claude Code', dimensao:'Utilizacao', fonte:'Proposta IONIX',
+    desc:'O programa de transformação utiliza ferramentas específicas de vibe coding e automação. A pesquisa mapeia a familiaridade dos colaboradores com essas ferramentas (Q7).',
+    importa:'Saber quem já conhece essas ferramentas ajuda a calibrar o ponto de partida das trilhas práticas. Mas é a certeza de menor prioridade — a familiaridade com ferramentas específicas é secundária frente à maturidade geral.' }
+];
+
+// ─── PERGUNTAS ───
+const PERGUNTAS = [
+  { id:'Q1', texto:'Identificador anônimo', fase:'0', dimensao:'infra', tipo:'Infra', scoring:'Nenhum', hipoteses:[],
+    textoCompleto:'Identificador anônimo (gerado automaticamente)', opcoes:null, importa:'Rastreabilidade sem expor identidade' },
+  { id:'Q2', texto:'Área/departamento', fase:'0', dimensao:'segmentacao', tipo:'Segmentacao', scoring:'Nenhum', hipoteses:['D1','D3'],
+    textoCompleto:'Qual a sua área/departamento?', opcoes:['Lista dropdown — a definir com RH'], importa:'Variável de segmentação — permite análise cruzada por área e identificar bolsões de maturidade' },
+  { id:'Q3', texto:'Cargo atual', fase:'0', dimensao:'segmentacao', tipo:'Roteador', scoring:'Nenhum', hipoteses:[],
+    textoCompleto:'Qual o seu cargo atual?', opcoes:['Assistente','Analista','Especialista','Coordenador','Gerente','Diretor'], importa:'Roteador de cluster: Assistente/Analista/Especialista → Execução | Coordenador/Gerente/Diretor → Gestão' },
+  { id:'Q4', texto:'Faixa etária', fase:'0', dimensao:'segmentacao', tipo:'Segmentacao', scoring:'Nenhum', hipoteses:['S4'],
+    textoCompleto:'Qual a sua faixa etária?', opcoes:['Até 27 anos','28-43 anos','44-59 anos','60+ anos'], importa:'Permite cruzar geração x profundidade de uso — testar se \'jovem = avançado\' (S4)' },
+  { id:'Q5', texto:'Tempo de empresa', fase:'0', dimensao:'segmentacao', tipo:'Segmentacao', scoring:'Nenhum', hipoteses:[],
+    textoCompleto:'Há quanto tempo você trabalha na Swift?', opcoes:['Menos de 1 ano','1-3 anos','3-5 anos','5-10 anos','Mais de 10 anos'], importa:'Cruzar tempo de casa com percepção de oportunidades de IA' },
+  { id:'Q6', texto:'Já usou IA?', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','D1'],
+    textoCompleto:'Você já utilizou alguma ferramenta de Inteligência Artificial?', opcoes:['Sim','Não'], importa:'Filtro binário: separa quem já experimentou de quem nunca tocou. Se Não → pula para Q11' },
+  { id:'Q7', texto:'Quais ferramentas de IA já utilizou', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1'],
+    textoCompleto:'Quais ferramentas de IA você já utilizou? (marque todas que se aplicam)', opcoes:['ChatGPT','Copilot','Claude','Gemini','Midjourney/DALL-E','IA do Office/Google','N8N','Lovable','Lindy','Outras'], importa:'Mapa de amplitude — quantas e quais ferramentas conhecem. Inclui stack do projeto (Lovable, N8N, Lindy)' },
+  { id:'Q8', texto:'Frequência de uso de IA', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','S11','D1'],
+    textoCompleto:'Com que frequência você usa ferramentas de IA?', opcoes:['Diariamente','Algumas vezes por semana','Algumas vezes por mês','Raramente'], importa:'Discrimina uso pontual (nível 2) de regular (nível 3). Componente do score de early adopter' },
+  { id:'Q9', texto:'Tipos de tarefa em que usa IA', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','S4','D1'],
+    textoCompleto:'Para quais tipos de tarefa você usa IA? (marque todas)', opcoes:['Gerar/revisar textos','Resumir documentos','Pesquisar informações','Analisar dados','Criar apresentações','Programar/automatizar','Gerar imagens','Apoiar decisões','Outras'], importa:'Mapa de complexidade — tarefas simples (texto, resumo) vs complexas (dados, decisões, automação)' },
+  { id:'Q10', texto:'Como começou a usar IA', fase:'0.5', dimensao:'Cultura', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S2','D1'],
+    textoCompleto:'Como você começou a usar IA no trabalho?', opcoes:['Por conta própria/curiosidade','Indicação de colega','Pedido/incentivo da empresa','Treinamento formal','Outro'], importa:'Valida S2 — se adoção é orgânica, o programa tem vento a favor. Energia reprimida que a esteira canaliza' },
+  { id:'Q11', texto:'Usa IA com dados reais do trabalho?', fase:'0.5', dimensao:'Dados', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S3','D1','D7'],
+    textoCompleto:'Você já usou IA com dados reais do seu trabalho (planilhas, relatórios, bases de dados da Swift)?', opcoes:['Sim, frequentemente','Sim, algumas vezes','Não, só com dados genéricos','Nunca usei IA'], importa:'Valida S3 — sem dados reais, toda experimentação é cosmética. Diferencia consumidor de output de produtor de valor' },
+  { id:'Q12', texto:'Utilizo IA regularmente (pelo menos algumas vezes por semana)', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S1','S13'], transicao:'2→3',
+    textoCompleto:'Utilizo ferramentas de IA regularmente no meu trabalho (pelo menos algumas vezes por semana).', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Base da dimensão — mede frequência real de uso. Discrimina quem não usa (nível 1) de quem usa regularmente (nível 3)' },
+  { id:'Q13', texto:'Consigo avaliar se o resultado da IA é bom ou precisa de ajustes', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S13','S4'], transicao:'2→3',
+    textoCompleto:'Consigo avaliar se o resultado gerado por uma ferramenta de IA é bom ou precisa de ajustes.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Competência crítica do nível 3 — avaliar outputs. Sem isso, o colaborador aceita qualquer resultado sem questionar' },
+  { id:'Q14', texto:'Sei adaptar o prompt para obter resultados melhores', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S13','S4'], transicao:'2→3',
+    textoCompleto:'Sei adaptar a forma como peço algo para a IA (prompt) para obter resultados melhores.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Prompting eficiente é marcador de nível 3 na Matriz. Diferencia quem \'pede e aceita\' de quem \'itera e refina\'' },
+  { id:'Q15', texto:'Consigo identificar e corrigir um erro da IA', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S13','S4'], transicao:'3→4',
+    textoCompleto:'Quando a IA gera um resultado incorreto ou incompleto, consigo identificar o problema e corrigi-lo.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Discrimina nível 3→4 — resolver problemas complexos. Quem corrige erros da IA demonstra domínio real da ferramenta' },
+  { id:'Q16', texto:'Acho difícil avaliar se o resultado da IA é confiável', fase:'1', dimensao:'Utilizacao', tipo:'Likert Reverso', scoring:'Comum', hipoteses:['S13','D4'], transicao:'2→3',
+    textoCompleto:'Acho difícil avaliar se o resultado gerado por IA é confiável ou não. (ITEM REVERSO)', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Controle de viés — quem concorda com tudo em Q13-Q15 mas também concorda aqui está respondendo sem ler. Score é invertido' },
+  { id:'Q17', texto:'Quanto confia nos resultados de IA?', fase:'1', dimensao:'Utilizacao', tipo:'Confianca', scoring:'Comum', hipoteses:['D4'], transicao:'transversal',
+    textoCompleto:'Quanto você confia nos resultados gerados por IA?', opcoes:['1 Não confio nada','2','3','4','5 Confio totalmente'], importa:'Escala especial — confiança 3 é ideal (calibrada), confiança 5 é PENALIZADA (risco de governança). Detecta quem aceita tudo cegamente' },
+  { id:'Q18', texto:'Já utilizei IA para apoiar uma decisão importante', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S1','S13'], transicao:'3→4',
+    textoCompleto:'Já utilizei IA para apoiar uma decisão importante no meu trabalho.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Marcador de nível 3→4 — uso estratégico para decisões. Diferencia quem usa para tarefas operacionais de quem usa para decidir' },
+  { id:'Q19', texto:'Verifico e preparo dados antes de usar IA', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Comum', hipoteses:['S14','S3'], transicao:'2→3',
+    textoCompleto:'Antes de usar IA para uma tarefa, verifico e preparo os dados que vou fornecer.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Testa prática real de preparação de dados (nível 3). Quem marca alto aqui entende que garbage in = garbage out' },
+  { id:'Q20', texto:'Qualidade dos dados influencia qualidade do resultado', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Comum', hipoteses:['S3','S14'], transicao:'1→2',
+    textoCompleto:'Acredito que a qualidade dos dados que forneço à IA influencia diretamente a qualidade do resultado.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Awareness básica (nível 2). Tende a ter efeito teto — a maioria concorda. Discrimina nível 1 (não sabe) de nível 2+ (sabe)' },
+  { id:'Q21', texto:'Identifico quais dados alimentariam uma solução de IA', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Comum', hipoteses:['S14','D7'], transicao:'2→3',
+    textoCompleto:'Consigo identificar quais dados do meu trabalho poderiam ser usados para alimentar uma solução de IA.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Compreende relevância dos dados (nível 2→3). Quem marca alto consegue conectar seu contexto com possibilidades de IA' },
+  { id:'Q22', texto:'Verifico dados/números que a IA apresenta', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Comum', hipoteses:['S14'], transicao:'2→3',
+    textoCompleto:'Quando a IA me apresenta dados ou números, verifico se fazem sentido antes de usá-los.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Senso crítico sobre dados de saída. Conecta Dados com Governança — quem não verifica números é risco em ambas as dimensões' },
+  { id:'Q23', texto:'Cenário vendas — o que faz primeiro?', fase:'1', dimensao:'Dados', tipo:'Cenario', scoring:'Comum', hipoteses:['S3','S14'], transicao:'1→4', conversao:'d=1, a=2, b=3, c=4',
+    textoCompleto:'Cenário: Você precisa usar IA para analisar as vendas do último trimestre. O que você faz primeiro?', opcoes:['a) Peço direto para a IA analisar','b) Verifico se os dados estão corretos antes de enviar','c) Estruturo os dados num formato adequado e verifico a qualidade','d) Não saberia como começar'], importa:'Cenário comportamental — testa competência real, não autopercepção. Reduz Dunning-Kruger. Cada opção mapeia para um nível (d=1, a=2, b=3, c=4)' },
+  { id:'Q24', texto:'Sei quais informações NÃO compartilhar com IA pública', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S10'], transicao:'1→2→3',
+    textoCompleto:'Sei quais tipos de informação da empresa NÃO deveriam ser compartilhados com ferramentas de IA públicas.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Noções básicas de proteção de dados (nível 1→2→3). Fundamental para governança — quem não sabe pode estar vazando dados confidenciais' },
+  { id:'Q25', texto:'Cenário relatório confidencial', fase:'1', dimensao:'Governanca', tipo:'Cenario', scoring:'Comum', hipoteses:['S10'], transicao:'1→4', conversao:'a=1, e=1, d=2, b=3, c=4',
+    textoCompleto:'Cenário: Você precisa analisar um relatório confidencial e pensa em usar o ChatGPT. O que você faz?', opcoes:['a) Cola o conteúdo diretamente','b) Remove dados sensíveis antes','c) Usa ferramenta interna aprovada','d) Não usaria IA para dados confidenciais','e) Não saberia avaliar o risco'], importa:'Cenário comportamental de governança — testa o que a pessoa FARIA, não o que SABE. a/e = nível 1, d = nível 2, b = nível 3, c = nível 4' },
+  { id:'Q26', texto:'Conheço diretrizes da empresa sobre IA', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S10','S15'], transicao:'2→3→4',
+    textoCompleto:'Conheço as diretrizes ou boas práticas da minha empresa sobre o uso de IA no ambiente de trabalho.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Testa conhecimento institucional. Se a maioria marca baixo, a Swift precisa comunicar ou criar diretrizes antes de escalar uso' },
+  { id:'Q27', texto:'Verifico informações com outras fontes antes de decisão', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S10'], transicao:'2→3',
+    textoCompleto:'Antes de usar o resultado de uma IA para uma decisão importante, verifico as informações com outras fontes.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Boas práticas aplicadas (nível 2→3). Quem verifica demonstra pensamento crítico — essencial para uso responsável' },
+  { id:'Q28', texto:'Saberia identificar responsável se IA errasse', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S10','S15'], transicao:'3→4',
+    textoCompleto:'Se uma IA gerasse uma recomendação errada que impactasse meu trabalho, saberia identificar quem é o responsável pelo erro — eu, a ferramenta ou a empresa.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Compliance e responsabilidade (nível 3→4). Único item que testa accountability — essencial para governança avançada' },
+  { id:'Q29', texto:'Cenário e-mail para cliente', fase:'1', dimensao:'Governanca', tipo:'Cenario', scoring:'Comum', hipoteses:['S10','S13'], transicao:'1→4', conversao:'a=1, d=2, b=2.5, c=4',
+    textoCompleto:'Cenário: Você usa IA para redigir um e-mail importante para um cliente. Antes de enviar, o que você faz?', opcoes:['a) Envia direto, confio no resultado','b) Leio por cima para ver se está ok','c) Reviso criticamente, adapto o tom e verifico as informações','d) Não usaria IA para isso'], importa:'Cenário cotidiano de verificação — mais tangível que o relatório confidencial. Captura comportamento real de quem usa IA no dia a dia' },
+  { id:'Q30', texto:'Identifico processo que IA melhoraria', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6','S7','D2'], transicao:'1→2→3',
+    textoCompleto:'Consigo identificar pelo menos um processo no meu trabalho que poderia ser melhorado com IA.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Base de Impacto — quem não identifica oportunidades está no nível 1. Quem identifica pelo menos uma já está no nível 2' },
+  { id:'Q31', texto:'Explico como IA gera valor na minha área', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6','S8'], transicao:'2→3→4',
+    textoCompleto:'Saberia explicar para um colega como IA poderia gerar valor na minha área.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Articulação de valor (nível 2→3→4). Quem explica para outros demonstra compreensão estruturada, não só intuição' },
+  { id:'Q32', texto:'Diferencio quando IA economiza tempo de quando muda resultado', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S8','D8'], transicao:'3→4',
+    textoCompleto:'Consigo diferenciar quando o uso de IA apenas economiza tempo de quando ele muda a forma como o resultado é entregue.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Visão estratégica (nível 3→4). Diferencia quem pensa em eficiência (cortar custo) de quem pensa em transformação (mudar o jogo)' },
+  { id:'Q33', texto:'Estimo tempo/custo que IA economizaria', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6'], transicao:'3→4',
+    textoCompleto:'Consigo estimar o tempo ou custo que uma solução de IA economizaria em um processo da minha área.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Quantificação de impacto (nível 3→4). Quem estima ROI consegue estruturar business cases — competência de nível avançado' },
+  { id:'Q34', texto:'Já sugeri ideia de IA para gestor/equipe', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6','D2'], transicao:'2→3',
+    textoCompleto:'Já sugeri ou propus alguma ideia de uso de IA no meu trabalho para meu gestor ou equipe.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Ação concreta (nível 2→3). Diferencia quem vê oportunidades de quem age — alimenta o backlog da esteira' },
+  { id:'Q35', texto:'Interesse ativo em aprender sobre IA', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Comum', hipoteses:['S12'], transicao:'1→2',
+    textoCompleto:'Tenho interesse ativo em aprender mais sobre IA aplicada ao meu trabalho.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Base de Cultura — mede disposição (nível 1→2). Num público 81% entusiasta, pode ter efeito teto' },
+  { id:'Q36', texto:'Não me sinto confortável recomendando IA para colegas', fase:'1', dimensao:'Cultura', tipo:'Likert Reverso', scoring:'Comum', hipoteses:['S5','S12'], transicao:'2→3',
+    textoCompleto:'Não me sinto confortável em recomendar o uso de IA para colegas. (ITEM REVERSO)', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Controle de viés + mede conforto em disseminar (nível 2→3). Score invertido. Quem concorda tem barreira para ser incentivador' },
+  { id:'Q37', texto:'Compartilhei dica/aprendizado de IA com colegas', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Comum', hipoteses:['S11'], transicao:'2→3→4',
+    textoCompleto:'Já compartilhei com colegas alguma dica ou aprendizado sobre uso de IA.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Comportamento de incentivador (nível 2→3→4). Componente do score de early adopter — quem compartilha é multiplicador natural' },
+  { id:'Q38', texto:'Experimento ferramentas novas por conta própria', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Comum', hipoteses:['S12','S2','S11'], transicao:'2→3',
+    textoCompleto:'Quando surge uma nova ferramenta de IA, costumo experimentar por conta própria para ver se é útil no meu trabalho.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Proatividade (nível 2→3). Quem experimenta por conta própria tem perfil de early adopter — não precisa ser empurrado' },
+  { id:'Q39', texto:'Busco ativamente formas de aplicar IA no trabalho', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Comum', hipoteses:['S12','S11'], transicao:'2→3→4',
+    textoCompleto:'Busco ativamente formas de aplicar IA para melhorar meu trabalho ou o da minha equipe.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Agente de mudança (nível 2→3→4). Diferencia quem usa para si de quem busca melhorar o coletivo — postura de transformação' },
+  { id:'Q40', texto:'Maior barreira para usar IA', fase:'Controle', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S5','S12'],
+    textoCompleto:'A maior barreira para eu usar mais IA é: (marque a principal)', opcoes:['Falta de tempo','Não saber por onde começar','Falta de ferramentas aprovadas','Medo de errar ou gerar problemas','Preocupação com impacto no meu cargo/função','Meu trabalho não se aplica à IA','Já uso bastante'], importa:'Diagnóstico de barreiras — identifica qual intervenção priorizar. \'Não saber por onde começar\' = curadoria. \'Impacto no cargo\' = comunicação sobre substituição' },
+  { id:'Q41', texto:'Attention check', fase:'Controle', dimensao:'Controle', tipo:'Controle', scoring:'Nenhum', hipoteses:[],
+    textoCompleto:'Para fins de verificação, marque a opção \'Concordo parcialmente\' nesta pergunta.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Attention check — identifica respostas aleatórias. Quem erra é excluído da análise' },
+  { id:'Q42', texto:'Você seria multiplicador de IA na sua área?', fase:'Controle', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S11'],
+    textoCompleto:'Você teria interesse em ser um multiplicador de IA na sua área, ajudando colegas a adotar ferramentas?', opcoes:['Sim, com certeza','Sim, se tiver suporte e treinamento','Talvez','Não'], importa:'Dupla validação de early adopters — cruza com score comportamental. Quem \'já faz\' + \'quer multiplicar\' = candidato para Germinare' },
+  { id:'Q43', texto:'Como você usa IA no dia a dia?', fase:'2A', dimensao:'Utilizacao', tipo:'Cenario', scoring:'Estendido', hipoteses:['S1','S13','S4','S11'], transicao:'1→4', conversao:'a=1, b=2.5, d=3, c=4',
+    textoCompleto:'Quando uso IA no trabalho, normalmente eu:', opcoes:['a) Uso exatamente o primeiro resultado','b) Ajusto o prompt até resultado satisfatório','c) Combino o resultado com outras fontes e análises','d) Uso como ponto de partida e refaço manualmente'], importa:'Melhor discriminador de profundidade real. Score Estendido Execução → Utilização. Se maioria marca (a), confirma S13' },
+  { id:'Q44', texto:'Já automatizou alguma tarefa com IA?', fase:'2A', dimensao:'Utilizacao', tipo:'Escala', scoring:'Estendido', hipoteses:['S11'], transicao:'1→4', conversao:'nunca=1, nao visualizo=1, possivel=2, uma vez=3, mais de uma=4',
+    textoCompleto:'Já consegui automatizar ou simplificar uma tarefa repetitiva usando IA?', opcoes:['Sim, mais de uma vez','Sim, uma vez','Não, mas sei que seria possível','Não, não consigo visualizar como','Nunca tentei'], importa:'Marcador de nível 4 — \'automatizar atividades\'. Score Estendido Execução → Utilização. Componente do score de early adopter' },
+  { id:'Q45', texto:'Interesse em treinamento de IA', fase:'2A', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['D6','S12'],
+    textoCompleto:'Se a empresa oferecesse treinamento prático em IA, o que mais te interessaria? (marque todas)', opcoes:['Automatizar tarefas repetitivas','Analisar dados mais rápido','Criar relatórios e apresentações','Programar sem ser programador (vibe coding)','Usar IA para tomar decisões melhores','Outro'], importa:'Calibra formato da Germinare e trilhas. Errar o formato queima engajamento' },
+  { id:'Q46', texto:'O que impede de usar mais IA?', fase:'2A', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S5','S12'],
+    textoCompleto:'O que MAIS te impede de usar IA com mais profundidade no trabalho?', opcoes:['Não tenho acesso a ferramentas boas','Não sei usar direito','Não tenho permissão/política clara','Meu gestor não incentiva','Preocupação com impacto no meu cargo','Não vejo aplicação','Falta de tempo','Nada, já uso bastante'], importa:'Diagnóstico de barreiras específico para Execução. Similar a Q40 mas com opções adicionais (gestor não incentiva)' },
+  { id:'Q47', texto:'Quem deveria ser responsável por IA na Swift?', fase:'2B', dimensao:'Impacto', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S7'],
+    textoCompleto:'Na sua área, quem deveria ser o principal responsável por identificar oportunidades de uso de IA?', opcoes:['A área de TI/Dados','O gestor da área junto com o time','Uma equipe especializada em IA','Cada colaborador individualmente','Não sei'], importa:'Valida S7 — se maioria diz \'TI/Dados\', gestores delegam ownership. Modelo de governança distribuída não funciona assim' },
+  { id:'Q48', texto:'Cenário priorização de projetos de IA', fase:'2B', dimensao:'Impacto', tipo:'Cenario', scoring:'Estendido', hipoteses:['S8','D8'], transicao:'1→4', conversao:'e=1, d=2, a=2.5, b=3, c=4',
+    textoCompleto:'Cenário: Se você pudesse escolher UM projeto de IA para sua área, qual critério usaria para priorizar?', opcoes:['a) Economia de custo imediata','b) Melhora a experiência do cliente','c) Gera receita nova ou diferenciação','d) O que o time mais pede','e) Não saberia como priorizar'], importa:'Melhor discriminador estratégico. Score Estendido Gestão → Impacto. (a)/(d) = eficiência, (c) = alavanca de negócio' },
+  { id:'Q49', texto:'Processo de captura de ideias de IA na área', fase:'2B', dimensao:'Impacto', tipo:'Escala', scoring:'Estendido', hipoteses:['S9'], transicao:'1→4', conversao:'d=1, e=1.5, c=2, b=3, a=4',
+    textoCompleto:'Na sua rotina de gestão, como você identifica e registra oportunidades de melhoria que poderiam envolver IA?', opcoes:['a) Tenho um processo estruturado','b) Anoto quando surge, sem processo formal','c) Discuto com o time informalmente','d) Não costumo pensar nisso','e) Gostaria de ter um processo mas não sei como'], importa:'Estruturação de processo (nível 2→3). Score Estendido Gestão → Impacto. Se desestruturado, esteira precisa de onboarding' },
+  { id:'Q50', texto:'Preparado para avaliar viabilidade de projeto de IA', fase:'2B', dimensao:'Impacto', tipo:'Likert', scoring:'Estendido', hipoteses:['S6','S15'], transicao:'2→4',
+    textoCompleto:'Você se sente preparado(a) para avaliar se uma proposta de uso de IA na sua área é viável e vale o investimento?', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Competência de avaliação crítica (nível 3→4). Score Estendido Gestão → Impacto. Se baixo, gestores não conseguem filtrar demandas' },
+  { id:'Q51', texto:'Já aplicou orientação de IA na sua área?', fase:'2B', dimensao:'Governanca', tipo:'Escala', scoring:'Estendido', hipoteses:['S15'], transicao:'1→4', conversao:'Nao=1, pretendo=2, informais=3, formais=4',
+    textoCompleto:'Na sua área, você já definiu ou aplicou alguma orientação específica sobre como a equipe deve usar ferramentas de IA?', opcoes:['Sim, com diretrizes formais documentadas','Sim, com orientações informais/verbais','Não, mas pretendo fazer','Não'], importa:'Diferencia conhecer de APLICAR governança (nível 3→4). Score Estendido Gestão → Governança. Decisiva para S15' },
+  { id:'Q52', texto:'O que mais ajudaria você a usar IA?', fase:'2B', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['D6','S12'],
+    textoCompleto:'O que mais te ajudaria a tomar melhores decisões sobre IA na sua área? (marque todas)', opcoes:['Cases de sucesso','Entender capacidades e limites da IA','Equipe técnica para testar ideias','Framework de priorização','Treinamento em pensamento estratégico de IA','Outro'], importa:'Calibra trilha estratégica para gestores. Identifica que tipo de suporte a liderança precisa' },
+  { id:'Q53', texto:'Qual tarefa você nunca mais faria manualmente?', fase:'3', dimensao:'Impacto', tipo:'Aberta', scoring:'Nenhum', hipoteses:['D2','D7'],
+    textoCompleto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?', opcoes:null, importa:'OBRIGATÓRIA — alimenta o backlog da esteira. Cada resposta é um processo candidato à IA para o Pod Volante prototipar' },
+  { id:'Q54', texto:'Já tentou usar IA e não deu certo?', fase:'3', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', hipoteses:['D5'],
+    textoCompleto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?', opcoes:null, importa:'Detecta frustrações ocultas. Entusiasmo pode mascarar experiências negativas que criam resistência seletiva' },
+  { id:'Q55', texto:'O que preocupa você sobre IA na Swift?', fase:'3', dimensao:'Governanca', tipo:'Aberta', scoring:'Nenhum', hipoteses:['S10','S15'],
+    textoCompleto:'O que te preocupa quando pensa em IA sendo usada na Swift de forma ampla?', opcoes:null, importa:'Percepção de risco em linguagem pessoal. Captura medo de substituição (S5) sem perguntar diretamente' },
+  { id:'Q56', texto:'Se pudesse mudar UMA coisa amanhã com IA, o que seria?', fase:'3', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', hipoteses:['S12'],
+    textoCompleto:'Se você pudesse mudar UMA coisa na Swift amanhã para facilitar o uso de IA, o que seria?', opcoes:null, importa:'Quick wins acionáveis. Respostas concretas que a IONIX pode implementar imediatamente' },
+  { id:'Q57', texto:'Algo que ninguém perguntou e você gostaria de dizer?', fase:'3', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', hipoteses:[],
+    textoCompleto:'Tem algo sobre IA no seu trabalho que ninguém perguntou mas você gostaria de falar?', opcoes:null, importa:'Captura insights não previstos. Valida que a pessoa pode ter algo importante que o formulário não cobriu' },
+  { id:'Q58', texto:'Sei o que é viés algorítmico e seu impacto em decisões de IA', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S16'], transicao:'2→3',
+    textoCompleto:'Sei o que é viés algorítmico e como ele pode impactar decisões tomadas com IA (ex.: triagem de currículos, aprovação de crédito, atendimento segmentado).', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Testa awareness de viés — vetor ético do nível 2→3. Score baixo confirma S16: módulo de ética precisa cobrir viés explicitamente, não só proteção de dados.' },
+  { id:'Q59', texto:'Cenário: IA com viés em contratação — o que faria', fase:'1', dimensao:'Governanca', tipo:'Cenario', scoring:'Comum', hipoteses:['S16'], transicao:'1→4', conversao:'a=1, b=2, d=3, c=4',
+    textoCompleto:'Cenário: Uma ferramenta de IA usada pela Swift aprova consistentemente candidatos com determinado perfil e rejeita outros para a mesma vaga, sem critério claro. O que você faria?', opcoes:['a) Continuaria usando — os resultados parecem adequados para a empresa','b) Reportaria ao meu gestor, mas continuaria usando enquanto isso','c) Investigaria a causa antes de continuar usando — entenderia de onde vem o padrão e documentaria o risco','d) Suspenderia o uso e escalaria imediatamente para TI ou Compliance'], importa:'Teste comportamental de S16. Complementa Q58 declarativo — detecta Dunning-Kruger de ética. a=N1, b=N2, d=N3 (age mas sem diagnóstico), c=N4 (investiga + documenta).' },
+  { id:'Q60', texto:'Conheço os riscos legais de usar IA com dados pessoais (LGPD)', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S16'], transicao:'2→3',
+    textoCompleto:'Conheço os riscos legais de usar IA com dados pessoais de clientes ou colaboradores (ex.: LGPD, privacidade, responsabilidade civil).', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Vetor legal de S16. Enquanto Q58 testa viés (risco para terceiros), Q60 testa compliance (risco para a empresa). Score baixo indica exposição jurídica não percebida.' },
+  { id:'Q61', texto:'Como avalia os mecanismos de governança de IA da Swift hoje', fase:'1', dimensao:'Governanca', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S17'],
+    textoCompleto:'Como você avalia os mecanismos de governança de IA que a Swift tem hoje?', opcoes:['Inexistentes — não há nenhuma diretriz ou política sobre uso de IA','Insuficientes — há algo, mas é muito pouco ou pouco claro','Adequados — temos diretrizes razoáveis para o momento atual','Maduros — temos processos, políticas e responsáveis bem definidos'], importa:'Valida S17 — sentimento institucional. Distribuição entre Inexistentes+Insuficientes vs Adequados+Maduros define comunicação e primeiro ato do programa.' }
+];
+
+// ─── SCORING TABLES ───
+const LIKERT_PADRAO = [{r:1,s:1.0},{r:2,s:1.5},{r:3,s:2.0},{r:4,s:3.0},{r:5,s:4.0}];
+const LIKERT_REVERSO = [{r:1,s:4.0},{r:2,s:3.0},{r:3,s:2.0},{r:4,s:1.5},{r:5,s:1.0}];
+const CONFIANCA = [{r:1,s:1.0},{r:2,s:2.0},{r:3,s:3.0},{r:4,s:3.5},{r:5,s:2.0}];
+
+const SCORE_COMUM_MAP = {
+  Utilizacao: ['Q12','Q13','Q14','Q15','Q16','Q17','Q18'],
+  Dados: ['Q19','Q20','Q21','Q22','Q23'],
+  Governanca: ['Q24','Q25','Q26','Q27','Q28','Q29','Q58','Q59','Q60'],
+  Impacto: ['Q30','Q31','Q32','Q33','Q34'],
+  Cultura: ['Q35','Q36','Q37','Q38','Q39']
+};
+const SCORE_ESTENDIDO_MAP = {
+  Utilizacao: ['Q43','Q44'],
+  Impacto: ['Q48','Q49','Q50'],
+  Governanca: ['Q51']
+};
+
+const FAIXAS = [
+  { min:1.0, max:1.49, nivel:'Iniciante', cor:'#94A3B8' },
+  { min:1.5, max:2.49, nivel:'Básico', cor:'#22C55E' },
+  { min:2.5, max:3.49, nivel:'Intermediário', cor:'#EAB308' },
+  { min:3.5, max:4.0, nivel:'Avançado', cor:'#F97316' }
+];
+
+// ─── HELPER: get scoring conversion for a question
+function getConversion(q) {
+  if (q.tipo === 'Likert') return LIKERT_PADRAO;
+  if (q.tipo === 'Likert Reverso') return LIKERT_REVERSO;
+  if (q.tipo === 'Confianca') return CONFIANCA;
+  return null;
+}
+
+function getNivel(score) {
+  if (score < 1.5) return FAIXAS[0];
+  if (score < 2.5) return FAIXAS[1];
+  if (score < 3.5) return FAIXAS[2];
+  return FAIXAS[3];
+}
+
+// ─── BADGE COMPONENT ───
+function Badge({ text, color, small }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full font-medium ${small ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs'}`}
+      style={{ backgroundColor: color + '20', color: color, border: `1px solid ${color}40` }}
+    >
+      {text}
+    </span>
+  );
+}
+
+// ─── DRAWER ───
+function Drawer({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="drawer-overlay absolute inset-0 bg-black/40" onClick={onClose}/>
+      <div className="drawer-panel relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between z-10">
+          <h3 className="text-lg font-bold truncate pr-4">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TAB NAV ───
+const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Conexões'];
+
+function TabNav({ active, onChange }) {
+  return (
+    <nav className="flex gap-1 overflow-x-auto pb-1 px-1">
+      {TABS.map(t => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            active === t
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+// ─── HEADER ───
+function Header({ dark, toggleDark }) {
+  return (
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Pesquisa de Maturidade em IA — Swift
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Programa de Transformação em IA Escalável — Swift × IONIX
+          </p>
+        </div>
+        <button
+          onClick={toggleDark}
+          className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          title={dark ? 'Modo claro' : 'Modo escuro'}
+        >
+          {dark ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          )}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 1: VISÃO GERAL
+// ═══════════════════════════════════════════
+function VisaoGeral({ onNavigate }) {
+  const objetivos = [
+    { icon:'🔍', titulo:'Diagnosticar', desc:'Mapear o nível atual de maturidade em IA de todos os colaboradores Swift' },
+    { icon:'🎯', titulo:'Priorizar', desc:'Identificar gaps críticos e áreas prioritárias para capacitação' },
+    { icon:'🌟', titulo:'Identificar Multiplicadores', desc:'Encontrar os 15-20% de early adopters que serão agentes de transformação' },
+    { icon:'📋', titulo:'Alimentar Backlog', desc:'Coletar ideias de aplicação de IA vindas dos próprios colaboradores' },
+    { icon:'📊', titulo:'Diagnóstico Executivo', desc:'Gerar relatório consolidado para CIO e Comite de IA' }
+  ];
+  const kpis = [
+    { valor:'61', label:'Perguntas', cor:'#3B82F6' },
+    { valor:'31', label:'Itens no Score', cor:'#10B981' },
+    { valor:'5', label:'Dimensões', cor:'#8B5CF6' },
+    { valor:'4', label:'Níveis', cor:'#F59E0B' },
+    { valor:'17', label:'Suposições', cor:'#EC4899' },
+    { valor:'8', label:'Dúvidas', cor:'#EF4444' }
+  ];
+  const pipeline = [
+    { label:'Objetivo', desc:'5 objetivos estratégicos', tab:'Visão Geral', cor:'#3B82F6' },
+    { label:'Matriz', desc:'5 dimensões × 4 níveis', tab:'Matriz', cor:'#10B981' },
+    { label:'CSD', desc:'17 suposições + 8 dúvidas', tab:'Hipóteses', cor:'#8B5CF6' },
+    { label:'Perguntas', desc:'61 perguntas em 6 fases', tab:'Perguntas', cor:'#F59E0B' },
+    { label:'Scoring', desc:'31 itens + estendido', tab:'Scoring', cor:'#EC4899' }
+  ];
+
+  return (
+    <div className="fade-in space-y-8">
+      {/* Objetivos */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Objetivos da Pesquisa</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {objetivos.map((o,i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition">
+              <div className="text-2xl mb-2">{o.icon}</div>
+              <h3 className="font-semibold text-sm mb-1">{o.titulo}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{o.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* KPIs */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Números da Pesquisa</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {kpis.map((k,i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+              <div className="text-3xl font-extrabold" style={{color:k.cor}}>{k.valor}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{k.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pipeline */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Pipeline de Construção</h2>
+        <div className="flex flex-col items-center gap-2">
+          {pipeline.map((p,i) => (
+            <React.Fragment key={i}>
+              <button
+                onClick={() => onNavigate(p.tab)}
+                className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-2 hover:shadow-lg transition-all text-left flex items-center gap-4"
+                style={{ borderColor: p.cor + '60' }}
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0" style={{backgroundColor:p.cor}}>
+                  {i+1}
+                </div>
+                <div>
+                  <div className="font-semibold text-sm">{p.label}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{p.desc}</div>
+                </div>
+                <svg className="ml-auto w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              {i < pipeline.length - 1 && (
+                <div className="w-0.5 h-4 rounded" style={{backgroundColor: p.cor + '40'}}/>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 2: MATRIZ
+// ═══════════════════════════════════════════
+function MatrizView({ onOpenDrawer }) {
+  const [selectedCell, setSelectedCell] = useState(null);
+
+  function getCellHipoteses(dim, levelIdx) {
+    const transStr = `${levelIdx}→${levelIdx+1}`;
+    const prevStr = `${levelIdx-1}→${levelIdx}`;
+    return [...SUPOSICOES, ...DUVIDAS].filter(h => {
+      const isDim = h.dimensao === dim || h.dimensao === 'Transversal';
+      return isDim;
+    }).map(h => h.id);
+  }
+
+  function getCellPerguntas(dim) {
+    return PERGUNTAS.filter(q => q.dimensao === dim && (q.scoring === 'Comum' || q.scoring === 'Estendido')).map(q => q.id);
+  }
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Matriz de Letramento em IA</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">Clique em uma célula para ver detalhes, perguntas associadas e hipóteses CSD.</p>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Níveis:</span>
+          {LEVEL_KEYS.map((k,i) => (
+            <span key={k} className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded" style={{backgroundColor:LEVEL_COLORS[k]}}/>
+              {LEVELS[i]}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[700px]">
+          {/* Header row */}
+          <div className="grid grid-cols-5 gap-2 mb-2">
+            <div/>
+            {LEVEL_KEYS.map((k,i) => (
+              <div key={k} className="text-center text-xs font-bold py-2 rounded-lg text-white" style={{backgroundColor:LEVEL_COLORS[k]}}>
+                {LEVELS[i]} (N{i+1})
+              </div>
+            ))}
+          </div>
+          {/* Rows */}
+          {DIMENSIONS.map(dim => (
+            <div key={dim} className="grid grid-cols-5 gap-2 mb-2">
+              <div
+                className="flex items-center px-3 py-3 rounded-lg text-white text-sm font-bold"
+                style={{backgroundColor:DIM_COLORS[dim]}}
+              >
+                {dim}
+              </div>
+              {LEVEL_KEYS.map((lk,li) => {
+                const isSelected = selectedCell && selectedCell.dim === dim && selectedCell.level === lk;
+                return (
+                  <button
+                    key={lk}
+                    onClick={() => setSelectedCell(isSelected ? null : {dim, level:lk, levelIdx:li})}
+                    className={`text-left p-3 rounded-lg text-xs transition-all border-2 ${
+                      isSelected
+                        ? 'shadow-lg scale-[1.02]'
+                        : 'shadow-sm hover:shadow-md'
+                    } bg-white dark:bg-gray-800`}
+                    style={{
+                      borderColor: isSelected ? DIM_COLORS[dim] : 'transparent'
+                    }}
+                  >
+                    <span className="text-gray-700 dark:text-gray-300">{MATRIX[dim][lk]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Detail Panel */}
+      {selectedCell && (
+        <div className="fade-in bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border-2" style={{borderColor:DIM_COLORS[selectedCell.dim]}}>
+          <div className="flex items-center gap-3 mb-4">
+            <Badge text={selectedCell.dim} color={DIM_COLORS[selectedCell.dim]}/>
+            <Badge text={LEVELS[selectedCell.levelIdx]} color={LEVEL_COLORS[selectedCell.level]}/>
+          </div>
+          <h3 className="font-bold mb-2">{MATRIX[selectedCell.dim][selectedCell.level]}</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <h4 className="text-sm font-semibold mb-2 text-gray-500">Perguntas que discriminam este nível</h4>
+              <div className="flex flex-wrap gap-1">
+                {getCellPerguntas(selectedCell.dim).map(qid => (
+                  <button key={qid} onClick={() => onOpenDrawer('pergunta', qid)} className="text-xs px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition">
+                    {qid}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-2 text-gray-500">Hipóteses CSD associadas</h4>
+              <div className="flex flex-wrap gap-1">
+                {getCellHipoteses(selectedCell.dim, selectedCell.levelIdx+1).map(hid => (
+                  <button key={hid} onClick={() => onOpenDrawer('hipotese', hid)} className="text-xs px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition">
+                    {hid}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 3: HIPÓTESES CSD
+// ═══════════════════════════════════════════
+function HipotesesView({ onOpenDrawer }) {
+  const [subTab, setSubTab] = useState('S');
+  const [filterDim, setFilterDim] = useState('Todas');
+  const [filterCluster, setFilterCluster] = useState('Todos');
+  const [filterPrio, setFilterPrio] = useState('Todas');
+  const [expanded, setExpanded] = useState(null);
+
+  const items = subTab === 'C' ? CERTEZAS : subTab === 'S' ? SUPOSICOES : DUVIDAS;
+
+  const filtered = useMemo(() => {
+    return items.filter(h => {
+      if (filterDim !== 'Todas' && h.dimensao !== filterDim) return false;
+      if (subTab === 'S' && filterCluster !== 'Todos' && h.cluster !== filterCluster) return false;
+      if (subTab !== 'C' && filterPrio !== 'Todas' && h.prioridade !== filterPrio) return false;
+      return true;
+    });
+  }, [items, filterDim, filterCluster, filterPrio, subTab]);
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Hipóteses CSD</h2>
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800">
+        <h3 className="font-bold text-sm mb-2">O que é a Matriz CSD?</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          A Matriz CSD (Certezas, Suposições, Dúvidas) é a ferramenta que usamos para organizar <strong>o que sabemos, o que achamos que sabemos, e o que não sabemos</strong> sobre a maturidade em IA da Swift — antes de aplicar a pesquisa.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-green-600 mb-1">Certezas (C1-C6)</div>
+            <div className="text-gray-600 dark:text-gray-400">Fatos que já sabemos (perfil demográfico, stack, etc). Não precisam de validação — definem como interpretamos os resultados.</div>
+          </div>
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-orange-600 mb-1">Suposições (S1-S17)</div>
+            <div className="text-gray-600 dark:text-gray-400">Hipóteses que <strong>achamos</strong> que são verdade mas precisamos validar. Se confirmadas ou refutadas, <strong>mudam decisões concretas</strong> sobre o programa de capacitação.</div>
+          </div>
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-blue-600 mb-1">Dúvidas (D1-D8)</div>
+            <div className="text-gray-600 dark:text-gray-400">Questões exploratórias — não temos nem hipótese. O valor é gerar <strong>insights novos</strong> que nenhuma suposição captura.</div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Cada suposição e dúvida está mapeada a perguntas específicas da pesquisa e a dimensões da Matriz de Letramento. Clique em qualquer card abaixo para ver os detalhes.</p>
+      </div>
+
+      {/* Sub tabs */}
+      <div className="flex gap-2">
+        <button onClick={() => {setSubTab('C');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='C'?'bg-green-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Certezas ({CERTEZAS.length})
+        </button>
+        <button onClick={() => {setSubTab('S');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='S'?'bg-purple-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Suposições ({SUPOSICOES.length})
+        </button>
+        <button onClick={() => {setSubTab('D');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='D'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Dúvidas ({DUVIDAS.length})
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <select value={filterDim} onChange={e=>setFilterDim(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas dimensões</option>
+          {[...new Set(items.map(h=>h.dimensao))].map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+        {subTab === 'S' && (
+          <select value={filterCluster} onChange={e=>setFilterCluster(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+            <option value="Todos">Todos clusters</option>
+            <option value="Execucao">Execucao</option>
+            <option value="Gestao">Gestao</option>
+            <option value="Transversal">Transversal</option>
+          </select>
+        )}
+        {subTab !== 'C' && (
+          <select value={filterPrio} onChange={e=>setFilterPrio(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+            <option value="Todas">Todas prioridades</option>
+            <option value="Critica">Crítica</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Média</option>
+          </select>
+        )}
+      </div>
+
+      {/* Cards */}
+      <div className="space-y-3">
+        {filtered.map(h => {
+          const isExp = expanded === h.id;
+          return (
+            <div key={h.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-md">
+              <button onClick={() => setExpanded(isExp ? null : h.id)} className="w-full text-left p-4 flex items-start gap-3">
+                <span className="text-sm font-mono font-bold text-gray-400 dark:text-gray-500 shrink-0 mt-0.5">{h.id}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm mb-2">{h.titulo}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {h.prioridade && <Badge text={h.prioridade} color={PRIO_COLORS[h.prioridade]} small/>}
+                    <Badge text={h.dimensao} color={DIM_COLORS[h.dimensao] || '#6B7280'} small/>
+                    {h.cluster && <Badge text={h.cluster} color={CLUSTER_COLORS[h.cluster]} small/>}
+                    {h.transicao && <Badge text={h.transicao} color="#6B7280" small/>}
+                    {h.fonte && <Badge text={h.fonte} color="#6B7280" small/>}
+                  </div>
+                </div>
+                <svg className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${isExp?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              {isExp && (
+                <div className="px-4 pb-4 pt-0 border-t border-gray-100 dark:border-gray-700 fade-in">
+                  <div className="mt-3 space-y-4">
+                    {/* Descrição */}
+                    {h.desc && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 mb-1.5">O que estamos testando</h4>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{h.desc}</p>
+                      </div>
+                    )}
+                    {/* Por que importa */}
+                    {h.importa && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                        <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Por que é relevante</h4>
+                        <p className="text-sm text-amber-800 dark:text-amber-300">{h.importa}</p>
+                      </div>
+                    )}
+                    {/* O que desbloqueia (para Dúvidas) */}
+                    {h.desbloqueia && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                        <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">O que desbloqueia</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-300">{h.desbloqueia}</p>
+                      </div>
+                    )}
+                    {/* Se confirmada / refutada */}
+                    {(h.confirmada || h.refutada) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {h.confirmada && (
+                          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                            <h4 className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Se confirmada</h4>
+                            <p className="text-xs text-green-800 dark:text-green-300">{h.confirmada}</p>
+                          </div>
+                        )}
+                        {h.refutada && (
+                          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                            <h4 className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Se refutada</h4>
+                            <p className="text-xs text-red-800 dark:text-red-300">{h.refutada}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Perguntas que validam */}
+                    {h.validacao && h.validacao.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 mb-2">Perguntas que validam</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {h.validacao.map(qid => (
+                            <button key={qid} onClick={(e) => {e.stopPropagation(); onOpenDrawer('pergunta', qid);}} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 font-medium transition">
+                              {qid}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="text-center text-gray-400 py-8 text-sm">Nenhum item encontrado com os filtros selecionados.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 4: PERGUNTAS
+// ═══════════════════════════════════════════
+function PerguntasView({ onOpenDrawer }) {
+  const [filterFase, setFilterFase] = useState('Todas');
+  const [filterDim, setFilterDim] = useState('Todas');
+  const [filterScoring, setFilterScoring] = useState('Todos');
+  const [expanded, setExpanded] = useState(null);
+  const [collapsedFases, setCollapsedFases] = useState({});
+
+  const FASE_META = {
+    '0':       { nome: 'Fase 0 — Caracterização Demográfica',        desc: '5 perguntas | ~2 min | Segmentação e roteamento por cargo',         cor: '#94A3B8', icon: 'U' },
+    '0.5':     { nome: 'Fase 0.5 — Mapa de Uso Atual',              desc: '6 perguntas | ~3 min | Mapeamento descritivo de ferramentas e frequência', cor: '#64748B', icon: 'M' },
+    '1':       { nome: 'Fase 1 — Maturidade nas 5 Dimensões',       desc: '35 perguntas | ~12 min | Score Comum (31 itens) + controles + multiplicador', cor: '#3B82F6', icon: 'S' },
+    'Controle':{ nome: 'Controle de Qualidade + Multiplicador',      desc: '3 perguntas | Attention check, barreiras e interesse em multiplicar',  cor: '#6B7280', icon: 'C' },
+    '2A':      { nome: 'Fase 2A — Cluster Execução',                desc: '4 perguntas | ~3 min | Assistentes, Analistas, Especialistas',       cor: '#8B5CF6', icon: 'E' },
+    '2B':      { nome: 'Fase 2B — Cluster Gestão',                  desc: '6 perguntas | ~3 min | Coordenadores, Gerentes, Diretores',          cor: '#A855F7', icon: 'G' },
+    '3':       { nome: 'Fase 3 — Perguntas Abertas',                desc: '5 perguntas | ~3 min | Q53 obrigatória, Q54-Q57 opcionais',          cor: '#EC4899', icon: 'A' }
+  };
+  const FASE_ORDER = ['0','0.5','1','Controle','2A','2B','3'];
+
+  const fases = ['0','0.5','1','2A','2B','3','Controle'];
+  const dims = [...new Set(PERGUNTAS.map(q=>q.dimensao))];
+
+  const filtered = useMemo(() => {
+    return PERGUNTAS.filter(q => {
+      if (filterFase !== 'Todas' && q.fase !== filterFase) return false;
+      if (filterDim !== 'Todas' && q.dimensao !== filterDim) return false;
+      if (filterScoring !== 'Todos' && q.scoring !== filterScoring) return false;
+      return true;
+    });
+  }, [filterFase, filterDim, filterScoring]);
+
+  const grouped = useMemo(() => {
+    const groups = {};
+    FASE_ORDER.forEach(f => { groups[f] = []; });
+    filtered.forEach(q => {
+      if (groups[q.fase]) groups[q.fase].push(q);
+    });
+    return groups;
+  }, [filtered]);
+
+  const showingAllFases = filterFase === 'Todas';
+
+  function toggleFase(fase) {
+    setCollapsedFases(prev => ({...prev, [fase]: !prev[fase]}));
+  }
+
+  function getFaseBadgeColor(fase) {
+    return FASE_META[fase]?.cor || '#6B7280';
+  }
+  function getScoringColor(s) {
+    if(s==='Comum') return '#10B981';
+    if(s==='Estendido') return '#F59E0B';
+    return '#94A3B8';
+  }
+
+  function renderOpcoes(q) {
+    const dimColor = DIM_COLORS[q.dimensao] || '#6B7280';
+    if (q.opcoes === null) {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Formato de resposta</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300 italic">Resposta aberta (campo de texto)</div>
+        </div>
+      );
+    }
+
+    // Likert standard
+    if (q.tipo === 'Likert') {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Escala Likert (1-5)</div>
+          <div className="flex flex-wrap gap-2 justify-between">
+            {q.opcoes.map((op, i) => (
+              <div key={i} className="flex-1 min-w-[80px] text-center">
+                <div className="text-lg font-bold" style={{color: dimColor}}>{i+1}</div>
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{op.replace(/^\d+\s*/, '')}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Likert Reverso
+    if (q.tipo === 'Likert Reverso') {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-orange-300 dark:border-orange-700">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">Escala Likert (1-5)</div>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 font-bold">(score invertido)</span>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-between">
+            {q.opcoes.map((op, i) => {
+              const scores = [4.0, 3.0, 2.0, 1.5, 1.0];
+              return (
+                <div key={i} className="flex-1 min-w-[80px] text-center">
+                  <div className="text-lg font-bold" style={{color: dimColor}}>{i+1}</div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{op.replace(/^\d+\s*/, '')}</div>
+                  <div className="text-[10px] font-mono text-orange-600 dark:text-orange-400 mt-0.5">= {scores[i].toFixed(1)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Confianca
+    if (q.tipo === 'Confianca') {
+      const scores = [1.0, 2.0, 3.0, 3.5, 2.0];
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-red-300 dark:border-red-700">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">Escala de Confiança (1-5)</div>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 font-bold">(penaliza confiança excessiva)</span>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-between">
+            {q.opcoes.map((op, i) => (
+              <div key={i} className={`flex-1 min-w-[80px] text-center ${i === 4 ? 'bg-red-50 dark:bg-red-900/20 rounded-lg p-1' : ''}`}>
+                <div className="text-lg font-bold" style={{color: i === 4 ? '#EF4444' : dimColor}}>{i+1}</div>
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{op.replace(/^\d+\s*/, '')}</div>
+                <div className={`text-[10px] font-mono mt-0.5 ${i === 4 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-400'}`}>= {scores[i].toFixed(1)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Cenario
+    if (q.tipo === 'Cenario') {
+      const convMap = {};
+      if (q.conversao) {
+        q.conversao.split(',').forEach(pair => {
+          const [key, val] = pair.trim().split('=');
+          convMap[key.trim()] = parseFloat(val.trim());
+        });
+      }
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Opções do cenário</div>
+          <div className="space-y-1.5">
+            {q.opcoes.map((op, i) => {
+              const letter = op.match(/^([a-e])\)/);
+              const scoreVal = letter ? convMap[letter[1]] : null;
+              return (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-700 dark:text-gray-300 flex-1">{op}</span>
+                  {scoreVal !== null && scoreVal !== undefined && (
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 shrink-0">
+                      score = {scoreVal.toFixed(1)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Escala (Q44, Q49, Q51)
+    if (q.tipo === 'Escala') {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Opções da escala</div>
+          <div className="space-y-1.5">
+            {q.opcoes.map((op, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <span className="text-gray-700 dark:text-gray-300">{op}</span>
+              </div>
+            ))}
+          </div>
+          {q.conversao && (
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+              <code className="text-[10px] text-gray-500 dark:text-gray-400">{q.conversao}</code>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Descritiva / Mapa / Multipla escolha / others with opcoes
+    if (q.tipo === 'Descritiva' || q.tipo === 'Mapa' || q.tipo === 'Roteador' || q.tipo === 'Segmentacao' || q.tipo === 'Controle') {
+      const isMultiple = q.textoCompleto && (q.textoCompleto.includes('marque todas') || q.textoCompleto.includes('marque a principal'));
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{isMultiple ? 'Múltipla escolha' : 'Opções de resposta'}</div>
+          <div className="space-y-1">
+            {q.opcoes.map((op, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                {isMultiple ? (
+                  <span className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-500 shrink-0 flex items-center justify-center text-[10px] text-gray-400">&#10003;</span>
+                ) : (
+                  <span className="w-3 h-3 rounded-full border-2 border-gray-300 dark:border-gray-500 shrink-0"></span>
+                )}
+                <span className="text-gray-700 dark:text-gray-300">{op}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback
+    return (
+      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Opções de resposta</div>
+        <div className="space-y-1">
+          {q.opcoes.map((op, i) => (
+            <div key={i} className="text-sm text-gray-700 dark:text-gray-300">{op}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderQuestion(q) {
+    const isExp = expanded === q.id;
+    const dimColor = DIM_COLORS[q.dimensao] || '#6B7280';
+    return (
+      <div key={q.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all">
+        <button onClick={() => setExpanded(isExp ? null : q.id)} className="w-full text-left p-3 flex items-start gap-3">
+          {/* Dimension badge (large, colored) */}
+          <div className="shrink-0 flex flex-col items-center gap-1">
+            <span className="inline-flex items-center justify-center rounded-lg font-bold text-white text-[10px] px-2 py-1 leading-tight" style={{backgroundColor: dimColor}}>
+              {q.dimensao}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-base font-mono font-extrabold" style={{color: dimColor}}>{q.id}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{q.texto}</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {!showingAllFases && <Badge text={`Fase ${q.fase}`} color={getFaseBadgeColor(q.fase)} small/>}
+              <Badge text={q.tipo} color="#6B7280" small/>
+              <Badge text={q.scoring} color={getScoringColor(q.scoring)} small/>
+              {q.transicao && <Badge text={q.transicao} color="#6B7280" small/>}
+            </div>
+          </div>
+          <svg className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${isExp?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        {isExp && (
+          <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 fade-in">
+            <div className="mt-3 space-y-4">
+              {/* 1. Texto completo em destaque */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-400 mb-1">Texto completo da pergunta</div>
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-relaxed">{q.textoCompleto || q.texto}</div>
+              </div>
+
+              {/* 2. Por que esta pergunta e importante */}
+              {q.importa && (
+                <div className="rounded-lg p-3 border" style={{backgroundColor: dimColor + '10', borderColor: dimColor + '40'}}>
+                  <h4 className="text-xs font-semibold mb-1" style={{color: dimColor}}>Por que esta pergunta é importante</h4>
+                  <p className="text-sm" style={{color: dimColor + 'DD'}}>{q.importa}</p>
+                </div>
+              )}
+
+              {/* 3. Opcoes de resposta */}
+              {q.opcoes !== undefined && renderOpcoes(q)}
+
+              {/* 4. Badges: tipo, scoring, transicao */}
+              <div className="flex flex-wrap gap-2">
+                <Badge text={q.dimensao} color={dimColor}/>
+                <Badge text={q.tipo} color="#6B7280"/>
+                <Badge text={q.scoring} color={getScoringColor(q.scoring)}/>
+                {q.transicao && <Badge text={'Nível ' + q.transicao} color="#6B7280"/>}
+                {q.conversao && (
+                  <span className="inline-flex items-center rounded-full font-medium px-2.5 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
+                    {q.conversao}
+                  </span>
+                )}
+              </div>
+
+              {/* 5. Hipoteses CSD clicaveis */}
+              {q.hipoteses.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Hipóteses CSD que valida</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {q.hipoteses.map(hid => {
+                      const hip = [...SUPOSICOES, ...DUVIDAS].find(h => h.id === hid);
+                      return (
+                        <button key={hid} onClick={e=>{e.stopPropagation();onOpenDrawer('hipotese',hid)}} className="text-xs px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition font-medium text-left">
+                          <span className="font-bold">{hid}</span>
+                          {hip && <span className="ml-1 text-purple-400 dark:text-purple-500">{hip.titulo}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Perguntas (Q1-Q61)</h2>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <select value={filterFase} onChange={e=>setFilterFase(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas as fases</option>
+          {fases.map(f=><option key={f} value={f}>Fase {f}</option>)}
+        </select>
+        <select value={filterDim} onChange={e=>setFilterDim(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas dimensões</option>
+          {dims.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={filterScoring} onChange={e=>setFilterScoring(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todos">Todos scorings</option>
+          <option value="Comum">Score Comum</option>
+          <option value="Estendido">Score Estendido</option>
+          <option value="Nenhum">Não entra</option>
+        </select>
+      </div>
+
+      <div className="text-xs text-gray-500">{filtered.length} perguntas encontradas</div>
+
+      {/* Grouped by phase */}
+      {showingAllFases ? (
+        <div className="space-y-6">
+          {FASE_ORDER.map(fase => {
+            const meta = FASE_META[fase];
+            const qs = grouped[fase];
+            if (!qs || qs.length === 0) return null;
+            const isCollapsed = collapsedFases[fase];
+            return (
+              <div key={fase}>
+                {/* Phase header */}
+                <button
+                  onClick={() => toggleFase(fase)}
+                  className="w-full text-left mb-3 group"
+                >
+                  <div className="flex items-center gap-3 p-3 rounded-xl transition-all hover:shadow-md" style={{backgroundColor: meta.cor + '12', border: `2px solid ${meta.cor}40`}}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0" style={{backgroundColor: meta.cor}}>
+                      {meta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm" style={{color: meta.cor}}>{meta.nome}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{meta.desc}</div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{backgroundColor: meta.cor + '20', color: meta.cor}}>
+                        {qs.length} {qs.length === 1 ? 'pergunta' : 'perguntas'}
+                      </span>
+                      <svg className={`w-5 h-5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} style={{color: meta.cor}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                  </div>
+                </button>
+                {/* Questions */}
+                {!isCollapsed && (
+                  <div className="space-y-2 ml-2 pl-4" style={{borderLeft: `3px solid ${meta.cor}30`}}>
+                    {qs.map(q => renderQuestion(q))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(q => renderQuestion(q))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 5: SCORING
+// ═══════════════════════════════════════════
+function ScoringView() {
+  const [simDim, setSimDim] = useState('Utilizacao');
+  const [simAnswers, setSimAnswers] = useState({});
+
+  const simQuestions = useMemo(() => {
+    const comum = (SCORE_COMUM_MAP[simDim] || []).map(id => PERGUNTAS.find(q=>q.id===id)).filter(Boolean);
+    const ext = (SCORE_ESTENDIDO_MAP[simDim] || []).map(id => PERGUNTAS.find(q=>q.id===id)).filter(Boolean);
+    return { comum, ext };
+  }, [simDim]);
+
+  const simResult = useMemo(() => {
+    const allQs = [...simQuestions.comum, ...simQuestions.ext];
+    const scores = [];
+    allQs.forEach(q => {
+      const ans = simAnswers[q.id];
+      if (ans === undefined || ans === '' || isNaN(ans)) return;
+      let conv = getConversion(q);
+      if (conv) {
+        const found = conv.find(c => c.r === ans);
+        if (found) scores.push(found.s);
+      } else {
+        // Cenario/Escala: o valor selecionado JA e o score
+        scores.push(parseFloat(ans));
+      }
+    });
+    if (scores.length === 0) return null;
+    const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+    return { avg: avg.toFixed(2), nivel: getNivel(avg), count: scores.length, total: allQs.length };
+  }, [simAnswers, simQuestions]);
+
+  function resetSim() {
+    setSimAnswers({});
+  }
+
+  function ConversionTable({ title, data, highlight }) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+        <h4 className="font-semibold text-sm mb-3">{title}</h4>
+        <table className="w-full text-center text-xs">
+          <thead>
+            <tr>
+              <th className="py-1.5 text-gray-500 font-bold">Resposta</th>
+              {data.map(d => <th key={d.r} className="py-1.5 text-gray-500 font-bold">{d.r}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-1.5 text-gray-500 font-bold">Score</td>
+              {data.map(d => (
+                <td key={d.r+'s'} className="py-1.5">
+                  <span className={`inline-block px-2 py-0.5 rounded font-bold ${highlight && d.r===5 ? 'bg-red-100 dark:bg-red-900/30 text-red-600' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                    {d.s.toFixed(1)}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  const [scoreTab, setScoreTab] = useState('como');
+  const scoreTabs = [
+    { id:'como', label:'Como funciona' },
+    { id:'conversoes', label:'Conversões' },
+    { id:'composicao', label:'Composição' },
+    { id:'simulador', label:'Simulador' },
+  ];
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Sistema de Scoring</h2>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {scoreTabs.map(t => (
+          <button key={t.id} onClick={() => setScoreTab(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${scoreTab===t.id ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB: Como funciona */}
+      {scoreTab === 'como' && (
+        <div className="space-y-6 fade-in">
+          {/* Fluxo visual */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 className="font-semibold mb-4">Fluxo de cálculo</h3>
+            <div className="flex flex-col md:flex-row items-stretch gap-0">
+              {[
+                { icon:'📝', title:'Resposta bruta', desc:'Likert 1-5, cenário, escala', cor:'#3B82F6' },
+                { icon:'🔄', title:'Conversão', desc:'Resposta → score 1.0 a 4.0', cor:'#8B5CF6' },
+                { icon:'📊', title:'Score dimensão', desc:'Média dos itens', cor:'#10B981' },
+                { icon:'🎯', title:'Nível Matriz', desc:'Faixas de corte', cor:'#F59E0B' },
+                { icon:'⭐', title:'Score geral', desc:'Média das 5 dimensões', cor:'#EC4899' },
+              ].map((step, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <div className="hidden md:flex items-center px-1"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 4l6 6-6 6" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round"/></svg></div>}
+                  {i > 0 && <div className="md:hidden flex justify-center py-1"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round"/></svg></div>}
+                  <div className="flex-1 rounded-xl p-3 text-center" style={{backgroundColor: step.cor + '10', border: `2px solid ${step.cor}30`}}>
+                    <div className="text-2xl mb-1">{step.icon}</div>
+                    <div className="font-bold text-xs" style={{color: step.cor}}>{step.title}</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{step.desc}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* Score Comum vs Estendido */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800">
+              <h4 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">Score Comum (31 itens)</h4>
+              <p className="text-sm text-emerald-800 dark:text-emerald-300 mb-3">Perguntas Q12-Q39 — respondidas por TODOS. Base de comparação entre clusters, áreas e gerações.</p>
+              <div className="text-xs text-emerald-600 dark:text-emerald-400">Usar para: relatorio executivo, heatmaps, gap analysis, reaplicacao T2</div>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-800">
+              <h4 className="font-bold text-amber-700 dark:text-amber-400 mb-2">Score Estendido (opcional)</h4>
+              <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">Score Comum + itens da Fase 2 do cluster. Execucao: +Q43,Q44 (33 itens). Gestao: +Q48-Q51 (35 itens).</p>
+              <div className="text-xs text-amber-600 dark:text-amber-400">Usar para: relatorio operacional, early adopters, trilhas individuais</div>
+            </div>
+          </div>
+
+          {/* Faixas de Corte */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 className="font-semibold mb-4">Faixas de Corte</h3>
+            <div className="flex rounded-lg overflow-hidden h-14 mb-4">
+              {FAIXAS.map((f,i) => {
+                const width = ((f.max - f.min) / 3.0 * 100);
+                return (
+                  <div key={i} className="flex items-center justify-center text-white text-xs font-bold" style={{backgroundColor:f.cor, width:`${width}%`, minWidth:'70px'}}>
+                    <div className="text-center">
+                      <div>{f.nivel}</div>
+                      <div className="text-[10px] opacity-80">{f.min.toFixed(1)} — {f.max.toFixed(1)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[0].cor}}>Nível 1</span> — estreito (0.49) porque é estado bem definido</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[1].cor}}>Nível 2</span> — amplo (1.0) porque é onde a maioria estará no baseline</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[2].cor}}>Nível 3</span> — amplo (1.0) para capturar a faixa-alvo de evolução</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[3].cor}}>Nível 4</span> — estreito (0.5) porque exige consistência alta em todos os itens</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Conversões */}
+      {scoreTab === 'conversoes' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Cada resposta é convertida para um score de 1.0 a 4.0 correspondendo aos 4 níveis da Matriz de Letramento.</p>
+
+          <h3 className="font-semibold">Escalas Likert</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <ConversionTable title="Likert Padrão (20 itens)" data={LIKERT_PADRAO}/>
+            <ConversionTable title="Likert Reverso (Q16, Q36)" data={LIKERT_REVERSO}/>
+            <ConversionTable title="Confiança Q17 (penaliza 5)" data={CONFIANCA} highlight/>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
+            <strong>Por que não é linear?</strong> A Matriz tem 4 níveis, a escala tem 5 pontos. O ponto 3 ("neutro") mapeia para nível 2 (Básico) porque neutralidade indica falta de prática ativa. Confiança 5 é penalizada porque confiança cega = risco de governança.
+          </div>
+
+          <h3 className="font-semibold mt-6">Cenários comportamentais</h3>
+          <p className="text-xs text-gray-500 mb-3">Cenários testam competência real (o que a pessoa FARIA), não autopercepção. Reduzem Dunning-Kruger.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h4 className="font-semibold text-sm mb-1">Q23 — Cenário Vendas</h4>
+              <p className="text-[10px] text-gray-500 mb-2">Dimensão: Dados</p>
+              <div className="text-xs space-y-1.5">
+                <div className="flex justify-between"><span>d) Não saberia como começar</span><Badge text="1.0" color="#94A3B8" small/></div>
+                <div className="flex justify-between"><span>a) Peco direto para a IA</span><Badge text="2.0" color="#22C55E" small/></div>
+                <div className="flex justify-between"><span>b) Verifico os dados antes</span><Badge text="3.0" color="#EAB308" small/></div>
+                <div className="flex justify-between"><span>c) Estruturo e verifico qualidade</span><Badge text="4.0" color="#F97316" small/></div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h4 className="font-semibold text-sm mb-1">Q25 — Relatório Confidencial</h4>
+              <p className="text-[10px] text-gray-500 mb-2">Dimensão: Governança</p>
+              <div className="text-xs space-y-1.5">
+                <div className="flex justify-between"><span>a) Cola direto / e) Não saberia</span><Badge text="1.0" color="#94A3B8" small/></div>
+                <div className="flex justify-between"><span>d) Não usaria IA</span><Badge text="2.0" color="#22C55E" small/></div>
+                <div className="flex justify-between"><span>b) Remove dados sensíveis</span><Badge text="3.0" color="#EAB308" small/></div>
+                <div className="flex justify-between"><span>c) Usa ferramenta interna</span><Badge text="4.0" color="#F97316" small/></div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h4 className="font-semibold text-sm mb-1">Q29 — E-mail para Cliente</h4>
+              <p className="text-[10px] text-gray-500 mb-2">Dimensão: Governança</p>
+              <div className="text-xs space-y-1.5">
+                <div className="flex justify-between"><span>a) Envia direto</span><Badge text="1.0" color="#94A3B8" small/></div>
+                <div className="flex justify-between"><span>d) Não usaria IA</span><Badge text="2.0" color="#22C55E" small/></div>
+                <div className="flex justify-between"><span>b) Leio por cima</span><Badge text="2.5" color="#22C55E" small/></div>
+                <div className="flex justify-between"><span>c) Reviso criticamente</span><Badge text="4.0" color="#F97316" small/></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Composição */}
+      {scoreTab === 'composicao' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Cada dimensão é calculada como a média simples dos seus itens. Não há ponderação entre itens.</p>
+
+          {/* Tabela de composição */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left p-3 font-semibold">Dimensão</th>
+                  <th className="text-left p-3 font-semibold">Score Comum</th>
+                  <th className="text-center p-3 font-semibold">Qtd</th>
+                  <th className="text-left p-3 font-semibold">+ Estendido</th>
+                  <th className="text-center p-3 font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DIMENSIONS.map(dim => {
+                  const comum = SCORE_COMUM_MAP[dim] || [];
+                  const ext = SCORE_ESTENDIDO_MAP[dim] || [];
+                  return (
+                    <tr key={dim} className="border-b border-gray-100 dark:border-gray-700/50">
+                      <td className="p-3"><Badge text={dim} color={DIM_COLORS[dim]}/></td>
+                      <td className="p-3 text-xs font-mono">{comum.join(', ')}</td>
+                      <td className="p-3 text-center text-xs font-bold">{comum.length}</td>
+                      <td className="p-3 text-xs font-mono">{ext.length > 0 ? ext.join(', ') : '—'}</td>
+                      <td className="p-3 text-center text-xs font-bold">{comum.length + ext.length}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="font-bold bg-gray-50 dark:bg-gray-700/30">
+                  <td className="p-3">Total</td>
+                  <td className="p-3"></td>
+                  <td className="p-3 text-center">28</td>
+                  <td className="p-3"></td>
+                  <td className="p-3 text-center">28 + 6</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Visual por dimensão */}
+          <h3 className="font-semibold">Detalhamento por dimensão</h3>
+          <div className="space-y-3">
+            {DIMENSIONS.map(dim => {
+              const comum = (SCORE_COMUM_MAP[dim] || []).map(id => PERGUNTAS.find(q=>q.id===id)).filter(Boolean);
+              const ext = (SCORE_ESTENDIDO_MAP[dim] || []).map(id => PERGUNTAS.find(q=>q.id===id)).filter(Boolean);
+              return (
+                <div key={dim} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4" style={{borderLeftColor: DIM_COLORS[dim]}}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge text={dim} color={DIM_COLORS[dim]}/>
+                    <span className="text-xs text-gray-500">{comum.length} itens comuns{ext.length > 0 ? ` + ${ext.length} estendidos` : ''}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {comum.map(q => (
+                      <div key={q.id} className="text-xs bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 flex items-start gap-2">
+                        <span className="font-mono font-bold text-gray-400 shrink-0">{q.id}</span>
+                        <div>
+                          <span className="text-gray-700 dark:text-gray-300">{q.texto}</span>
+                          <div className="mt-1"><Badge text={q.tipo} color="#6B7280" small/></div>
+                        </div>
+                      </div>
+                    ))}
+                    {ext.map(q => (
+                      <div key={q.id} className="text-xs bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 flex items-start gap-2 border border-amber-200 dark:border-amber-800">
+                        <span className="font-mono font-bold text-amber-500 shrink-0">{q.id}</span>
+                        <div>
+                          <span className="text-amber-800 dark:text-amber-300">{q.texto}</span>
+                          <div className="mt-1"><Badge text="Estendido" color="#F59E0B" small/> <Badge text={q.tipo} color="#6B7280" small/></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Simulador */}
+      {scoreTab === 'simulador' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Selecione respostas e veja o score atualizar em tempo real. Escolha uma dimensão para simular.</p>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <label className="text-sm font-medium">Dimensão:</label>
+              <div className="flex gap-2 flex-wrap">
+                {DIMENSIONS.map(d => (
+                  <button key={d} onClick={() => {setSimDim(d);resetSim();}}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${simDim===d ? 'text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
+                    style={simDim===d ? {backgroundColor: DIM_COLORS[d]} : {}}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <button onClick={resetSim} className="text-xs text-blue-600 hover:underline ml-auto">Resetar</button>
+            </div>
+
+            {/* Result */}
+            {simResult && (
+              <div className="mb-5 p-4 rounded-lg text-center" style={{backgroundColor:simResult.nivel.cor+'20', border:`2px solid ${simResult.nivel.cor}`}}>
+                <div className="text-3xl font-extrabold" style={{color:simResult.nivel.cor}}>{simResult.avg}</div>
+                <div className="text-sm font-bold mt-1" style={{color:simResult.nivel.cor}}>{simResult.nivel.nivel}</div>
+                <div className="text-xs text-gray-500 mt-1">{simResult.count} de {simResult.total} perguntas respondidas</div>
+              </div>
+            )}
+
+            {/* Questions */}
+            <div className="space-y-4">
+              {simQuestions.comum.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Score Comum</h4>
+                  {simQuestions.comum.map(q => (
+                    <SimQuestion key={q.id} q={q} value={simAnswers[q.id]} onChange={v => setSimAnswers(prev => ({...prev, [q.id]:v}))}/>
+                  ))}
+                </div>
+              )}
+              {simQuestions.ext.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-amber-500 mb-2 uppercase tracking-wide">Score Estendido (cluster)</h4>
+                  {simQuestions.ext.map(q => (
+                    <SimQuestion key={q.id} q={q} value={simAnswers[q.id]} onChange={v => setSimAnswers(prev => ({...prev, [q.id]:v}))}/>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Cenario/Escala options for simulator
+const CENARIO_OPTIONS = {
+  Q23: [{label:'d) Não saberia',s:1},{label:'a) Peço direto',s:2},{label:'b) Verifico dados',s:3},{label:'c) Estruturo e verifico',s:4}],
+  Q25: [{label:'a) Cola direto',s:1},{label:'e) Não saberia avaliar',s:1},{label:'d) Não usaria IA',s:2},{label:'b) Remove sensíveis',s:3},{label:'c) Ferramenta interna',s:4}],
+  Q29: [{label:'a) Envia direto',s:1},{label:'d) Não usaria IA',s:2},{label:'b) Leio por cima',s:2.5},{label:'c) Reviso criticamente',s:4}],
+  Q43: [{label:'a) Primeiro resultado',s:1},{label:'b) Ajusto prompt',s:2.5},{label:'d) Refaço manualmente',s:3},{label:'c) Combino fontes',s:4}],
+  Q44: [{label:'Nunca tentei',s:1},{label:'Não visualizo como',s:1},{label:'Sei que seria possível',s:2},{label:'Sim, uma vez',s:3},{label:'Sim, mais de uma vez',s:4}],
+  Q48: [{label:'e) Não saberia priorizar',s:1},{label:'d) O que o time pede',s:2},{label:'a) Economia de custo',s:2.5},{label:'b) Experiência do cliente',s:3},{label:'c) Receita/diferenciação',s:4}],
+  Q49: [{label:'d) Não penso nisso',s:1},{label:'e) Quero mas não sei',s:1.5},{label:'c) Informalmente',s:2},{label:'b) Anoto sem processo',s:3},{label:'a) Processo estruturado',s:4}],
+  Q51: [{label:'Não',s:1},{label:'Pretendo fazer',s:2},{label:'Informais/verbais',s:3},{label:'Formais documentadas',s:4}],
+};
+
+function SimQuestion({ q, value, onChange }) {
+  const conv = getConversion(q);
+  const isLikertType = conv !== null;
+  const cenarioOpts = CENARIO_OPTIONS[q.id];
+  const isCenario = cenarioOpts !== undefined;
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700/50">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="text-xs font-mono font-bold text-gray-400 shrink-0">{q.id}</span>
+        <span className="text-sm truncate">{q.texto}</span>
+        {q.tipo !== 'Likert' && <Badge text={q.tipo} color="#6B7280" small/>}
+      </div>
+      <div className="shrink-0">
+        {isLikertType ? (
+          <div className="flex gap-1">
+            {[1,2,3,4,5].map(o => (
+              <button
+                key={o}
+                onClick={() => onChange(o)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition ${value===o ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        ) : isCenario ? (
+          <select
+            value={value ?? ''}
+            onChange={e => onChange(parseFloat(e.target.value))}
+            className="border rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 dark:border-gray-600 max-w-[240px]"
+          >
+            <option value="">Selecione...</option>
+            {cenarioOpts.map((o,i) => <option key={i} value={o.s}>{o.label} (={o.s})</option>)}
+          </select>
+        ) : (
+          <select
+            value={value ?? ''}
+            onChange={e => onChange(parseFloat(e.target.value))}
+            className="border rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-700 dark:border-gray-600"
+          >
+            <option value="">--</option>
+            {[1,1.5,2,2.5,3,3.5,4].map(o => <option key={o} value={o}>{o.toFixed(1)}</option>)}
+          </select>
+        )}
+      </div>
+      {value !== undefined && value !== '' && (
+        <div className="text-xs text-gray-500 shrink-0 w-16 text-right font-mono">
+          = {isLikertType ? (conv.find(c=>c.r===value)?.s.toFixed(1) || '?') : parseFloat(value).toFixed(1)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 6: CONEXÕES
+// ═══════════════════════════════════════════
+function ConexoesView({ onOpenDrawer }) {
+  const [filterDim, setFilterDim] = useState('Todas');
+  const [highlight, setHighlight] = useState(null);
+  const svgRef = useRef(null);
+
+  const objetivos = ['Diagnosticar','Priorizar','Multiplicadores','Backlog','Exec. Report'];
+  const dimList = filterDim === 'Todas' ? DIMENSIONS : [filterDim];
+  const hipList = useMemo(() => {
+    if (filterDim === 'Todas') return SUPOSICOES;
+    return SUPOSICOES.filter(s => s.dimensao === filterDim);
+  }, [filterDim]);
+  const qList = useMemo(() => {
+    const qIds = new Set();
+    hipList.forEach(h => h.validacao.forEach(q => qIds.add(q)));
+    return PERGUNTAS.filter(q => qIds.has(q.id));
+  }, [hipList]);
+  const scoreList = useMemo(() => {
+    const dims = filterDim === 'Todas' ? DIMENSIONS : [filterDim];
+    return dims.filter(d => SCORE_COMUM_MAP[d]);
+  }, [filterDim]);
+
+  function isHighlighted(type, id) {
+    if (!highlight) return true;
+    if (highlight.type === type && highlight.id === id) return true;
+    if (highlight.type === 'hipotese') {
+      const h = SUPOSICOES.find(s => s.id === highlight.id);
+      if (!h) return false;
+      if (type === 'dimensao') return h.dimensao === id;
+      if (type === 'pergunta') return h.validacao.includes(id);
+      if (type === 'score') return h.dimensao === id;
+    }
+    if (highlight.type === 'dimensao') {
+      if (type === 'hipotese') {
+        const h = SUPOSICOES.find(s => s.id === id);
+        return h && h.dimensao === highlight.id;
+      }
+      if (type === 'pergunta') {
+        const q = PERGUNTAS.find(q => q.id === id);
+        return q && q.dimensao === highlight.id;
+      }
+      if (type === 'score') return id === highlight.id;
+    }
+    if (highlight.type === 'pergunta') {
+      if (type === 'hipotese') {
+        const h = SUPOSICOES.find(s => s.id === id);
+        return h && h.validacao.includes(highlight.id);
+      }
+      if (type === 'dimensao') {
+        const q = PERGUNTAS.find(q => q.id === highlight.id);
+        return q && q.dimensao === id;
+      }
+    }
+    return false;
+  }
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Mapa de Conexões</h2>
+      <div className="flex flex-wrap gap-3 items-center">
+        <select value={filterDim} onChange={e=>{setFilterDim(e.target.value);setHighlight(null);}} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas dimensões</option>
+          {DIMENSIONS.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+        {highlight && <button onClick={()=>setHighlight(null)} className="text-xs text-blue-600 hover:underline">Limpar destaque</button>}
+      </div>
+      <p className="text-xs text-gray-500">Clique em qualquer item para destacar suas conexões.</p>
+
+      {/* Connection diagram */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[900px] grid grid-cols-5 gap-4">
+          {/* Col 1: Objetivos */}
+          <div>
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Objetivo</div>
+            <div className="space-y-2">
+              {objetivos.map((o,i) => (
+                <div key={i} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-xs text-center font-medium text-blue-700 dark:text-blue-300">
+                  {o}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 2: Dimensões */}
+          <div>
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Dimensão</div>
+            <div className="space-y-2">
+              {dimList.map(d => (
+                <button
+                  key={d}
+                  onClick={() => setHighlight(highlight?.type==='dimensao' && highlight?.id===d ? null : {type:'dimensao',id:d})}
+                  className={`w-full rounded-lg p-2 text-xs text-center font-bold text-white transition-all ${isHighlighted('dimensao',d) ? 'opacity-100 shadow-md' : 'opacity-30'}`}
+                  style={{backgroundColor:DIM_COLORS[d]}}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 3: Hipóteses */}
+          <div>
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Hipótese</div>
+            <div className="space-y-2">
+              {hipList.map(h => (
+                <button
+                  key={h.id}
+                  onClick={() => setHighlight(highlight?.type==='hipotese' && highlight?.id===h.id ? null : {type:'hipotese',id:h.id})}
+                  className={`w-full rounded-lg p-2 text-xs text-left transition-all border ${isHighlighted('hipotese',h.id) ? 'opacity-100 shadow-md' : 'opacity-30'} bg-white dark:bg-gray-800`}
+                  style={{borderColor:DIM_COLORS[h.dimensao] || '#6B7280'}}
+                >
+                  <span className="font-bold">{h.id}</span>
+                  <span className="ml-1 text-gray-500 dark:text-gray-400">{h.titulo.substring(0,25)}...</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 4: Perguntas */}
+          <div>
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Pergunta</div>
+            <div className="space-y-2">
+              {qList.map(q => (
+                <button
+                  key={q.id}
+                  onClick={() => {setHighlight(highlight?.type==='pergunta' && highlight?.id===q.id ? null : {type:'pergunta',id:q.id})}}
+                  className={`w-full rounded-lg p-2 text-xs text-left transition-all border border-gray-200 dark:border-gray-700 ${isHighlighted('pergunta',q.id) ? 'opacity-100 shadow-md' : 'opacity-30'} bg-white dark:bg-gray-800`}
+                >
+                  <span className="font-bold">{q.id}</span>
+                  <span className="ml-1 text-gray-500 dark:text-gray-400">{q.texto.substring(0,22)}...</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 5: Score */}
+          <div>
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Score</div>
+            <div className="space-y-2">
+              {scoreList.map(d => (
+                <div
+                  key={d}
+                  className={`rounded-lg p-2 text-xs text-center font-bold text-white transition-all ${isHighlighted('score',d) ? 'opacity-100 shadow-md' : 'opacity-30'}`}
+                  style={{backgroundColor:DIM_COLORS[d]}}
+                >
+                  {d}
+                  <div className="text-[10px] opacity-75 font-normal mt-0.5">
+                    {(SCORE_COMUM_MAP[d]||[]).length} + {(SCORE_ESTENDIDO_MAP[d]||[]).length} itens
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// DRAWER CONTENT
+// ═══════════════════════════════════════════
+function DrawerContent({ type, id, onNavigate, onOpenDrawer }) {
+  if (type === 'pergunta') {
+    const q = PERGUNTAS.find(p => p.id === id);
+    if (!q) return <div>Pergunta não encontrada.</div>;
+    const conv = getConversion(q);
+    return (
+      <div className="space-y-4">
+        <Badge text={q.dimensao} color={DIM_COLORS[q.dimensao] || '#6B7280'}/>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-1">Texto</div>
+          <div className="text-sm">{q.texto}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Fase</div>
+            <Badge text={`Fase ${q.fase}`} color="#6B7280"/>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Tipo</div>
+            <Badge text={q.tipo} color="#6B7280"/>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Scoring</div>
+            <Badge text={q.scoring} color={q.scoring==='Comum'?'#10B981':q.scoring==='Estendido'?'#F59E0B':'#94A3B8'}/>
+          </div>
+          {q.transicao && (
+            <div>
+              <div className="text-xs font-semibold text-gray-500 mb-1">Transição</div>
+              <Badge text={q.transicao} color="#6B7280"/>
+            </div>
+          )}
+        </div>
+        {q.conversao && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Conversão</div>
+            <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded block">{q.conversao}</code>
+          </div>
+        )}
+        {conv && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Tabela de conversão</div>
+            <div className="flex gap-2 text-xs">
+              {conv.map(c => (
+                <div key={c.r} className="text-center bg-gray-50 dark:bg-gray-700 rounded p-1.5 flex-1">
+                  <div className="text-gray-400">{c.r}</div>
+                  <div className="font-bold">{c.s.toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {q.hipoteses.length > 0 && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Hipóteses CSD</div>
+            <div className="flex flex-wrap gap-1">
+              {q.hipoteses.map(hid => (
+                <button key={hid} onClick={()=>onOpenDrawer('hipotese',hid)} className="text-xs px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition font-medium">
+                  {hid}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (type === 'hipotese') {
+    const all = [...SUPOSICOES, ...DUVIDAS];
+    const h = all.find(x => x.id === id);
+    if (!h) return <div>Hipótese não encontrada.</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-1.5">
+          <Badge text={h.prioridade} color={PRIO_COLORS[h.prioridade]}/>
+          <Badge text={h.dimensao} color={DIM_COLORS[h.dimensao] || '#6B7280'}/>
+          {h.cluster && <Badge text={h.cluster} color={CLUSTER_COLORS[h.cluster]}/>}
+          {h.transicao && <Badge text={h.transicao} color="#6B7280"/>}
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-1">Título</div>
+          <div className="text-sm font-medium">{h.titulo}</div>
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-1">Perguntas que validam</div>
+          <div className="flex flex-wrap gap-1.5">
+            {h.validacao.map(qid => (
+              <button key={qid} onClick={()=>onOpenDrawer('pergunta',qid)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition font-medium">
+                {qid}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════
+function App() {
+  const [dark, setDark] = useState(false);
+  const [tab, setTab] = useState('Visão Geral');
+  const [drawer, setDrawer] = useState(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  const openDrawer = useCallback((type, id) => {
+    setDrawer({ type, id });
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawer(null);
+  }, []);
+
+  function renderView() {
+    switch(tab) {
+      case 'Visão Geral': return <VisaoGeral onNavigate={setTab}/>;
+      case 'Matriz': return <MatrizView onOpenDrawer={openDrawer}/>;
+      case 'Hipóteses': return <HipotesesView onOpenDrawer={openDrawer}/>;
+      case 'Perguntas': return <PerguntasView onOpenDrawer={openDrawer}/>;
+      case 'Scoring': return <ScoringView/>;
+      case 'Conexões': return <ConexoesView onOpenDrawer={openDrawer}/>;
+      default: return null;
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+      <Header dark={dark} toggleDark={() => setDark(!dark)}/>
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <TabNav active={tab} onChange={setTab}/>
+        <div className="mt-6 pb-12">
+          {renderView()}
+        </div>
+      </div>
+      <Drawer
+        open={!!drawer}
+        onClose={closeDrawer}
+        title={drawer ? `${drawer.id}` : ''}
+      >
+        {drawer && (
+          <DrawerContent
+            type={drawer.type}
+            id={drawer.id}
+            onNavigate={setTab}
+            onOpenDrawer={openDrawer}
+          />
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
