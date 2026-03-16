@@ -194,14 +194,14 @@
 - c) Reviso criticamente o conteudo, adapto o tom e verifico as informacoes
 - d) Nao usaria IA para isso
 
-**Q58.** Sei o que e vies algoritmico e como ele pode impactar decisoes tomadas com IA (ex.: triagem de curriculos, aprovacao de credito, atendimento segmentado).
+**Q58.** Sei o que e vies algoritmico e como ele pode impactar decisoes tomadas com IA (ex.: ferramenta de RH que favorece candidatos de um perfil especifico ao filtrar curriculos; IA de marketing que exclui automaticamente clientes de certas regioes de promocoes; sistema que avalia desempenho de analistas com base em padroes historicos que privilegiam um determinado grupo).
 | 1 | 2 | 3 | 4 | 5 |
 
-**Q59.** **Cenario:** Uma ferramenta de IA usada pela Swift aprova consistentemente candidatos com determinado perfil e rejeita outros para a mesma vaga, sem criterio claro. O que voce faria?
-- a) Continuaria usando — os resultados parecem adequados para a empresa
-- b) Reportaria ao meu gestor, mas continuaria usando enquanto isso
-- c) Investigaria a causa antes de continuar usando — entenderia de onde vem o padrao e documentaria o risco
-- d) Suspenderia o uso e escalaria imediatamente para TI ou Compliance
+**Q59.** **Cenario:** A Swift adotou uma ferramenta de IA para apoiar o RH na triagem de curriculos para vagas de analista. Apos algumas semanas, voce percebe que a ferramenta rejeita sistematicamente candidatos formados em universidades publicas e de regioes fora do eixo SP-RJ, sem nenhum criterio tecnico explicito que justifique esse padrao. O que voce faria?
+- a) Continuaria usando — os resultados selecionados parecem adequados para as vagas
+- b) Reportaria ao meu gestor, mas continuaria usando a ferramenta enquanto isso
+- c) Suspenderia o uso imediatamente e escalaria para TI ou Compliance para investigacao
+- d) Investigaria a origem do padrao antes de qualquer decisao — entenderia de onde vem o vies, documentaria o risco e so depois proporia uma acao
 
 **Q60.** Conheco os riscos legais de usar IA com dados pessoais de clientes ou colaboradores (ex.: LGPD, privacidade, responsabilidade civil).
 | 1 | 2 | 3 | 4 | 5 |
