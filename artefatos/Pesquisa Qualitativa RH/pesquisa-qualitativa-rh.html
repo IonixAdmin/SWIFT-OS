@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pesquisa Qualitativa — RH Swift</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+<style>
+*{box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;margin:0;background:#f8fafc;}
+.fade-in{animation:fadeIn 0.2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+textarea:focus{outline:none;box-shadow:0 0 0 2px #6366f1;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useMemo } = React;
+
+// ─── DADOS ────────────────────────────────────────────────────────────────────
+
+const META = {
+  versao: 'v2.0',
+  data: 'Março 2026',
+  consultoria: 'IONIX',
+  cliente: 'Swift',
+};
+
+const MODULOS = [
+  {
+    id: 'M1', label: 'Módulo 1', titulo: 'Estrutura, Processos e Papéis',
+    descricao: 'Mapear como o RH está organizado, como opera e como as responsabilidades estão distribuídas.',
+    icone: '🏗️', cor: '#3B82F6', corClaro: '#EFF6FF', corBorda: '#BFDBFE', duracao: '20–25 min',
+    blocos: [
+      {
+        titulo: 'Estrutura Organizacional',
+        perguntas: [
+          { p: 'Quais são as subáreas do RH e quem lidera cada uma?', sondas: ['Há separação entre RH estratégico e operacional?','Existem BPs atuando nas áreas de negócio?','Como o Germinare se encaixa nessa estrutura?'] },
+          { p: 'Os papéis e responsabilidades do time estão documentados? Há sobreposição de funções?', sondas: ['Algum papel crítico concentrado em uma pessoa?','Há clareza sobre quem decide o quê?'] },
+          { p: 'O tamanho do time é adequado à demanda atual?', sondas: ['O time cresceu, encolheu ou se manteve nos últimos 2 anos?','Há terceirização ou parceiros externos?'] }
+        ]
+      },
+      {
+        titulo: 'Processos e Operação',
+        perguntas: [
+          { p: 'Na jornada do colaborador (admissão → desligamento), quais processos o RH toca? Quais travam e quais fluem bem?', sondas: ['Quais são mais manuais ou repetitivos?','Quais dependem de muitas aprovações?'] },
+          { p: 'Como as demandas chegam ao RH? Há um canal único? Qual o tempo médio de resposta?', sondas: ['Service desk, e-mail, WhatsApp...?','Como é feita a priorização das demandas?'] },
+          { p: 'Quais sistemas o time usa hoje? Eles se integram ou operam em silos?', sondas: ['Quais geram mais retrabalho?','Existem planilhas ou controles paralelos fora dos sistemas?'] },
+          { p: 'Como o RH mede sua performance? Quais indicadores reporta, para quem e com que frequência?', sondas: ['Esses indicadores medem impacto ou volume de atividade?'] }
+        ]
+      },
+      {
+        titulo: 'Relações e Interfaces',
+        perguntas: [
+          { p: 'As áreas de negócio enxergam o RH como parceiro estratégico ou como área de suporte? O que fundamenta essa percepção?', sondas: ['Quais áreas são mais demandantes?','Quais são mais resistentes ao RH?'] },
+          { p: 'O RH tem voz nas decisões estratégicas da Swift? Existe um comitê de pessoas?', sondas: ['O RH é acionado antes ou só depois das decisões?','Dê um exemplo recente.'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'M2', label: 'Módulo 2', titulo: 'Estratégia da Área',
+    descricao: 'Entender para onde o RH quer ir, quais são suas apostas e como se enxerga no futuro.',
+    icone: '🧭', cor: '#8B5CF6', corClaro: '#F5F3FF', corBorda: '#DDD6FE', duracao: '15–20 min',
+    blocos: [
+      {
+        titulo: 'Visão e Apostas',
+        perguntas: [
+          { p: 'Qual é a visão do RH para os próximos 2 anos? Está documentada e alinhada à estratégia da Swift?', sondas: ['Quem foi envolvido na construção?','Toda a equipe conhece essa visão?'] },
+          { p: 'Quais são as 2–3 iniciativas mais importantes que o RH está conduzindo agora?', sondas: ['Cada uma tem dono, prazo e recurso definidos?','Qual o estágio atual?'] },
+          { p: 'O RH está se preparando ativamente para a transformação digital e de IA da Swift?', sondas: ['O RH se enxerga como protagonista ou como suportador?','Há algum movimento interno de modernização da área?'] }
+        ]
+      },
+      {
+        titulo: 'Prioridades e Tensões',
+        perguntas: [
+          { p: 'Se pudesse resolver só uma coisa nos próximos 6 meses, o que seria? O que impede que já esteja resolvido?', sondas: ['Por que essa e não outra?','Falta recurso, prioridade ou clareza?'] },
+          { p: 'O operacional engole o estratégico no dia a dia? Como o time lida com isso?', sondas: ['Há espaço real para trabalhar o estratégico?','Isso gera frustração no time?'] },
+          { p: 'Há algum mandato da liderança sênior que o RH ainda não cumpriu? O que trava?', sondas: ['Falta recurso, capacidade, clareza ou prioridade?'] }
+        ]
+      },
+      {
+        titulo: 'Capacidade e Recursos',
+        perguntas: [
+          { p: 'O time tem as competências para executar a estratégia que você descreveu? Quais gaps são críticos?', sondas: ['Existe plano de desenvolvimento para o próprio time de RH?'] },
+          { p: 'O orçamento de RH é adequado? Existe pressão para fazer mais com menos?', sondas: ['O orçamento cresceu, caiu ou estabilizou nos últimos anos?'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'M3', label: 'Módulo 3', titulo: 'Mapeamento de Dores',
+    descricao: 'Identificar as principais fricções, ineficiências e frustrações em múltiplos âmbitos.',
+    icone: '🩺', cor: '#EF4444', corClaro: '#FEF2F2', corBorda: '#FECACA', duracao: '20–25 min',
+    blocos: [
+      {
+        titulo: 'Dores Operacionais',
+        perguntas: [
+          { p: 'Quais 3 tarefas consomem mais tempo do time sem gerar valor proporcional?', sondas: ['Há trabalho manual que poderia ser automatizado?','Processos com muito vai-e-vem entre pessoas?'] },
+          { p: 'Onde o RH mais erra ou precisa refazer? Qual é a causa raiz?', sondas: ['Erro de informação, comunicação, sistema ou processo?','Qual o impacto no colaborador?'] },
+          { p: 'Quais processos geram mais reclamações de colaboradores ou gestores?', sondas: ['Existe mecanismo para capturar esse feedback?','Com que frequência chegam?'] }
+        ]
+      },
+      {
+        titulo: 'Dores Tecnológicas e de Dados',
+        perguntas: [
+          { p: 'Quais são as maiores frustrações com os sistemas atuais? O que falta?', sondas: ['Integração entre sistemas?','Adoção baixa?','Sistemas que não atendem o processo real?'] },
+          { p: 'O RH tem dados de qualidade para tomar decisões? Existe um dashboard centralizado?', sondas: ['Quanto tempo leva para obter um dado quando precisa?','Há dados que existem mas não são usados? Por quê?'] },
+          { p: 'Processos críticos ainda rodam em planilha, e-mail ou WhatsApp? Quais são os riscos?', sondas: ['Segurança, perda de informação, retrabalho?'] }
+        ]
+      },
+      {
+        titulo: 'Dores Culturais e de Gestão de Pessoas',
+        perguntas: [
+          { p: 'Quais são os 2–3 maiores desafios de cultura e pessoas na Swift hoje?', sondas: ['Resistência a mudanças?','Engajamento e retenção?','Líderes que não exercem o papel de gestores de pessoas?'] },
+          { p: 'Como está o engajamento dentro do próprio time de RH?', sondas: ['Existe sobrecarga ou burnout percebido?','As pessoas se sentem reconhecidas e com perspectiva?'] },
+          { p: 'Quais perfis são mais difíceis de atrair e reter? Por quê?', sondas: ['Existe pressão de mercado em alguma frente (tech, dados)?','O employer branding da Swift é ativo ou obstáculo?'] }
+        ]
+      },
+      {
+        titulo: 'Dores Relacionais e de Influência',
+        perguntas: [
+          { p: 'Onde o RH encontra mais resistência para avançar sua agenda? Qual a origem dessa resistência?', sondas: ['Liderança? Áreas? Próprio time de RH?','Existe percepção de que o RH não entende o negócio?'] },
+          { p: 'Há alguma área ou liderança com quem a relação é especialmente difícil?', sondas: ['Já houve tentativas de melhorar? O que funcionou?'] },
+          { p: 'Quando o RH apresenta dados ou recomendações à liderança, eles são levados a sério?', sondas: ['Dê um exemplo recente onde funcionou.','E um onde não funcionou.'] }
+        ]
+      },
+      {
+        titulo: 'Dores Estratégicas',
+        perguntas: [
+          { p: 'Qual dor, se não resolvida em 12 meses, vai comprometer o crescimento da Swift?', sondas: ['É dor de talento, cultura, processo ou estrutura?','A organização tem consciência disso?'] },
+          { p: 'Em quais tendências de RH (People Analytics, IA, Employee Experience) a Swift está ficando para trás?', sondas: ['Existe pressão interna ou do board para modernizar?'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'M4', label: 'Módulo 4', titulo: 'IA: Entendimento e Oportunidades',
+    descricao: 'Explorar o grau de familiaridade com IA, como o time enxerga o potencial e co-criar hipóteses de aplicação.',
+    icone: '🤖', cor: '#10B981', corClaro: '#ECFDF5', corBorda: '#A7F3D0', duracao: '20–25 min',
+    blocos: [
+      {
+        titulo: 'Entendimento Atual',
+        perguntas: [
+          { p: 'O que é IA para você? Como explicaria para alguém que nunca ouviu falar?', sondas: ['Diferencia IA generativa de preditiva?','Conhece casos de uso de IA em RH?','Sabe o que são LLMs, automação, agentes?'] },
+          { p: 'Você ou o time já usa alguma ferramenta com IA no trabalho? (ChatGPT, Copilot, etc.) Para quê?', sondas: ['Com que frequência?','É uso formal (aprovado) ou informal (por conta própria)?','O que funcionou? O que não funcionou?'] },
+          { p: 'Como o time de RH enxerga IA: com entusiasmo, ceticismo ou indiferença? De onde vêm as resistências?', sondas: ['Existe um early adopter no time?','Medo de substituição? Desconfiança? Falta de conhecimento?'] },
+          { p: 'O RH foi incluído nas discussões de transformação de IA da Swift? Se sente agente ou objeto dessa mudança?', sondas: ['Existe expectativa de que IA vai "chegar" no RH de fora para dentro?'] }
+        ]
+      },
+      {
+        titulo: 'Mapeamento de Oportunidades',
+        perguntas: [
+          { p: 'Conectando as dores que você descreveu: onde IA poderia ajudar de forma mais imediata?', sondas: ['Não precisa saber o como técnico — só onde faz sentido.'] },
+          { p: 'Se você pudesse contratar um assistente de IA agora, qual seria a primeira tarefa que daria a ele?', sondas: ['Por que essa tarefa?','O que você faria com o tempo liberado?'] },
+          { p: 'Quais processos de RH seriam mais transformados pelo uso de IA?', sondas: ['R&S, onboarding, T&D, performance, People Analytics, comunicação, benefícios/folha?','Qual seria o impacto esperado?'] },
+          { p: 'Em quais áreas IA NÃO deveria entrar? Por quais razões?', sondas: ['Ética? Privacidade? Relações humanas essenciais?','O que seria inaceitável para o time ou para os colaboradores?'] }
+        ]
+      },
+      {
+        titulo: 'Visão de Futuro',
+        perguntas: [
+          { p: 'Se você iniciasse um piloto de IA no RH com resultado visível em 60–90 dias, o que escolheria?', sondas: ['Impacto percebido, facilidade de implementação, engajamento do time.','Quem seria o dono desse piloto?'] },
+          { p: 'O que precisaria estar dado para o RH adotar IA com sucesso? O que poderia sabotá-lo?', sondas: ['Capacitação, dados, liderança, processos, confiança?'] },
+          { p: 'Como seria trabalhar no RH da Swift daqui a 2 anos se IA for bem implementada?', sondas: ['O que mudaria no dia a dia?','O que permaneceria igual — e por quê?'] }
+        ]
+      }
+    ]
+  }
+];
+
+// Hipóteses pré-definidas por padrão de palavras-chave nas notas
+const TEMPLATES_HIPOTESE = [
+  { id:'h1', gatilhos:['manual','planilha','repetitiv','retrabalho'], titulo:'Automação de processos manuais', descricao:'O RH tem processos repetitivos e manuais que poderiam ser automatizados com IA, liberando o time para trabalho de maior valor.', tipo:'Operacional', cor:'#EF4444' },
+  { id:'h2', gatilhos:['dado','dashboard','relatório','indicador','analytics'], titulo:'People Analytics e dados centralizados', descricao:'O RH não tem acesso fácil a dados de qualidade para decisão, sinalizando oportunidade para um hub de People Analytics com IA.', tipo:'Dados', cor:'#3B82F6' },
+  { id:'h3', gatilhos:['recrutamento','seleção','candidato','triagem','vaga'], titulo:'IA no processo seletivo', descricao:'O processo de R&S tem gargalos que poderiam ser acelerados com triagem inteligente e assistentes de entrevista baseados em IA.', tipo:'R&S', cor:'#8B5CF6' },
+  { id:'h4', gatilhos:['onboarding','integração','admissão','novo'], titulo:'Onboarding inteligente e personalizado', descricao:'O onboarding é um processo com alto potencial de automação (FAQs, documentação, treinamentos guiados por IA).', tipo:'Onboarding', cor:'#10B981' },
+  { id:'h5', gatilhos:['treinamento','capacitação','desenvolvimento','aprendizado','T&D','trilha'], titulo:'Personalização de T&D com IA', descricao:'Os programas de T&D poderiam ser personalizados por perfil e cargo usando IA, aumentando relevância e engajamento.', tipo:'T&D', cor:'#F59E0B' },
+  { id:'h6', gatilhos:['engajamento','clima','pulso','pesquisa','satisfação'], titulo:'Monitoramento contínuo de clima', descricao:'Pesquisas de clima pontuais poderiam ser substituídas por monitoramento contínuo com análise de sentimento por IA.', tipo:'Cultura', cor:'#EC4899' },
+  { id:'h7', gatilhos:['performance','avaliação','feedback','meta','PDI'], titulo:'Ciclo de performance aprimorado por IA', descricao:'O ciclo de performance tem oportunidade de ter suporte de IA para sugestões de feedback, calibragem e análise de PDIs.', tipo:'Performance', cor:'#6366F1' },
+  { id:'h8', gatilhos:['comunicação','interna','colaborador','dúvida','pergunta'], titulo:'Assistente virtual para colaboradores', descricao:'Um chatbot de IA poderia responder dúvidas frequentes de colaboradores sobre benefícios, políticas e processos de RH.', tipo:'Comunicação', cor:'#0EA5E9' },
+  { id:'h9', gatilhos:['resistência','medo','ceticismo','não usa','não conhece'], titulo:'Programa de letramento em IA para RH', descricao:'A resistência identificada requer um programa estruturado de letramento em IA específico para a equipe de RH, antes de qualquer piloto.', tipo:'Capacitação', cor:'#64748B' },
+  { id:'h10', gatilhos:['estratégia','parceiro','voz','decisão','board','liderança'], titulo:'Elevação do RH ao papel estratégico', descricao:'O RH precisa de dados e narrativa robusta para ganhar espaço nas decisões estratégicas — IA pode fortalecer esse posicionamento.', tipo:'Estratégico', cor:'#D97706' },
+];
+
+// ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
+
+function gerarHipoteses(notas) {
+  const textoTotal = Object.values(notas).join(' ').toLowerCase();
+  if (textoTotal.trim().length < 20) return [];
+  return TEMPLATES_HIPOTESE.filter(t =>
+    t.gatilhos.some(g => textoTotal.includes(g))
+  );
+}
+
+function contarNotas(notas) {
+  return Object.values(notas).filter(v => v && v.trim().length > 0).length;
+}
+
+// ─── COMPONENTES ─────────────────────────────────────────────────────────────
+
+function PerguntaCard({ numero, pergunta, sondas, cor, corClaro, notaKey, nota, onNota }) {
+  const [aberto, setAberto] = useState(false);
+  const temNota = nota && nota.trim().length > 0;
+
+  return (
+    <div className={`rounded-xl overflow-hidden bg-white border transition-all ${temNota ? 'border-indigo-200 shadow-sm' : 'border-gray-200'}`}>
+      {/* Cabeçalho da pergunta */}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span
+            style={{ background: corClaro, color: cor }}
+            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+          >
+            {numero}
+          </span>
+          <p className="font-semibold text-gray-800 text-sm leading-snug flex-1">{pergunta}</p>
+        </div>
+
+        {/* Campo de notas */}
+        <div className="mt-3 ml-9">
+          <textarea
+            rows={2}
+            value={nota || ''}
+            onChange={e => onNota(notaKey, e.target.value)}
+            placeholder="Anote aqui as respostas, verbatins e observações..."
+            className={`w-full text-sm text-gray-700 rounded-lg p-2.5 resize-none transition-all border ${
+              temNota ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+            }`}
+            style={{ minHeight: 64 }}
+          />
+        </div>
+
+        {/* Sondas toggle */}
+        {sondas.length > 0 && (
+          <button
+            onClick={() => setAberto(!aberto)}
+            className="ml-9 mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <span>{aberto ? '▲' : '▼'}</span>
+            <span>{aberto ? 'Ocultar sondas' : `Ver ${sondas.length} sondas sugeridas`}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Sondas */}
+      {aberto && (
+        <div className="px-4 pb-4 border-t border-gray-100 pt-3 bg-gray-50 fade-in">
+          <ul className="space-y-1.5">
+            {sondas.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
+                <span className="text-gray-300 mt-0.5 shrink-0">↳</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModuloDetalhe({ modulo, notas, onNota }) {
+  let indexGlobal = 0;
+  const blocoComIdx = modulo.blocos.map(b => {
+    const s = indexGlobal;
+    indexGlobal += b.perguntas.length;
+    return { ...b, startIdx: s };
+  });
+  const total = modulo.blocos.reduce((a, b) => a + b.perguntas.length, 0);
+  const preenchidas = modulo.blocos.reduce((a, b, bi) =>
+    a + b.perguntas.filter((_, pi) => {
+      const k = `${modulo.id}-${bi}-${pi}`;
+      return notas[k] && notas[k].trim().length > 0;
+    }).length, 0);
+
+  return (
+    <div className="fade-in">
+      {/* Header do módulo */}
+      <div className="flex items-start gap-4 mb-5">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: modulo.corClaro }}>
+          {modulo.icone}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ background: modulo.corClaro, color: modulo.cor, border: `1px solid ${modulo.corBorda}` }}>{modulo.label}</span>
+            <span className="text-xs text-gray-400">⏱ {modulo.duracao}</span>
+            <span className="text-xs text-gray-400">• {total} perguntas</span>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">{modulo.titulo}</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{modulo.descricao}</p>
+        </div>
+      </div>
+
+      {/* Barra de progresso */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 mb-5 flex items-center gap-3">
+        <div className="flex-1 bg-gray-100 rounded-full h-2">
+          <div className="h-2 rounded-full transition-all" style={{ width: `${(preenchidas/total)*100}%`, background: modulo.cor }} />
+        </div>
+        <span className="text-xs font-semibold text-gray-500 shrink-0">{preenchidas}/{total} respondidas</span>
+      </div>
+
+      {/* Blocos de perguntas */}
+      {blocoComIdx.map((bloco, bi) => (
+        <div key={bi} className="mb-6">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{bloco.titulo}</h4>
+          <div className="space-y-3">
+            {bloco.perguntas.map((p, pi) => {
+              const k = `${modulo.id}-${bi}-${pi}`;
+              return (
+                <PerguntaCard
+                  key={pi}
+                  numero={bloco.startIdx + pi + 1}
+                  pergunta={p.p}
+                  sondas={p.sondas}
+                  cor={modulo.cor}
+                  corClaro={modulo.corClaro}
+                  notaKey={k}
+                  nota={notas[k] || ''}
+                  onNota={onNota}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModuloCard({ modulo, ativo, onClick, notas }) {
+  const total = modulo.blocos.reduce((a, b) => a + b.perguntas.length, 0);
+  const preenchidas = modulo.blocos.reduce((a, b, bi) =>
+    a + b.perguntas.filter((_, pi) => {
+      const k = `${modulo.id}-${bi}-${pi}`;
+      return notas[k] && notas[k].trim().length > 0;
+    }).length, 0);
+  const pct = total > 0 ? Math.round((preenchidas / total) * 100) : 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${ativo ? 'shadow-md' : 'border-transparent bg-white hover:bg-gray-50'}`}
+      style={ativo ? { borderColor: modulo.cor, background: modulo.corClaro } : {}}
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{modulo.icone}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase" style={{ color: modulo.cor }}>{modulo.label}</span>
+            <span className="text-xs text-gray-400">{modulo.duracao}</span>
+          </div>
+          <p className="font-semibold text-sm text-gray-800 truncate">{modulo.titulo}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 bg-gray-200 rounded-full h-1">
+              <div className="h-1 rounded-full transition-all" style={{ width: `${pct}%`, background: modulo.cor }} />
+            </div>
+            <span className="text-xs text-gray-400">{pct}%</span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── ABA HIPÓTESES ────────────────────────────────────────────────────────────
+
+function AbaHipoteses({ notas }) {
+  const [hipCustom, setHipCustom] = useState([]);
+  const [novaHip, setNovaHip] = useState({ titulo: '', descricao: '', tipo: '', cor: '#6366F1' });
+  const [adicionando, setAdicionando] = useState(false);
+
+  const hipAutomatic = useMemo(() => gerarHipoteses(notas), [notas]);
+  const totalNotas = contarNotas(notas);
+  const todasHip = [...hipAutomatic, ...hipCustom];
+
+  function adicionarHipotese() {
+    if (!novaHip.titulo.trim()) return;
+    setHipCustom(prev => [...prev, { ...novaHip, id: `custom-${Date.now()}` }]);
+    setNovaHip({ titulo: '', descricao: '', tipo: '', cor: '#6366F1' });
+    setAdicionando(false);
+  }
+
+  function removerCustom(id) {
+    setHipCustom(prev => prev.filter(h => h.id !== id));
+  }
+
+  // Preview das notas por módulo
+  const notasPorModulo = MODULOS.map(m => {
+    const notasM = [];
+    m.blocos.forEach((b, bi) => {
+      b.perguntas.forEach((p, pi) => {
+        const k = `${m.id}-${bi}-${pi}`;
+        if (notas[k] && notas[k].trim()) notasM.push({ pergunta: p.p, nota: notas[k] });
+      });
+    });
+    return { modulo: m, notas: notasM };
+  }).filter(x => x.notas.length > 0);
+
+  return (
+    <div className="fade-in space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-8 text-white">
+        <span className="text-3xl mb-3 block">🧠</span>
+        <h2 className="text-2xl font-bold mb-2">Levantamento de Hipóteses</h2>
+        <p className="text-indigo-200 text-sm">Hipóteses geradas automaticamente com base nas notas preenchidas + espaço para adicionar hipóteses manuais.</p>
+        <div className="flex gap-4 mt-4 flex-wrap">
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{totalNotas}</p>
+            <p className="text-xs text-indigo-200">Notas preenchidas</p>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{hipAutomatic.length}</p>
+            <p className="text-xs text-indigo-200">Hipóteses automáticas</p>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{hipCustom.length}</p>
+            <p className="text-xs text-indigo-200">Hipóteses manuais</p>
+          </div>
+        </div>
+      </div>
+
+      {totalNotas === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+          <p className="text-amber-700 font-semibold mb-1">Nenhuma nota encontrada ainda</p>
+          <p className="text-amber-600 text-sm">Preencha as notas nas perguntas dos Módulos 1–4 para que hipóteses sejam geradas automaticamente aqui.</p>
+        </div>
+      )}
+
+      {/* Hipóteses automáticas */}
+      {hipAutomatic.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h3 className="font-bold text-gray-800 mb-1">Hipóteses Identificadas Automaticamente</h3>
+          <p className="text-xs text-gray-400 mb-4">Geradas a partir dos padrões detectados nas suas anotações.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {hipAutomatic.map((h, i) => (
+              <div key={h.id} className="rounded-xl border p-4" style={{ borderColor: h.cor + '40', background: h.cor + '08' }}>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: h.cor + '20', color: h.cor }}>{h.tipo}</span>
+                  <span className="text-xs text-gray-400 shrink-0">H{i + 1}</span>
+                </div>
+                <p className="font-semibold text-gray-800 text-sm mb-1">{h.titulo}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{h.descricao}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hipóteses manuais */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-gray-800">Hipóteses Adicionais</h3>
+            <p className="text-xs text-gray-400">Adicione hipóteses que emergiram da conversa e não foram captadas automaticamente.</p>
+          </div>
+          <button
+            onClick={() => setAdicionando(!adicionando)}
+            className="shrink-0 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            + Adicionar
+          </button>
+        </div>
+
+        {adicionando && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4 fade-in space-y-3">
+            <input
+              type="text"
+              placeholder="Título da hipótese"
+              value={novaHip.titulo}
+              onChange={e => setNovaHip(p => ({ ...p, titulo: e.target.value }))}
+              className="w-full text-sm border border-indigo-200 rounded-lg p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+            <textarea
+              rows={2}
+              placeholder="Descrição da hipótese"
+              value={novaHip.descricao}
+              onChange={e => setNovaHip(p => ({ ...p, descricao: e.target.value }))}
+              className="w-full text-sm border border-indigo-200 rounded-lg p-2.5 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+            <div className="flex gap-3 flex-wrap">
+              <input
+                type="text"
+                placeholder="Tipo / categoria"
+                value={novaHip.tipo}
+                onChange={e => setNovaHip(p => ({ ...p, tipo: e.target.value }))}
+                className="flex-1 text-sm border border-indigo-200 rounded-lg p-2.5 bg-white focus:outline-none min-w-[140px]"
+              />
+              <div className="flex items-center gap-2 bg-white border border-indigo-200 rounded-lg px-3 py-2">
+                <label className="text-xs text-gray-500">Cor:</label>
+                <input type="color" value={novaHip.cor} onChange={e => setNovaHip(p => ({ ...p, cor: e.target.value }))} className="w-7 h-7 rounded cursor-pointer border-0" />
+              </div>
+              <button onClick={adicionarHipotese} className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">Salvar</button>
+              <button onClick={() => setAdicionando(false)} className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors">Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {hipCustom.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">Nenhuma hipótese adicionada manualmente ainda.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {hipCustom.map((h, i) => (
+              <div key={h.id} className="rounded-xl border p-4" style={{ borderColor: h.cor + '40', background: h.cor + '08' }}>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: h.cor + '20', color: h.cor }}>{h.tipo || 'Manual'}</span>
+                  <button onClick={() => removerCustom(h.id)} className="text-xs text-gray-300 hover:text-red-400 transition-colors">✕</button>
+                </div>
+                <p className="font-semibold text-gray-800 text-sm mb-1">{h.titulo}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{h.descricao}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Notas por módulo */}
+      {notasPorModulo.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h3 className="font-bold text-gray-800 mb-4">Base de Notas — Resumo por Módulo</h3>
+          <div className="space-y-4">
+            {notasPorModulo.map(({ modulo, notas: ns }) => (
+              <div key={modulo.id} className="rounded-xl p-4" style={{ background: modulo.corClaro, border: `1px solid ${modulo.corBorda}` }}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: modulo.cor }}>{modulo.icone} {modulo.titulo}</p>
+                <div className="space-y-2">
+                  {ns.map((n, i) => (
+                    <div key={i} className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-400 mb-1">{n.pergunta}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{n.nota}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ABA IDEAÇÃO E PRIORIZAÇÃO ────────────────────────────────────────────────
+
+const CATEGORIAS_INICIATIVA = ['Recrutamento & Seleção','Onboarding','T&D','Performance','People Analytics','Comunicação Interna','Benefícios & Folha','Cultura & Engajamento','Automação Operacional','Outro'];
+const CORES_CATEGORIA = { 'Recrutamento & Seleção':'#8B5CF6','Onboarding':'#10B981','T&D':'#F59E0B','Performance':'#6366F1','People Analytics':'#3B82F6','Comunicação Interna':'#0EA5E9','Benefícios & Folha':'#64748B','Cultura & Engajamento':'#EC4899','Automação Operacional':'#EF4444','Outro':'#9CA3AF' };
+
+function AbaIdeacao() {
+  const [iniciativas, setIniciativas] = useState([]);
+  const [form, setForm] = useState({ titulo: '', descricao: '', categoria: 'Recrutamento & Seleção', impacto: 'Alto', esforco: 'Baixo' });
+  const [adicionando, setAdicionando] = useState(false);
+  const [viewMode, setViewMode] = useState('cards'); // cards | matrix
+
+  function addIniciativa() {
+    if (!form.titulo.trim()) return;
+    setIniciativas(prev => [...prev, { ...form, id: Date.now(), votos: 0 }]);
+    setForm({ titulo: '', descricao: '', categoria: 'Recrutamento & Seleção', impacto: 'Alto', esforco: 'Baixo' });
+    setAdicionando(false);
+  }
+
+  function votar(id) {
+    setIniciativas(prev => prev.map(i => i.id === id ? { ...i, votos: i.votos + 1 } : i));
+  }
+
+  function remover(id) {
+    setIniciativas(prev => prev.filter(i => i.id !== id));
+  }
+
+  function getQuadrante(imp, esf) {
+    if (imp === 'Alto' && esf === 'Baixo') return 'quick-win';
+    if (imp === 'Alto' && esf === 'Alto') return 'aposta';
+    if (imp === 'Baixo' && esf === 'Baixo') return 'fill-in';
+    return 'reconsiderar';
+  }
+
+  const QUADRANTES = [
+    { id:'quick-win', titulo:'Quick Wins', desc:'Alto impacto, baixo esforço — prioridade máxima', cor:'#10B981', bg:'#ECFDF5', borda:'#A7F3D0', pos:'topo-esq' },
+    { id:'aposta', titulo:'Apostas Estratégicas', desc:'Alto impacto, alto esforço — vale o investimento', cor:'#3B82F6', bg:'#EFF6FF', borda:'#BFDBFE', pos:'topo-dir' },
+    { id:'fill-in', titulo:'Fill-ins', desc:'Baixo impacto, baixo esforço — faça quando puder', cor:'#F59E0B', bg:'#FFFBEB', borda:'#FDE68A', pos:'baixo-esq' },
+    { id:'reconsiderar', titulo:'Reconsiderar', desc:'Baixo impacto, alto esforço — evitar por ora', cor:'#EF4444', bg:'#FEF2F2', borda:'#FECACA', pos:'baixo-dir' },
+  ];
+
+  const sorted = [...iniciativas].sort((a, b) => b.votos - a.votos);
+
+  return (
+    <div className="fade-in space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-8 text-white">
+        <span className="text-3xl mb-3 block">💡</span>
+        <h2 className="text-2xl font-bold mb-2">Ideação e Priorização de Iniciativas de IA</h2>
+        <p className="text-emerald-100 text-sm">Dinâmica colaborativa para mapear, votar e priorizar iniciativas de IA para o RH. Use após as entrevistas ou em sessão coletiva.</p>
+        <div className="flex gap-3 mt-4 flex-wrap">
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{iniciativas.length}</p>
+            <p className="text-xs text-emerald-100">Iniciativas</p>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{iniciativas.filter(i => getQuadrante(i.impacto, i.esforco) === 'quick-win').length}</p>
+            <p className="text-xs text-emerald-100">Quick Wins</p>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2 text-center">
+            <p className="text-xl font-bold">{iniciativas.reduce((a, b) => a + b.votos, 0)}</p>
+            <p className="text-xs text-emerald-100">Votos totais</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Como conduzir */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 className="font-bold text-gray-800 mb-3">Como conduzir esta dinâmica</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {[
+            { n:1, titulo:'Geração', desc:'Cada participante sugere iniciativas de IA livremente — sem julgamento. Use post-its digitais ou esta tela.', cor:'#8B5CF6', bg:'#F5F3FF' },
+            { n:2, titulo:'Classificação', desc:'Para cada iniciativa, o grupo define impacto (Alto/Baixo) e esforço (Alto/Baixo) de implementação.', cor:'#3B82F6', bg:'#EFF6FF' },
+            { n:3, titulo:'Votação', desc:'Cada participante tem 5 votos para distribuir. Clicar em "Votar" acumula os pontos de cada iniciativa.', cor:'#10B981', bg:'#ECFDF5' },
+            { n:4, titulo:'Priorização', desc:'Os Quick Wins com mais votos viram candidatos a piloto. Apostas estratégicas entram no roadmap de médio prazo.', cor:'#F59E0B', bg:'#FFFBEB' },
+          ].map(s => (
+            <div key={s.n} className="rounded-xl p-4" style={{ background: s.bg }}>
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mb-2" style={{ background: s.cor }}>{s.n}</span>
+              <p className="font-semibold text-sm text-gray-800 mb-1">{s.titulo}</p>
+              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Adicionar iniciativa */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-800">Iniciativas Propostas</h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setViewMode('cards')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode==='cards' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600'}`}>Cards</button>
+            <button onClick={() => setViewMode('matrix')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode==='matrix' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600'}`}>Matriz</button>
+            <button onClick={() => setAdicionando(!adicionando)} className="px-4 py-1.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors">+ Iniciativa</button>
+          </div>
+        </div>
+
+        {/* Formulário */}
+        {adicionando && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 fade-in space-y-3">
+            <input
+              type="text" placeholder="Nome da iniciativa"
+              value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+              className="w-full text-sm border border-emerald-200 rounded-lg p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            />
+            <textarea
+              rows={2} placeholder="Descrição breve (o que faz, qual problema resolve)"
+              value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
+              className="w-full text-sm border border-emerald-200 rounded-lg p-2.5 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            />
+            <div className="flex gap-3 flex-wrap">
+              <select value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}
+                className="flex-1 text-sm border border-emerald-200 rounded-lg p-2.5 bg-white min-w-[160px] focus:outline-none">
+                {CATEGORIAS_INICIATIVA.map(c => <option key={c}>{c}</option>)}
+              </select>
+              <select value={form.impacto} onChange={e => setForm(p => ({ ...p, impacto: e.target.value }))}
+                className="text-sm border border-emerald-200 rounded-lg p-2.5 bg-white focus:outline-none">
+                <option value="Alto">Impacto Alto</option>
+                <option value="Baixo">Impacto Baixo</option>
+              </select>
+              <select value={form.esforco} onChange={e => setForm(p => ({ ...p, esforco: e.target.value }))}
+                className="text-sm border border-emerald-200 rounded-lg p-2.5 bg-white focus:outline-none">
+                <option value="Baixo">Esforço Baixo</option>
+                <option value="Alto">Esforço Alto</option>
+              </select>
+              <button onClick={addIniciativa} className="px-4 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700">Adicionar</button>
+              <button onClick={() => setAdicionando(false)} className="px-4 py-2.5 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200">Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {iniciativas.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-4xl mb-3">💡</p>
+            <p className="text-gray-500 font-medium">Nenhuma iniciativa ainda.</p>
+            <p className="text-gray-400 text-sm mt-1">Clique em "Iniciativa" para começar a preencher o quadro.</p>
+          </div>
+        ) : viewMode === 'cards' ? (
+          /* View de Cards com ranking por votos */
+          <div className="space-y-3">
+            {sorted.map((ini, rank) => {
+              const q = getQuadrante(ini.impacto, ini.esforco);
+              const quad = QUADRANTES.find(x => x.id === q);
+              const catCor = CORES_CATEGORIA[ini.categoria] || '#6B7280';
+              return (
+                <div key={ini.id} className="rounded-xl border border-gray-200 bg-white p-4 flex items-start gap-4">
+                  {/* Ranking */}
+                  <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 shrink-0">
+                    {rank + 1}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: catCor + '20', color: catCor }}>{ini.categoria}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: quad.bg, color: quad.cor, border: `1px solid ${quad.borda}` }}>{quad.titulo}</span>
+                    </div>
+                    <p className="font-semibold text-gray-800 text-sm">{ini.titulo}</p>
+                    {ini.descricao && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{ini.descricao}</p>}
+                    <div className="flex gap-3 mt-2 text-xs text-gray-400">
+                      <span>Impacto: <strong className="text-gray-600">{ini.impacto}</strong></span>
+                      <span>Esforço: <strong className="text-gray-600">{ini.esforco}</strong></span>
+                    </div>
+                  </div>
+                  {/* Votos */}
+                  <div className="flex flex-col items-center gap-1 shrink-0">
+                    <button onClick={() => votar(ini.id)} className="w-10 h-10 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center text-emerald-600 font-bold text-lg">▲</button>
+                    <span className="text-sm font-bold text-gray-700">{ini.votos}</span>
+                    <span className="text-xs text-gray-400">votos</span>
+                    <button onClick={() => remover(ini.id)} className="text-gray-200 hover:text-red-400 transition-colors text-xs mt-1">✕</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* View de Matriz 2x2 */
+          <div>
+            {/* Labels eixos */}
+            <div className="flex items-center mb-2">
+              <div className="w-16 shrink-0"/>
+              <div className="flex-1 grid grid-cols-2 gap-3 text-center">
+                <p className="text-xs font-bold text-gray-500">ESFORÇO BAIXO</p>
+                <p className="text-xs font-bold text-gray-500">ESFORÇO ALTO</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              {/* Label eixo Y */}
+              <div className="w-16 shrink-0 flex flex-col justify-around text-center">
+                <p className="text-xs font-bold text-gray-500 rotate-[-90deg] leading-tight">IMPACTO ALTO</p>
+                <p className="text-xs font-bold text-gray-500 rotate-[-90deg] leading-tight">IMPACTO BAIXO</p>
+              </div>
+              <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3">
+                {QUADRANTES.map(q => {
+                  const items = iniciativas.filter(i => getQuadrante(i.impacto, i.esforco) === q.id)
+                    .sort((a, b) => b.votos - a.votos);
+                  return (
+                    <div key={q.id} className="rounded-2xl p-4 min-h-[160px]" style={{ background: q.bg, border: `2px solid ${q.borda}` }}>
+                      <p className="text-xs font-bold mb-0.5" style={{ color: q.cor }}>{q.titulo}</p>
+                      <p className="text-xs text-gray-400 mb-3 leading-tight">{q.desc}</p>
+                      <div className="space-y-2">
+                        {items.length === 0 ? (
+                          <p className="text-xs text-gray-300 italic">Nenhuma iniciativa aqui</p>
+                        ) : items.map(ini => (
+                          <div key={ini.id} className="bg-white rounded-lg p-2.5 flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate">{ini.titulo}</p>
+                              <p className="text-xs text-gray-400">{ini.categoria}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => votar(ini.id)} className="text-emerald-500 hover:text-emerald-700 text-xs font-bold">▲</button>
+                              <span className="text-xs font-bold text-gray-600">{ini.votos}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Resultado da priorização */}
+      {iniciativas.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h3 className="font-bold text-gray-800 mb-4">Resultado da Priorização</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {QUADRANTES.map(q => {
+              const items = sorted.filter(i => getQuadrante(i.impacto, i.esforco) === q.id);
+              if (items.length === 0) return null;
+              return (
+                <div key={q.id} className="rounded-xl p-4" style={{ background: q.bg, border: `1px solid ${q.borda}` }}>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: q.cor }}>{q.titulo}</p>
+                  <div className="space-y-2">
+                    {items.slice(0,5).map((ini, i) => (
+                      <div key={ini.id} className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: q.cor }}>{i+1}</span>
+                        <span className="text-sm text-gray-800 flex-1 truncate">{ini.titulo}</span>
+                        <span className="text-xs font-bold" style={{ color: q.cor }}>{ini.votos}v</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ABA VISÃO GERAL ─────────────────────────────────────────────────────────
+
+function Capa({ notas }) {
+  const totalPerguntas = MODULOS.reduce((acc, m) => acc + m.blocos.reduce((a, b) => a + b.perguntas.length, 0), 0);
+  const totalNotas = contarNotas(notas);
+  const pct = Math.round((totalNotas / totalPerguntas) * 100);
+
+  return (
+    <div className="fade-in space-y-6">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 text-white">
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <p className="text-slate-400 text-sm font-medium uppercase tracking-widest mb-1">IONIX × Swift</p>
+            <h1 className="text-3xl font-bold leading-tight">Pesquisa Qualitativa</h1>
+            <p className="text-slate-300 text-lg mt-1">Roteiro de Entrevista em Profundidade — RH</p>
+          </div>
+          <div className="text-right text-sm text-slate-400">
+            <p>{META.versao}</p>
+            <p>{META.data}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Módulos', valor: MODULOS.length },
+            { label: 'Perguntas', valor: totalPerguntas },
+            { label: 'Duração', valor: '60–90 min' },
+            { label: 'Notas preenchidas', valor: `${totalNotas}/${totalPerguntas}` }
+          ].map((s, i) => (
+            <div key={i} className="bg-white/10 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold">{s.valor}</p>
+              <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        {totalNotas > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-slate-400 mb-1">
+              <span>Progresso geral das anotações</span>
+              <span>{pct}%</span>
+            </div>
+            <div className="bg-white/10 rounded-full h-2">
+              <div className="h-2 rounded-full bg-emerald-400 transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status por módulo */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 className="font-bold text-gray-800 mb-4">Status de Preenchimento</h3>
+        <div className="space-y-3">
+          {MODULOS.map(m => {
+            const total = m.blocos.reduce((a, b) => a + b.perguntas.length, 0);
+            const preenchidas = m.blocos.reduce((a, b, bi) =>
+              a + b.perguntas.filter((_, pi) => {
+                const k = `${m.id}-${bi}-${pi}`;
+                return notas[k] && notas[k].trim().length > 0;
+              }).length, 0);
+            const p = Math.round((preenchidas / total) * 100);
+            return (
+              <div key={m.id} className="flex items-center gap-3">
+                <span className="text-xl shrink-0">{m.icone}</span>
+                <div className="flex-1">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">{m.titulo}</span>
+                    <span className="text-xs text-gray-400">{preenchidas}/{total}</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${p}%`, background: m.cor }} />
+                  </div>
+                </div>
+                <span className="text-xs font-bold w-8 text-right" style={{ color: m.cor }}>{p}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Estrutura */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 className="font-bold text-gray-800 mb-4">Estrutura da Pesquisa</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {MODULOS.map(m => (
+            <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: m.corClaro, border: `1px solid ${m.corBorda}` }}>
+              <span className="text-xl">{m.icone}</span>
+              <div>
+                <p className="text-xs font-bold" style={{ color: m.cor }}>{m.label} · {m.duracao}</p>
+                <p className="text-sm font-semibold text-gray-800">{m.titulo}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{m.descricao}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Instruções */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 className="font-bold text-gray-800 mb-4">Instruções para o Entrevistador</h3>
+        <ul className="space-y-3">
+          {[
+            'Use o roteiro como guia — não como questionário rígido. Deixe a conversa fluir naturalmente.',
+            'Grave (com autorização) ou anote os verbatins mais relevantes diretamente nos campos de nota.',
+            'A cada resposta relevante, aprofunde com as "sondas sugeridas" clicando no botão abaixo da pergunta.',
+            'Ao final de cada módulo, faça uma síntese oral e confirme o entendimento com o entrevistado.',
+            'Reserve os últimos 10 min para as perguntas de encerramento e para o entrevistado acrescentar o que quiser.',
+            'Acesse a aba "Hipóteses" ao longo da entrevista para verificar padrões emergindo das notas.'
+          ].map((inst, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+              <span className="text-sm text-gray-600">{inst}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP PRINCIPAL ────────────────────────────────────────────────────────────
+
+function App() {
+  const [aba, setAba] = useState('capa');
+  const [notas, setNotas] = useState({});
+
+  const onNota = useCallback((key, value) => {
+    setNotas(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const moduloAtivo = MODULOS.find(m => m.id === aba);
+
+  const navItems = [
+    { id: 'capa', label: 'Visão Geral', icone: '📋' },
+    ...MODULOS.map(m => ({ id: m.id, label: m.label, icone: m.icone })),
+    { id: 'hipoteses', label: 'Hipóteses', icone: '🧠' },
+    { id: 'ideacao', label: 'Ideação', icone: '💡' },
+  ];
+
+  const isWide = aba !== 'capa' && aba !== 'hipoteses' && aba !== 'ideacao';
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-slate-800 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs font-bold">S</span>
+            </div>
+            <span className="font-semibold text-gray-800 text-sm hidden sm:block">Pesquisa Qualitativa RH — Swift</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {contarNotas(notas) > 0 && (
+              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{contarNotas(notas)} notas</span>
+            )}
+            <span className="text-xs text-gray-400">{META.versao} · {META.data}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Nav */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex gap-1 overflow-x-auto py-2">
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setAba(item.id)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${aba === item.id ? 'bg-slate-800 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
+              >
+                <span>{item.icone}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo */}
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {isWide ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <div className="space-y-2 sticky top-24">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Módulos</p>
+                {MODULOS.map(m => (
+                  <ModuloCard key={m.id} modulo={m} ativo={aba === m.id} onClick={() => setAba(m.id)} notas={notas} />
+                ))}
+              </div>
+            </div>
+            <div className="lg:col-span-2">
+              {moduloAtivo && <ModuloDetalhe modulo={moduloAtivo} notas={notas} onNota={onNota} />}
+            </div>
+          </div>
+        ) : (
+          <div>
+            {aba === 'capa' && <Capa notas={notas} />}
+            {aba === 'hipoteses' && <AbaHipoteses notas={notas} />}
+            {aba === 'ideacao' && <AbaIdeacao />}
+          </div>
+        )}
+      </main>
+
+      <footer className="max-w-6xl mx-auto px-4 py-8 text-center text-xs text-gray-400">
+        <p>IONIX × Swift — Transformação em IA Escalável · Pesquisa Qualitativa RH · {META.versao}</p>
+        <p className="mt-1">Confidencial — uso interno restrito à equipe IONIX e gestores autorizados da Swift</p>
+      </footer>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
