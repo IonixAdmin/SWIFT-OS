@@ -15,11 +15,11 @@ Conversao individual (resposta → score 1-4)
     |
 Score por dimensao (media dos itens da dimensao)
     |
-    |--- Score Comum (28 itens, Q12-Q39 — igual para todos)
+    |--- Score Comum (31 itens, Q12-Q39 + Q58-Q60 — igual para todos)
     |         → comparacao entre clusters, relatorio executivo
     |
     |--- Score Estendido (Score Comum + itens da Fase 2 do cluster)
-    |         → Execucao: 30 itens | Gestao: 32 itens
+    |         → Execucao: 33 itens | Gestao: 35 itens
     |         → classificacao mais precisa, early adopters
     |
 Nivel na Matriz de Letramento (faixas de corte)
@@ -269,10 +269,10 @@ Conversao: Likert padrao (mesma tabela da secao 1.1).
 |---|---|---|---|
 | a) Continuaria usando — os resultados parecem adequados | **1.0** | Iniciante | Ignora o risco — uso irresponsavel |
 | b) Reportaria ao gestor, mas continuaria usando | **2.0** | Basico | Tem alguma sensibilidade mas sem acao de contencao |
-| d) Suspenderia o uso e escalaria para TI ou Compliance | **3.0** | Intermediario | Age com prudencia, mas sem diagnostico da causa |
-| c) Investigaria a causa antes de continuar — entenderia o padrao e documentaria o risco | **4.0** | Avancado | Aplica governanca real: diagnostico + documentacao + decisao informada |
+| c) Suspenderia o uso e escalaria para TI ou Compliance | **3.0** | Intermediario | Age com prudencia, mas sem diagnostico da causa |
+| d) Investigaria a causa antes de continuar — entenderia o padrao e documentaria o risco | **4.0** | Avancado | Aplica governanca real: diagnostico + documentacao + decisao informada |
 
-**Por que (d) e nivel 3 e nao 4?** Suspender sem entender e uma resposta cautelosa (bom instinto), mas nao demonstra capacidade de **diagnosticar e gerenciar** o risco. Nivel 4 requer investigacao ativa — a postura de quem sabe que governanca e processo, nao apenas reacao.
+**Por que (c) e nivel 3 e nao 4?** Suspender sem entender e uma resposta cautelosa (bom instinto), mas nao demonstra capacidade de **diagnosticar e gerenciar** o risco. Nivel 4 requer investigacao ativa — a postura de quem sabe que governanca e processo, nao apenas reacao.
 
 **ENTRA NO SCORE COMUM → Dimensao Governanca (todos os respondentes).**
 
@@ -298,16 +298,16 @@ Conversao: Likert padrao (mesma tabela da secao 1.1).
 
 A pesquisa tem dois blocos que geram scores:
 
-- **Fase 1 (Q12-Q39):** Respondida por **todos**. Sao **28 itens**. E a base do **Score Comum**.
+- **Fase 1 (Q12-Q39 + Q58-Q60):** Respondida por **todos**. Sao **31 itens**. E a base do **Score Comum**.
 - **Fase 2A/2B:** Respondida apenas pelo cluster do respondente. Algumas perguntas medem competencia real e complementam o Score Comum, gerando o **Score Estendido**.
 
 | Camada | O que inclui | Qtd itens | Para que serve |
 |---|---|---|---|
-| **Score Comum** | Apenas itens da Fase 1 (Q12-Q39) — iguais para todos | **28** | Comparacao direta entre clusters, areas e geracoes. Usar no **relatorio executivo** |
-| **Score Estendido Execucao** | Score Comum + Q43, Q44 | **30** | Classificacao mais precisa para o cluster Execucao |
-| **Score Estendido Gestao** | Score Comum + Q48, Q49, Q50, Q51 | **32** | Classificacao mais precisa para o cluster Gestao |
+| **Score Comum** | Itens da Fase 1 (Q12-Q39 + Q58-Q60) — iguais para todos | **31** | Comparacao direta entre clusters, areas e geracoes. Usar no **relatorio executivo** |
+| **Score Estendido Execucao** | Score Comum + Q43, Q44 | **33** | Classificacao mais precisa para o cluster Execucao |
+| **Score Estendido Gestao** | Score Comum + Q48, Q49, Q50, Q51 | **35** | Classificacao mais precisa para o cluster Gestao |
 
-**Por que duas camadas?** O Score Estendido usa perguntas diferentes por cluster (Execucao tem Q43/Q44, Gestao tem Q48-Q51). Isso torna a comparacao direta entre clusters imprecisa. O Score Comum resolve isso: mesmos 28 itens, mesma base, comparavel.
+**Por que duas camadas?** O Score Estendido usa perguntas diferentes por cluster (Execucao tem Q43/Q44, Gestao tem Q48-Q51). Isso torna a comparacao direta entre clusters imprecisa. O Score Comum resolve isso: mesmos 31 itens, mesma base, comparavel.
 
 **O Score Estendido e OPCIONAL.** Se a analise nao precisar desse nivel de detalhe, o Score Comum e suficiente para todos os outputs do relatorio executivo. O Estendido agrega valor quando:
 - Voce quer classificar respondentes dentro do cluster com mais granularidade
@@ -316,7 +316,7 @@ A pesquisa tem dois blocos que geram scores:
 
 ---
 
-### 2.1 Score Comum — Composicao por dimensao (todos os respondentes, 28 itens)
+### 2.1 Score Comum — Composicao por dimensao (todos os respondentes, 31 itens)
 
 | Dimensao | Itens | Qtd | Peso |
 |---|---|---|---|
@@ -354,11 +354,11 @@ Score_comum_dimensao = soma(scores dos itens da dimensao) / quantidade de itens 
 | Governanca | Q24-Q29 + Q58-Q60 (9) | — | 9 |
 | Impacto | Q30-Q34 (5) | — | 5 |
 | Cultura | Q35-Q39 (5) | — | 5 |
-| **Total** | **28** | **+2** | **30** |
+| **Total** | **31** | **+2** | **33** |
 
 ---
 
-#### Cluster Gestao (+4 itens → Impacto 5→8, Governanca 6→7)
+#### Cluster Gestao (+4 itens → Impacto 5→8, Governanca 9→10)
 
 | Pergunta | Dimensao | Tipo de conversao | O que agrega |
 |---|---|---|---|
@@ -376,7 +376,7 @@ Score_comum_dimensao = soma(scores dos itens da dimensao) / quantidade de itens 
 | **Governanca** | Q24-Q29 + Q58-Q60 (9) | + Q51 | **10** |
 | **Impacto** | Q30-Q34 (5) | + Q48, Q49, Q50 | **8** |
 | Cultura | Q35-Q39 (5) | — | 5 |
-| **Total** | **28** | **+4** | **32** |
+| **Total** | **31** | **+4** | **35** |
 
 ---
 
@@ -461,7 +461,7 @@ Score_Dados = (2.0 + 4.0 + 2.0 + 3.0 + 3.0) / 5 = 14.0 / 5 = 2.80
 → Nivel 3 — Intermediario
 ```
 
-**Dimensao 3 — Governanca (6 itens):**
+**Dimensao 3 — Governanca (9 itens):**
 
 | Item | Resposta | Tipo | Score |
 |---|---|---|---|
@@ -471,9 +471,12 @@ Score_Dados = (2.0 + 4.0 + 2.0 + 3.0 + 3.0) / 5 = 14.0 / 5 = 2.80
 | Q27 (verifica com outras fontes) | 4 (Concordo parcialmente) | Likert padrao | 3.0 |
 | Q28 (sabe quem e responsavel quando IA erra) | 3 (Neutro) | Likert padrao | 2.0 |
 | Q29 (cenario e-mail) | Opcao b (leio por cima) | Cenario | 2.5 |
+| Q58 (conhece vies algoritmico) | 2 (Discordo parcialmente) | Likert padrao | 1.5 |
+| Q59 (cenario IA com vies em contratacao) | Opcao b (reportaria ao gestor) | Cenario | 2.0 |
+| Q60 (conhece riscos legais/LGPD) | 3 (Neutro) | Likert padrao | 2.0 |
 
 ```
-Score_Governanca = (3.0 + 2.0 + 1.5 + 3.0 + 2.0 + 2.5) / 6 = 14.0 / 6 = 2.33
+Score_Governanca = (3.0 + 2.0 + 1.5 + 3.0 + 2.0 + 2.5 + 1.5 + 2.0 + 2.0) / 9 = 19.5 / 9 = 2.17
 → Nivel 2 — Basico
 ```
 
@@ -513,10 +516,10 @@ Score_Cultura = (4.0 + 1.5 + 2.0 + 3.0 + 3.0) / 5 = 13.5 / 5 = 2.70
 |---|---|---|
 | Utilizacao | 2.43 | 2 — Basico |
 | Dados | 2.80 | 3 — Intermediario |
-| Governanca | 2.33 | 2 — Basico |
+| Governanca | 2.17 | 2 — Basico |
 | Impacto | 2.20 | 2 — Basico |
 | Cultura | 2.70 | 3 — Intermediario |
-| **Geral** | **2.49** | **2 — Basico** |
+| **Geral** | **2.46** | **2 — Basico** |
 
 ---
 
@@ -540,10 +543,10 @@ Score_Utilizacao_estendido = (soma dos 7 itens comuns + 4.0 + 4.0) / 9
 |---|---|---|---|---|
 | Utilizacao | 2.43 | **2.78** | 2 — Basico | **3 — Intermediario** |
 | Dados | 2.80 | 2.80 | 3 — Intermediario | 3 — Intermediario |
-| Governanca | 2.33 | 2.33 | 2 — Basico | 2 — Basico |
+| Governanca | 2.17 | 2.17 | 2 — Basico | 2 — Basico |
 | Impacto | 2.20 | 2.20 | 2 — Basico | 2 — Basico |
 | Cultura | 2.70 | 2.70 | 3 — Intermediario | 3 — Intermediario |
-| **Geral** | **2.49** | **2.56** | **2 — Basico** | **3 — Intermediario** |
+| **Geral** | **2.46** | **2.53** | **2 — Basico** | **3 — Intermediario** |
 
 Neste caso, o Score Estendido revela que em Utilizacao o respondente e um Intermediario (2.78), nao um Basico borderline (2.43). Os itens Q43 e Q44 mostram que ele usa IA de forma sofisticada na pratica — o Score Comum nao capturava isso. O score geral tambem sobe de Basico para Intermediario, o que pode mudar a trilha de capacitacao recomendada.
 
@@ -591,7 +594,7 @@ Neste caso, o Score Estendido revela que em Utilizacao o respondente e um Interm
 
 ---
 
-### Dimensao 3 — Governanca (Score Comum: 6 itens / Estendido Gestao: 7 itens)
+### Dimensao 3 — Governanca (Score Comum: 9 itens / Estendido Gestao: 10 itens)
 
 | Item | Pergunta resumida | Tipo | Nivel que discrimina | CSD |
 |---|---|---|---|---|
@@ -601,14 +604,19 @@ Neste caso, o Score Estendido revela que em Utilizacao o respondente e um Interm
 | Q27 | Verifica com outras fontes antes de decisao | Likert | 2→3: boas praticas aplicadas | S10 |
 | Q28 | Sabe quem e responsavel quando IA erra | Likert | 3→4: compliance/responsabilidade | S10, S15 |
 | Q29 | Cenario e-mail para cliente | Cenario Gov. | 1→4: verificacao pratica (uso) | S10, S13 |
+| Q58 | Conhece vies algoritmico e seu impacto | Likert | 2→3: principios de etica/vies | S16 |
+| Q59 | Cenario IA com vies em contratacao | Cenario Gov. | 1→4: etica comportamental | S16 |
+| Q60 | Conhece riscos legais/LGPD | Likert | 2→3: compliance/legal | S16 |
 | *Q51* | *Ja aplicou orientacao na area* | *Escala Gestao* | *3→4: governanca aplicada* | *S15* |
 
 > *Italico = Score Estendido (apenas Gestao)*
 
 **Interpretacao via CSD:**
-- 6 itens no Score Comum, 2 cenarios comportamentais. Mais robusto de todas as dimensoes
+- 9 itens no Score Comum, 3 cenarios comportamentais (Q25, Q29, Q59). Mais robusto de todas as dimensoes
 - Q25 + Q29 testam facetas diferentes: Q25 = risco de dados confidenciais, Q29 = risco de qualidade de output
+- Q58 + Q59 testam etica/vies: Q58 declarativo + Q59 cenario — se Q58 alto mas Q59 marca (a), autopercepacao inflada (Dunning-Kruger de etica)
 - Se Q24 e Q26 altos (dizem que sabem) mas Q25/Q29 comportamentais baixos → Dunning-Kruger
+- Q60 testa compliance legal — score baixo indica exposicao juridica nao percebida
 - Score Estendido: Q51 e decisiva para S15. Gestor com score Governanca alto no Comum mas Q51="Nao" → conhece mas nao aplica → nivel 3, nao 4
 
 ---
@@ -824,7 +832,7 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 | Q28 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q29 | Governanca | **Cenario** | **a=1.0, d=2.0, b=2.5, c=4.0** |
 | Q58 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
-| Q59 | Governanca | **Cenario** | **a=1.0, b=2.0, d=3.0, c=4.0** |
+| Q59 | Governanca | **Cenario** | **a=1.0, b=2.0, c=3.0, d=4.0** |
 | Q60 | Governanca | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q30 | Impacto | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
 | Q31 | Impacto | Likert padrao | 1→1.0, 2→1.5, 3→2.0, 4→3.0, 5→4.0 |
@@ -854,7 +862,7 @@ Essas perguntas sao descritivas, de diagnostico ou de preferencia:
 | 00-objetivo-e-escopo.md | Objetivo da pesquisa e publico-alvo |
 | 01-hipoteses-csd.md | Matriz CSD completa — fundamentacao das hipoteses referenciadas aqui |
 | 01-metodologia.md | Design do instrumento e controles de qualidade |
-| 02-pesquisa-completa.md | Questionario pronto (Q1-Q57) |
+| 02-pesquisa-completa.md | Questionario pronto (Q1-Q61) |
 | 03-cross-check-perguntas-csd-matriz.md | Mapeamento bidirecional perguntas ↔ CSD ↔ Matriz |
 
 ---

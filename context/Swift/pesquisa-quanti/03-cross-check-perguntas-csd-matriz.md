@@ -66,11 +66,11 @@
 
 **Composicao:** Q19 + Q20 + Q21 + Q22 + Q23(cenario) = 5 itens
 
-**Conversao cenario Q23:** d=1, a=2, b=3, c=5
+**Conversao cenario Q23:** d=1.0, a=2.0, b=3.0, c=4.0
 
 ---
 
-#### Dimensao 3 — Governanca (Q24-Q29) — 6 itens
+#### Dimensao 3 — Governanca (Q24-Q29, Q58-Q60) — 9 itens
 
 | # | Descricao | CSD que valida | Nivel que discrimina | Scoring |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@
 
 **Conversao cenario Q25:** a=1, e=1, d=2, b=3, c=4
 **Conversao cenario Q29:** a=1, d=2, b=2.5, c=4
-**Conversao cenario Q59:** a=1, b=2, d=3, c=4
+**Conversao cenario Q59:** a=1.0, b=2.0, c=3.0, d=4.0
 
 ---
 
@@ -143,8 +143,8 @@
 
 **Composicao Score Estendido Execucao:** Q43 → Utilizacao, Q44 → Utilizacao = +2 itens
 
-**Conversao cenario Q43:** a=1, d=2, b=3, c=5
-**Conversao Q44:** "Nunca tentei"=1, "Nao, nao consigo visualizar"=2, "Nao, mas sei que seria possivel"=3, "Sim, uma vez"=4, "Sim, mais de uma vez"=5
+**Conversao cenario Q43:** a=1.0, b=2.5, d=3.0, c=4.0
+**Conversao Q44:** "Nunca tentei"=1.0, "Nao, nao consigo visualizar"=1.0, "Nao, mas sei que seria possivel"=2.0, "Sim, uma vez"=3.0, "Sim, mais de uma vez"=4.0
 
 ---
 
@@ -161,9 +161,9 @@
 
 **Composicao Score Estendido Gestao:** Q48 → Impacto, Q49 → Impacto, Q50 → Impacto, Q51 → Governanca = +4 itens
 
-**Conversao cenario Q48:** e=1, d=2, a=3, b=4, c=5
-**Conversao Q49:** d=1, e=2, c=3, b=4, a=5
-**Conversao Q51:** "Nao"=1, "Nao, mas pretendo"=2, "Sim, orientacoes informais/verbais"=4, "Sim, diretrizes formais documentadas"=5
+**Conversao cenario Q48:** e=1.0, d=2.0, a=2.5, b=3.0, c=4.0
+**Conversao Q49:** d=1.0, e=1.5, c=2.0, b=3.0, a=4.0
+**Conversao Q51:** "Nao"=1.0, "Nao, mas pretendo"=2.0, "Sim, orientacoes informais/verbais"=3.0, "Sim, diretrizes formais documentadas"=4.0
 
 ---
 
@@ -181,7 +181,7 @@
 
 ## 2. Verificacao inversa: CSD → Perguntas
 
-### Suposicoes (S1-S15)
+### Suposicoes (S1-S17)
 
 | CSD | Descricao | Perguntas que validam | Qtd | Status |
 |---|---|---|---|---|
@@ -288,7 +288,7 @@
 
 ## 4. Mapa resumo: Scoring vs Descritivo/Diagnostico
 
-### Perguntas que entram no Score Comum (28 itens, Q12-Q39)
+### Perguntas que entram no Score Comum (31 itens, Q12-Q39 + Q58-Q60)
 
 | Dimensao | Perguntas | Qtd |
 |---|---|---|
@@ -328,7 +328,8 @@
 | **Preferencia de formato** | Q45, Q52 | Calibra formato da capacitacao |
 | **Ownership** | Q47 | Valida S7 (descritivo) |
 | **Qualitativos** | Q53, Q54, Q55, Q56, Q57 | Backlog, frustracoes, riscos, quick wins, insights |
-| **TOTAL** | **23 perguntas** | |
+| **Sentimento institucional** | Q61 | Valida S17 (percepcao de governanca) |
+| **TOTAL** | **24 perguntas** | |
 
 ---
 
@@ -380,7 +381,7 @@
 | Score Comum (todos respondem) | 31 | Q12-Q39 + Q58, Q59, Q60 |
 | Score Estendido Execucao | +2 | Q43, Q44 |
 | Score Estendido Gestao | +4 | Q48, Q49, Q50, Q51 |
-| Descritivas / Diagnostico | 26 | Q1-Q11, Q40-Q42, Q45-Q47, Q52-Q57, Q61 |
+| Descritivas / Diagnostico | 24 | Q1-Q11, Q40-Q42, Q45-Q47, Q52-Q57, Q61 |
 | **Total** | **61** | |
 
 ### Composicao final dos scores por dimensao
@@ -410,7 +411,7 @@ Fase 0 (Q1-Q5) → Variaveis de segmentacao
       |
 Fase 0.5 (Q6-Q11) → Mapa descritivo de uso → Valida S1, S2, S3
       |
-Fase 1 (Q12-Q39) → Score Comum (28 itens, 5 dimensoes)
+Fase 1 (Q12-Q39 + Q58-Q60) → Score Comum (31 itens, 5 dimensoes)
   Q40 → Diagnostico de barreiras
   Q41 → Controle de qualidade
   Q42 → Multiplicador (early adopter)
