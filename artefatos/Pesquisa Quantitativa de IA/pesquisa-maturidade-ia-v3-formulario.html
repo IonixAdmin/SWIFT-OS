@@ -74,7 +74,20 @@ const PAGES = [
     icon: '🔒',
     perguntas: [
       { id:'Q1', texto:'Informe seu CPF (apenas números, sem pontos ou traços)', tipo:'cpf', obrigatoria: true },
-      { id:'Q6', texto:'Quais ferramentas de IA você já utilizou? (marque todas que se aplicam)', tipo:'checkbox', opcoes:['ChatGPT','Copilot','Claude','Gemini','Midjourney/DALL-E','IA do Office/Google','N8N','Lovable','Lindy','Outras','Nenhuma — nunca utilizei'], exclusive: 'Nenhuma — nunca utilizei' }
+      { id:'Q6', texto:'Você já utilizou alguma ferramenta de Inteligência Artificial?', tipo:'radio', opcoes:['Sim','Não'] }
+    ]
+  },
+  // PAGE 2: Mapa de Uso
+  {
+    id: 'mapa-uso',
+    titulo: 'Mapa de Uso Atual',
+    subtitulo: 'Queremos entender sua experiência com ferramentas de IA.',
+    cor: '#64748B',
+    icon: '🗺️',
+    perguntas: [
+      { id:'Q7', texto:'Quais ferramentas de IA você já utilizou? (marque todas que se aplicam)', tipo:'checkbox', opcoes:['ChatGPT','Copilot','Claude','Gemini','N8N','Lovable','Outras'], dependeDe: { q:'Q6', valor:'Sim' } },
+      { id:'Q9', texto:'Para quais tipos de tarefa você usa IA? (marque todas)', tipo:'checkbox', opcoes:['Gerar/revisar textos','Resumir documentos','Pesquisar informações','Analisar dados','Criar apresentações','Programar/automatizar','Gerar imagens','Apoiar decisões','Outras'], dependeDe: { q:'Q6', valor:'Sim' } },
+      { id:'Q10', texto:'Como você começou a usar IA no trabalho?', tipo:'radio', opcoes:['Por conta própria/curiosidade','Indicação de colega','Pedido/incentivo da empresa','Treinamento formal','Outro'], dependeDe: { q:'Q6', valor:'Sim' } }
     ]
   },
   // PAGE 2: Utilização
@@ -85,6 +98,13 @@ const PAGES = [
     cor: '#3B82F6',
     icon: '⚡',
     perguntas: [
+      { id:'Q44', texto:'Já consegui automatizar ou simplificar uma tarefa repetitiva usando IA?', tipo:'radio', opcoes:[
+        'Sim, mais de uma vez',
+        'Sim, uma vez',
+        'Não, mas sei que seria possível',
+        'Não, não consigo visualizar como',
+        'Nunca tentei'
+      ]},
       { id:'Q62', texto:'Sobre Inteligência Artificial, qual frase melhor descreve seu nível de entendimento hoje?', tipo:'radio', opcoes:[
         'Sei pouco ou nada sobre como IA funciona',
         'Sei que existem tipos diferentes (como ChatGPT vs modelos preditivos), mas não saberia explicar as diferenças',
@@ -100,14 +120,7 @@ const PAGES = [
         'd) Reviso criticamente os dados-chave e ajusto o que for necessário',
         'e) Refaço tudo do zero — uso o relatório apenas como referência inicial'
       ]},
-      { id:'Q18', texto:'Já utilizei IA para apoiar uma decisão importante no meu trabalho.', tipo:'likert' },
-      { id:'Q44', texto:'Já consegui automatizar ou simplificar uma tarefa repetitiva usando IA?', tipo:'radio', opcoes:[
-        'Sim, mais de uma vez',
-        'Sim, uma vez',
-        'Não, mas sei que seria possível',
-        'Não, não consigo visualizar como',
-        'Nunca tentei'
-      ]}
+      { id:'Q18', texto:'Já utilizei IA para apoiar uma decisão importante no meu trabalho.', tipo:'likert' }
     ]
   },
   // PAGE 3: Dados
@@ -146,12 +159,6 @@ const PAGES = [
       ]},
       { id:'Q28', texto:'Se uma IA gerasse uma recomendação errada que impactasse meu trabalho, saberia identificar quem é o responsável pelo erro — eu, a ferramenta ou a empresa.', tipo:'likert' },
       { id:'Q58', texto:'Conheço os riscos éticos e legais do uso de IA, como viés algorítmico (IA que discrimina) e questões de LGPD/privacidade.', tipo:'likert' },
-      { id:'Q59', texto:'Qual das situações abaixo representa o MAIOR risco ético no uso de IA em uma empresa?', tipo:'cenario', opcoes:[
-        'a) Usar IA para gerar o texto de um e-mail comercial',
-        'b) Usar IA para classificar automaticamente o perfil de crédito de clientes com base em CEP e idade',
-        'c) Usar IA para resumir uma ata de reunião interna',
-        'd) Todas representam o mesmo nível de risco'
-      ]}
     ]
   },
   // PAGE 5: Impacto
@@ -162,6 +169,7 @@ const PAGES = [
     cor: '#F59E0B',
     icon: '🎯',
     perguntas: [
+      { id:'Q30', texto:'Consigo identificar pelo menos um processo no meu trabalho que poderia ser melhorado com IA.', tipo:'likert' },
       { id:'Q31', texto:'Saberia explicar para um colega como IA poderia gerar valor na minha área.', tipo:'likert' },
       { id:'Q32', texto:'Consigo diferenciar quando o uso de IA apenas economiza tempo de quando ele muda a forma como o resultado é entregue.', tipo:'likert' },
       { id:'Q34', texto:'Já sugeri ou propus alguma ideia de uso de IA no meu trabalho para meu gestor ou equipe.', tipo:'likert' }
@@ -225,6 +233,14 @@ const PAGES = [
         'c) Combino o resultado com outras fontes e análises',
         'd) Uso como ponto de partida e refaço manualmente'
       ]},
+      { id:'Q45', texto:'Se a empresa oferecesse treinamento prático em IA, o que mais te interessaria? (marque todas)', tipo:'checkbox', opcoes:[
+        'Automatizar tarefas repetitivas',
+        'Analisar dados mais rápido',
+        'Criar relatórios e apresentações',
+        'Programar sem ser programador (vibe coding)',
+        'Usar IA para tomar decisões melhores',
+        'Outro'
+      ]}
     ]
   },
   // PAGE 10: Fase 2B - Gestão
@@ -274,6 +290,7 @@ const PAGES = [
     icon: '💡',
     perguntas: [
       { id:'Q53', texto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?', tipo:'aberta', obrigatoria: true },
+      { id:'Q54', texto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?', tipo:'aberta' },
       { id:'Q57', texto:'Compartilhe livremente: uma experiência com IA (boa ou ruim), uma preocupação, uma sugestão, ou qualquer coisa que gostaria de dizer.', tipo:'aberta' }
     ]
   }
@@ -611,11 +628,6 @@ function App() {
       const depAnswer = answers[pergunta.dependeDe.q];
       if (depAnswer !== pergunta.dependeDe.valor) return false;
     }
-    // Skip logic: if Q6 includes "Nenhuma", hide Q11's conditional peers (none left, but keep logic)
-    if (currentPage.id === 'mapa-uso' && pergunta.id === 'Q11') {
-      // Q11 is always visible
-      return true;
-    }
     return true;
   }
 
@@ -624,9 +636,20 @@ function App() {
     return currentPage.perguntas.filter(p => isQuestionVisible(p));
   }
 
+  // Auto-skip pages with no visible questions
+  useEffect(() => {
+    if (currentPage && !currentPage.isWelcome) {
+      const visible = getVisibleQuestions();
+      if (visible.length === 0 && page > 0 && page < totalPages - 1) {
+        setPage(page + 1);
+      }
+    }
+  }, [page, answers]);
+
   function isPageComplete() {
     if (currentPage.isWelcome) return true;
     const visible = getVisibleQuestions();
+    if (visible.length === 0) return true;
     return visible.every(p => {
       const ans = answers[p.id];
       const hasAnswer = ans !== undefined && ans !== null && ans !== '' && (Array.isArray(ans) ? ans.length > 0 : true);
@@ -667,7 +690,20 @@ function App() {
 
   function goPrev() {
     if (page > 0) {
-      setPage(page - 1);
+      // Skip back over empty pages
+      let target = page - 1;
+      while (target > 0) {
+        const targetPage = activePages[target];
+        if (targetPage && !targetPage.isWelcome) {
+          const vis = targetPage.perguntas.filter(p => {
+            if (p.dependeDe) return answers[p.dependeDe.q] === p.dependeDe.valor;
+            return true;
+          });
+          if (vis.length === 0) { target--; continue; }
+        }
+        break;
+      }
+      setPage(target);
       topRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }

@@ -165,7 +165,7 @@ const SUPOSICOES = [
     importa:'A esteira precisa de sponsors que saibam avaliar riscos. Se gestores não aplicam governança, cada projeto vira um risco não gerenciado e o Comite de IA fica sobrecarregado.',
     confirmada:'Trilha Estratégica precisa de módulo: "governança aplicada — como avaliar riscos e definir políticas de IA na sua área".',
     refutada:'Se gestores já sabem aplicar, a governança pode ser descentralizada mais rápido. Reduz carga no Comite de IA.' },
-  { id:'S16', titulo:'Desconhecem viés algorítmico e riscos legais/LGPD', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q58','Q59'],
+  { id:'S16', titulo:'Desconhecem viés algorítmico e riscos legais/LGPD', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['Q58'],
     desc:'S10 testa a camada básica: não compartilhar dados confidenciais (N1→N2). S16 testa riscos mais sofisticados: viés algorítmico (IA pode perpetuar discriminação de gênero, raça, etc.) e riscos legais (LGPD, responsabilidade civil). Sem esses dois vetores, o nível 3 real em Governança não é atingido.',
     importa:'Colaboradores que não conhecem viés podem replicar discriminação involuntariamente. Quem ignora a LGPD pode expor a Swift a notificações da ANPD ou ações judiciais — mesmo com uso aparentemente inocente de IA.',
     confirmada:'Módulo obrigatório de ética e compliance precisa cobrir viés + LGPD, não só "não cole dados sigilosos". A intervenção de governança é mais profunda do que S10 sugere.',
@@ -230,8 +230,14 @@ const CERTEZAS = [
 const PERGUNTAS = [
   { id:'Q1', texto:'CPF', fase:'0', dimensao:'infra', tipo:'Infra', scoring:'Nenhum', hipoteses:[],
     textoCompleto:'Informe seu CPF (apenas números, sem pontos ou traços). Seus dados são confidenciais e serão usados apenas para cruzamento com dados de RH.', opcoes:null, importa:'Identificação única para cruzamento com base de RH (área, cargo, faixa etária, tempo de empresa). Elimina 4 perguntas de segmentação da V2 e reduz atrito na fase 0.' },
-  { id:'Q6', texto:'Quais ferramentas de IA já utilizou', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','D1'],
-    textoCompleto:'Quais ferramentas de IA você já utilizou? (marque todas que se aplicam)', opcoes:['ChatGPT','Copilot','Claude','Gemini','Midjourney/DALL-E','IA do Office/Google','N8N','Lovable','Lindy','Outras','Nenhuma — nunca utilizei'], importa:'Mesclagem V3 enxuta: combina filtro binário (antigo Q6) + mapa de ferramentas (antigo Q7). Se marca "Nenhuma", funciona como skip logic. Inclui stack do projeto (Lovable, N8N, Lindy)' },
+  { id:'Q6', texto:'Já usou IA?', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','D1'],
+    textoCompleto:'Você já utilizou alguma ferramenta de Inteligência Artificial?', opcoes:['Sim','Não'], importa:'Filtro binário: separa quem já experimentou de quem nunca tocou. Se Não → pula Q7, Q9, Q10' },
+  { id:'Q7', texto:'Quais ferramentas de IA já utilizou', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1'],
+    textoCompleto:'Quais ferramentas de IA você já utilizou? (marque todas que se aplicam)', opcoes:['ChatGPT','Copilot','Claude','Gemini','N8N','Lovable','Outras'], importa:'Mapa de ferramentas — sem Lindy, Midjourney e IA Office/Google (removidos na V3). Inclui stack do projeto (Lovable, N8N)' },
+  { id:'Q9', texto:'Tipos de tarefa em que usa IA', fase:'0.5', dimensao:'Utilizacao', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S1','S4','D1'],
+    textoCompleto:'Para quais tipos de tarefa você usa IA? (marque todas)', opcoes:['Gerar/revisar textos','Resumir documentos','Pesquisar informações','Analisar dados','Criar apresentações','Programar/automatizar','Gerar imagens','Apoiar decisões','Outras'], importa:'Mapa de complexidade — tarefas simples (texto, resumo) vs complexas (dados, decisões, automação)' },
+  { id:'Q10', texto:'Como começou a usar IA', fase:'0.5', dimensao:'Cultura', tipo:'Mapa', scoring:'Nenhum', hipoteses:['S2','D1'],
+    textoCompleto:'Como você começou a usar IA no trabalho?', opcoes:['Por conta própria/curiosidade','Indicação de colega','Pedido/incentivo da empresa','Treinamento formal','Outro'], importa:'Valida S2 — se adoção é orgânica, o programa tem vento a favor' },
   { id:'Q62', texto:'Nível de entendimento conceitual sobre IA', fase:'1', dimensao:'Utilizacao', tipo:'Escala', scoring:'Comum', hipoteses:['S4'], transicao:'1→4', conversao:'a=1, b=2, c=3, d=4',
     textoCompleto:'Sobre Inteligência Artificial, qual frase melhor descreve seu nível de entendimento hoje?', opcoes:['a) Sei pouco ou nada sobre como IA funciona','b) Sei que existem tipos diferentes (como ChatGPT vs modelos preditivos), mas não saberia explicar as diferenças','c) Consigo explicar as diferenças entre tipos de IA, suas limitações e quando usar cada um','d) Entendo como diferentes tipos de IA se conectam a processos de negócio e suas implicações técnicas e éticas'], importa:'Cobre o vetor Conceito do Plano de Letramento (ausente na V2). Discrimina N1 (desconhece) a N4 (conecta ao negócio). Sem equivalente anterior.' },
   { id:'Q12', texto:'Utilizo IA regularmente (pelo menos algumas vezes por semana)', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Comum', hipoteses:['S1','S13'], transicao:'2→3',
@@ -254,6 +260,8 @@ const PERGUNTAS = [
     textoCompleto:'Cenário: Você precisa analisar um relatório confidencial e pensa em usar o ChatGPT. O que você faz?', opcoes:['a) Cola o conteúdo diretamente','b) Remove dados sensíveis antes','c) Usa ferramenta interna aprovada','d) Não usaria IA para dados confidenciais','e) Não saberia avaliar o risco'], importa:'Cenário comportamental de governança — testa o que a pessoa FARIA, não o que SABE. a/e = nível 1, d = nível 2, b = nível 3, c = nível 4' },
   { id:'Q28', texto:'Saberia identificar responsável se IA errasse', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S10','S15'], transicao:'3→4',
     textoCompleto:'Se uma IA gerasse uma recomendação errada que impactasse meu trabalho, saberia identificar quem é o responsável pelo erro — eu, a ferramenta ou a empresa.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Compliance e responsabilidade (nível 3→4). Único item que testa accountability — essencial para governança avançada' },
+  { id:'Q30', texto:'Identifico processo que IA melhoraria', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6','S7','D2'], transicao:'1→2→3',
+    textoCompleto:'Consigo identificar pelo menos um processo no meu trabalho que poderia ser melhorado com IA.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Base de Impacto — quem não identifica oportunidades está no nível 1. Restaurada na V3 para cobrir transição N1→N2 que estava ausente.' },
   { id:'Q31', texto:'Explico como IA gera valor na minha área', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S6','S8'], transicao:'2→3→4',
     textoCompleto:'Saberia explicar para um colega como IA poderia gerar valor na minha área.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Articulação de valor (nível 2→3→4). Quem explica para outros demonstra compreensão estruturada, não só intuição' },
   { id:'Q32', texto:'Diferencio quando IA economiza tempo de quando muda resultado', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Comum', hipoteses:['S8','D8'], transicao:'3→4',
@@ -276,6 +284,8 @@ const PERGUNTAS = [
     textoCompleto:'Quando uso IA no trabalho, normalmente eu:', opcoes:['a) Uso exatamente o primeiro resultado','b) Ajusto o prompt até resultado satisfatório','c) Combino o resultado com outras fontes e análises','d) Uso como ponto de partida e refaço manualmente'], importa:'Melhor discriminador de profundidade real. Score Estendido Execução → Utilização. Se maioria marca (a), confirma S13' },
   { id:'Q44', texto:'Já automatizou alguma tarefa com IA?', fase:'1', dimensao:'Utilizacao', tipo:'Escala', scoring:'Comum', hipoteses:['S11'], transicao:'1→4', conversao:'nunca=1, nao visualizo=1, possivel=2, uma vez=3, mais de uma=4',
     textoCompleto:'Já consegui automatizar ou simplificar uma tarefa repetitiva usando IA?', opcoes:['Sim, mais de uma vez','Sim, uma vez','Não, mas sei que seria possível','Não, não consigo visualizar como','Nunca tentei'], importa:'Cobre o vetor Automação do Plano de Letramento. Reclassificado de Estendido para Comum na V3 enxuta — todos respondem. Marcador de nível 4 (automatizar atividades) e componente do score de early adopter.' },
+  { id:'Q45', texto:'Interesse em treinamento de IA', fase:'2A', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['D6','S12'],
+    textoCompleto:'Se a empresa oferecesse treinamento prático em IA, o que mais te interessaria? (marque todas)', opcoes:['Automatizar tarefas repetitivas','Analisar dados mais rápido','Criar relatórios e apresentações','Programar sem ser programador (vibe coding)','Usar IA para tomar decisões melhores','Outro'], importa:'Calibra formato da Germinare e trilhas. Restaurada na V3 para alimentar design de capacitação.' },
   { id:'Q47', texto:'Quem deveria ser responsável por IA na Swift?', fase:'2B', dimensao:'Impacto', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S7'],
     textoCompleto:'Na sua área, quem deveria ser o principal responsável por identificar oportunidades de uso de IA?', opcoes:['A área de TI/Dados','O gestor da área junto com o time','Uma equipe especializada em IA','Cada colaborador individualmente','Não sei'], importa:'Valida S7 — se maioria diz \'TI/Dados\', gestores delegam ownership. Modelo de governança distribuída não funciona assim' },
   { id:'Q48', texto:'Cenário priorização de projetos de IA', fase:'2B', dimensao:'Impacto', tipo:'Cenario', scoring:'Estendido', hipoteses:['S8','D8'], transicao:'1→4', conversao:'e=1, d=2, a=2.5, b=3, c=4',
@@ -286,12 +296,12 @@ const PERGUNTAS = [
     textoCompleto:'Na sua área, você já definiu ou aplicou alguma orientação específica sobre como a equipe deve usar ferramentas de IA?', opcoes:['Sim, com diretrizes formais documentadas','Sim, com orientações informais/verbais','Não, mas pretendo fazer','Não'], importa:'Diferencia conhecer de APLICAR governança (nível 3→4). Score Estendido Gestão → Governança. Decisiva para S15' },
   { id:'Q53', texto:'Qual tarefa você nunca mais faria manualmente?', fase:'3', dimensao:'Impacto', tipo:'Aberta', scoring:'Nenhum', hipoteses:['D2','D7'],
     textoCompleto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?', opcoes:null, importa:'OBRIGATÓRIA — alimenta o backlog da esteira. Cada resposta é um processo candidato à IA para o Pod Volante prototipar' },
+  { id:'Q54', texto:'Já tentou usar IA e não deu certo?', fase:'3', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', hipoteses:['D5'],
+    textoCompleto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?', opcoes:null, importa:'Detecta frustrações ocultas. Opcional. Restaurada na V3 para capturar experiências negativas que podem criar resistência.' },
   { id:'Q57', texto:'Espaço livre — experiência, preocupação ou sugestão', fase:'3', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', hipoteses:['D5','S10','S12'],
     textoCompleto:'Compartilhe livremente: uma experiência com IA (boa ou ruim), uma preocupação, uma sugestão, ou qualquer coisa que gostaria de dizer.', opcoes:null, importa:'Mesclagem V3 enxuta: absorve Q54 (experiência negativa), Q55 (preocupação), Q56 (sugestão) e Q57 (catch-all) numa única pergunta aberta ampla. Concentra a energia do respondente e aumenta taxa de resposta.' },
   { id:'Q58', texto:'Conheço riscos éticos e legais de IA (viés, LGPD)', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Comum', hipoteses:['S16'], transicao:'2→3',
     textoCompleto:'Conheço os riscos éticos e legais do uso de IA, como viés algorítmico (IA que discrimina) e questões de LGPD/privacidade.', opcoes:['1 Discordo totalmente','2 Discordo parcialmente','3 Neutro','4 Concordo parcialmente','5 Concordo totalmente'], importa:'Mesclagem V3 enxuta: combina awareness de viés (antigo Q58) + riscos legais/LGPD (antigo Q60). Ambos são vetores da mesma competência — governança avançada (nível 2→3).' },
-  { id:'Q59', texto:'Maior risco ético no uso de IA em empresa', fase:'1', dimensao:'Governanca', tipo:'Cenario', scoring:'Comum', hipoteses:['S16'], transicao:'1→4', conversao:'d=1, a=1.5, c=1.5, b=4',
-    textoCompleto:'Qual das situações abaixo representa o MAIOR risco ético no uso de IA em uma empresa?', opcoes:['a) Usar IA para gerar o texto de um e-mail comercial','b) Usar IA para classificar automaticamente o perfil de crédito de clientes com base em CEP e idade','c) Usar IA para resumir uma ata de reunião interna','d) Todas representam o mesmo nível de risco'], importa:'Pergunta conceitual que substitui o cenário de viés da V2 (desejabilidade social alta). Testa se o respondente identifica risco real vs percebido — uso de CEP+idade como proxy de discriminação (viés + LGPD). Opções parecem equivalentes para quem não entende, eliminando desejabilidade social.' },
 ];
 
 // ─── SCORING TABLES ───
@@ -302,8 +312,8 @@ const LIKERT_REVERSO = [{r:1,s:4.0},{r:2,s:3.0},{r:3,s:2.0},{r:4,s:1.5},{r:5,s:1
 const SCORE_COMUM_MAP = {
   Utilizacao: ['Q62','Q12','Q15','Q17','Q18','Q44'],
   Dados: ['Q19','Q22','Q23'],
-  Governanca: ['Q24','Q25','Q28','Q58','Q59'],
-  Impacto: ['Q31','Q32','Q34'],
+  Governanca: ['Q24','Q25','Q28','Q58'],
+  Impacto: ['Q30','Q31','Q32','Q34'],
   Cultura: ['Q37','Q38','Q39']
 };
 const SCORE_ESTENDIDO_MAP = {
@@ -428,7 +438,7 @@ function VisaoGeral({ onNavigate }) {
     { icon:'📊', titulo:'Diagnóstico Executivo', desc:'Gerar relatório consolidado para CIO e Comite de IA' }
   ];
   const kpis = [
-    { valor:'29', label:'Perguntas', cor:'#3B82F6' },
+    { valor:'34', label:'Perguntas', cor:'#3B82F6' },
     { valor:'20', label:'Itens no Score', cor:'#10B981' },
     { valor:'5', label:'Dimensões', cor:'#8B5CF6' },
     { valor:'4', label:'Níveis', cor:'#F59E0B' },
@@ -439,7 +449,7 @@ function VisaoGeral({ onNavigate }) {
     { label:'Objetivo', desc:'5 objetivos estratégicos', tab:'Visão Geral', cor:'#3B82F6' },
     { label:'Matriz', desc:'5 dimensões × 4 níveis', tab:'Matriz', cor:'#10B981' },
     { label:'CSD', desc:'17 suposições + 8 dúvidas', tab:'Hipóteses', cor:'#8B5CF6' },
-    { label:'Perguntas', desc:'29 perguntas em 6 fases', tab:'Perguntas', cor:'#F59E0B' },
+    { label:'Perguntas', desc:'34 perguntas em 6 fases', tab:'Perguntas', cor:'#F59E0B' },
     { label:'Scoring', desc:'20 itens + estendido', tab:'Scoring', cor:'#EC4899' }
   ];
 
@@ -805,12 +815,12 @@ function PerguntasView({ onOpenDrawer }) {
 
   const FASE_META = {
     '0':       { nome: 'Fase 0 — Identificação',                      desc: '1 pergunta | ~30 seg | CPF para cruzamento com RH',                cor: '#94A3B8', icon: 'I' },
-    '0.5':     { nome: 'Fase 0.5 — Mapa de Uso Atual',              desc: '1 pergunta | ~30 seg | Ferramentas de IA utilizadas', cor: '#64748B', icon: 'M' },
+    '0.5':     { nome: 'Fase 0.5 — Mapa de Uso Atual',              desc: '4 perguntas | ~2 min | Filtro, ferramentas, tarefas e origem do uso', cor: '#64748B', icon: 'M' },
     '1':       { nome: 'Fase 1 — Maturidade nas 5 Dimensões',       desc: '20 perguntas | ~7 min | Score Comum (20 itens)', cor: '#3B82F6', icon: 'S' },
     'Controle':{ nome: 'Controle de Qualidade + Multiplicador',      desc: '3 perguntas | Attention check, barreiras e interesse em multiplicar',  cor: '#6B7280', icon: 'C' },
-    '2A':      { nome: 'Fase 2A — Cluster Execução',                desc: '2 perguntas | ~1 min | Assistentes, Analistas, Especialistas, Coordenadores', cor: '#8B5CF6', icon: 'E' },
+    '2A':      { nome: 'Fase 2A — Cluster Execução',                desc: '3 perguntas | ~2 min | Assistentes, Analistas, Especialistas, Coordenadores', cor: '#8B5CF6', icon: 'E' },
     '2B':      { nome: 'Fase 2B — Cluster Gestão',                  desc: '4 perguntas | ~2 min | Gerentes, Diretores',                         cor: '#A855F7', icon: 'G' },
-    '3':       { nome: 'Fase 3 — Perguntas Abertas',                desc: '2 perguntas | ~2 min | Q53 obrigatória + Q57 livre',                 cor: '#EC4899', icon: 'A' }
+    '3':       { nome: 'Fase 3 — Perguntas Abertas',                desc: '3 perguntas | ~2 min | Q53 obrigatória, Q54 e Q57 opcionais',        cor: '#EC4899', icon: 'A' }
   };
   const FASE_ORDER = ['0','0.5','1','Controle','2A','2B','3'];
 
@@ -1504,7 +1514,6 @@ const CENARIO_OPTIONS = {
   Q48: [{label:'e) Não saberia priorizar',s:1},{label:'d) O que o time pede',s:2},{label:'a) Economia de custo',s:2.5},{label:'b) Experiência do cliente',s:3},{label:'c) Receita/diferenciação',s:4}],
   Q49: [{label:'d) Não penso nisso',s:1},{label:'e) Quero mas não sei',s:1.5},{label:'c) Informalmente',s:2},{label:'b) Anoto sem processo',s:3},{label:'a) Processo estruturado',s:4}],
   Q51: [{label:'Não',s:1},{label:'Pretendo fazer',s:2},{label:'Informais/verbais',s:3},{label:'Formais documentadas',s:4}],
-  Q59: [{label:'d) Todas igual risco',s:1},{label:'a) E-mail comercial',s:1.5},{label:'c) Ata de reunião',s:1.5},{label:'b) Crédito por CEP+idade',s:4}],
 };
 
 function SimQuestion({ q, value, onChange }) {
