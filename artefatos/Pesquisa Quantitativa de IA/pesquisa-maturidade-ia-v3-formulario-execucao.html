@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Pesquisa de Maturidade em IA — Swift</title>
+<title>Pesquisa de Maturidade em IA — Swift (Execução)</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -35,7 +35,7 @@ const { useState, useCallback, useEffect, useMemo, useRef } = React;
 // ═══════════════════════════════════════════
 // STORAGE KEY
 // ═══════════════════════════════════════════
-const STORAGE_KEY = 'swift-ia-pesquisa-v3';
+const STORAGE_KEY = 'swift-ia-pesquisa-v3-execucao';
 
 function loadState() {
   try {
@@ -213,20 +213,15 @@ const PAGES = [
         'Talvez',
         'Não'
       ]},
-      { id:'ROUTE', texto:'Para personalizar as próximas perguntas: qual das opções melhor descreve seu cargo?', tipo:'routing', opcoes:[
-        { label: 'Assistente, Analista, Especialista ou Coordenador', value: 'execucao' },
-        { label: 'Gerente ou Diretor', value: 'gestao' }
-      ]}
     ]
   },
-  // PAGE 9: Fase 2A - Execução
+  // PAGE 9: Aprofundamento Execução
   {
     id: 'cluster-execucao',
-    titulo: 'Aprofundamento — Execução',
-    subtitulo: 'Perguntas específicas para o seu perfil.',
+    titulo: 'Aprofundamento — Seu Perfil',
+    subtitulo: 'Perguntas específicas para assistentes, analistas, especialistas e coordenadores.',
     cor: '#8B5CF6',
     icon: '⚙️',
-    cluster: 'execucao',
     perguntas: [
       { id:'Q43', texto:'Quando uso IA no trabalho, normalmente eu:', tipo:'cenario', opcoes:[
         'a) Uso exatamente o primeiro resultado',
@@ -242,44 +237,6 @@ const PAGES = [
         'Usar IA para tomar decisões melhores',
         'Outro'
       ]}
-    ]
-  },
-  // PAGE 10: Fase 2B - Gestão
-  {
-    id: 'cluster-gestao',
-    titulo: 'Aprofundamento — Gestão',
-    subtitulo: 'Perguntas específicas para o seu perfil de liderança.',
-    cor: '#A855F7',
-    icon: '📋',
-    cluster: 'gestao',
-    perguntas: [
-      { id:'Q47', texto:'Na sua área, quem deveria ser o principal responsável por identificar oportunidades de uso de IA?', tipo:'radio', opcoes:[
-        'A área de TI/Dados',
-        'O gestor da área junto com o time',
-        'Uma equipe especializada em IA',
-        'Cada colaborador individualmente',
-        'Não sei'
-      ]},
-      { id:'Q48', texto:'Cenário: Se você pudesse escolher UM projeto de IA para sua área, qual critério usaria para priorizar?', tipo:'cenario', opcoes:[
-        'a) Economia de custo imediata',
-        'b) Melhora a experiência do cliente',
-        'c) Gera receita nova ou diferenciação',
-        'd) O que o time mais pede',
-        'e) Não saberia como priorizar'
-      ]},
-      { id:'Q49', texto:'Na sua rotina de gestão, como você identifica e registra oportunidades de melhoria que poderiam envolver IA?', tipo:'radio', opcoes:[
-        'Tenho um processo estruturado',
-        'Anoto quando surge, sem processo formal',
-        'Discuto com o time informalmente',
-        'Não costumo pensar nisso',
-        'Gostaria de ter um processo mas não sei como'
-      ]},
-      { id:'Q51', texto:'Na sua área, você já definiu ou aplicou alguma orientação específica sobre como a equipe deve usar ferramentas de IA?', tipo:'radio', opcoes:[
-        'Sim, com diretrizes formais documentadas',
-        'Sim, com orientações informais/verbais',
-        'Não, mas pretendo fazer',
-        'Não'
-      ]},
     ]
   },
   // PAGE 11: Perguntas Abertas
@@ -594,15 +551,7 @@ function App() {
   const [showResume, setShowResume] = useState(saved && saved.page > 0 && !saved.completed);
   const topRef = useRef(null);
 
-  // Determine which pages are active based on cluster routing
-  const activePages = useMemo(() => {
-    const cluster = answers['ROUTE'];
-    return PAGES.filter(p => {
-      if (p.cluster === 'execucao' && cluster !== 'execucao') return false;
-      if (p.cluster === 'gestao' && cluster !== 'gestao') return false;
-      return true;
-    });
-  }, [answers['ROUTE']]);
+  const activePages = PAGES;
 
   const currentPage = activePages[page] || activePages[0];
   const totalPages = activePages.length;
@@ -816,7 +765,7 @@ function App() {
             <div className="text-5xl">👋</div>
             <h2 className="text-2xl font-bold text-gray-900">Bem-vindo(a)!</h2>
             <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-              Esta pesquisa vai nos ajudar a <strong>mapear como a Swift usa IA</strong> para personalizar o programa de capacitação ao seu contexto real.
+              Esta pesquisa vai nos ajudar a <strong>mapear como a Swift usa IA</strong> para personalizar o programa de capacitação ao seu contexto real.<br/><span className="text-xs text-gray-400 mt-1 block">Formulário para Assistentes, Analistas, Especialistas e Coordenadores</span>
             </p>
             <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
               <div className="bg-blue-50 rounded-xl p-3 text-center">
