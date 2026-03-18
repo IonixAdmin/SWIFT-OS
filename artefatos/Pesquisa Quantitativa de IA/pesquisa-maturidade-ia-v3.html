@@ -90,7 +90,7 @@ const MATRIX = {
 
 // ─── SUPOSIÇÕES ───
 const SUPOSICOES = [
-  { id:'S1', titulo:'Maioria já usa IA de forma rasa', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['Q6','Q12','Q18','Q43'],
+  { id:'S1', titulo:'Maioria já usa IA de forma rasa', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['Q6','Q12','Q18','Q43','Q64'],
     desc:'A maioria dos colaboradores já utiliza ferramentas de IA generativa (ChatGPT, Copilot), porém de forma pontual e superficial — gerar textos, tirar dúvidas rápidas. Não exploram recursos avançados nem integram ao fluxo de trabalho.',
     importa:'Define de onde a capacitação parte. Se confirmada, não precisa evangelizar — o time já usa, só falta profundidade e estrutura.',
     confirmada:'Capacitação parte do nível 2 (Básico), foco em profundidade e dados. Argumento para Comite: "o time já usa, só falta estrutura."',
@@ -140,7 +140,7 @@ const SUPOSICOES = [
     importa:'Acelerar uso sem governança é perigoso. Risco jurídico e de compliance real. Se confirmada, muda a sequência do programa inteiro.',
     confirmada:'Governança precisa ser a PRIMEIRA intervenção transversal, antes de ampliar uso. Módulo obrigatório para todos.',
     refutada:'Pode avançar em uso e dados com mais velocidade. Grande impacto positivo no cronograma.' },
-  { id:'S11', titulo:'15-20% early adopters', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'3→4', validacao:['Q12','Q37','Q38','Q39','Q42','Q43','Q44'],
+  { id:'S11', titulo:'15-20% early adopters', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'3→4', validacao:['Q12','Q37','Q38','Q39','Q42','Q43','Q44','Q63','Q64'],
     desc:'Entre 15% e 20% dos colaboradores já são early adopters — usam IA com frequência, experimentam ferramentas novas, e compartilham aprendizados com colegas. São multiplicadores naturais.',
     importa:'Cada multiplicador impacta 5-8 colegas via Germinare. Sem eles, a IONIX faz todo o trabalho de disseminação sozinha — mais caro e mais lento.',
     confirmada:'Ativar via Germinare imediatamente como "embaixadores de IA".',
@@ -286,6 +286,10 @@ const PERGUNTAS = [
     textoCompleto:'Quando uso IA no trabalho, normalmente eu:', opcoes:['a) Uso exatamente o primeiro resultado','b) Ajusto o prompt até resultado satisfatório','c) Combino o resultado com outras fontes e análises','d) Uso como ponto de partida e refaço manualmente'], importa:'Melhor discriminador de profundidade real. Score Estendido Execução → Utilização. Se maioria marca (a), confirma S13' },
   { id:'Q44', texto:'Já automatizou alguma tarefa com IA?', fase:'1', dimensao:'Utilizacao', tipo:'Escala', scoring:'Comum', hipoteses:['S11'], transicao:'1→4', conversao:'nunca=1, nao visualizo=1, possivel=2, uma vez=3, mais de uma=4',
     textoCompleto:'Já consegui automatizar ou simplificar uma tarefa repetitiva usando IA?', opcoes:['Sim, mais de uma vez','Sim, uma vez','Não, mas sei que seria possível','Não, não consigo visualizar como','Nunca tentei'], importa:'Cobre o vetor Automação do Plano de Letramento. Reclassificado de Estendido para Comum na V3 enxuta — todos respondem. Marcador de nível 4 (automatizar atividades) e componente do score de early adopter.' },
+  { id:'Q63', texto:'Tempo economizado por semana com IA', fase:'2A', dimensao:'Impacto', tipo:'Escala', scoring:'Estendido', hipoteses:['S8','D2'], transicao:'1→4', conversao:'nao=1, menos1h=2, 1a3h=3, mais3h=4',
+    textoCompleto:'Quanto tempo você estima que economiza por semana usando IA?', opcoes:['Não uso / não economizo tempo','Menos de 1 hora por semana','1 a 3 horas por semana','Mais de 3 horas por semana'], importa:'Dado quantificável de ROI para relatório executivo. Discrimina N1 (não economiza) a N4 (impacto significativo). Pergunta nova na V3.' },
+  { id:'Q64', texto:'Impacto se IA ficasse indisponível', fase:'2A', dimensao:'Utilizacao', tipo:'Escala', scoring:'Estendido', hipoteses:['S1','S11'], transicao:'1→4', conversao:'nenhum=1, baixo=2, medio=3, alto=4',
+    textoCompleto:'Se as ferramentas de IA ficassem indisponíveis amanhã, qual seria o impacto no seu trabalho?', opcoes:['Nenhum — não uso IA no trabalho','Baixo — teria que fazer manualmente, mas sem grande impacto','Médio — algumas tarefas ficariam mais lentas ou difíceis','Alto — parte significativa da minha rotina seria afetada'], importa:'Mede profundidade REAL de adoção — não o que a pessoa acha que usa, mas quanto dependeria se perdesse. Complementa Q12 (frequência declarada) com dependência concreta. Pergunta nova na V3.' },
   { id:'Q45', texto:'Interesse em treinamento de IA', fase:'2A', dimensao:'Cultura', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['D6','S12'],
     textoCompleto:'Se a empresa oferecesse treinamento prático em IA, o que mais te interessaria? (marque todas)', opcoes:['Automatizar tarefas repetitivas','Analisar dados mais rápido','Criar relatórios e apresentações','Programar sem ser programador (vibe coding)','Usar IA para tomar decisões melhores','Outro'], importa:'Calibra formato da Germinare e trilhas. Restaurada na V3 para alimentar design de capacitação.' },
   { id:'Q47', texto:'Quem deveria ser responsável por IA na Swift?', fase:'2B', dimensao:'Impacto', tipo:'Descritiva', scoring:'Nenhum', hipoteses:['S7'],
@@ -319,8 +323,8 @@ const SCORE_COMUM_MAP = {
   Cultura: ['Q37','Q38','Q39']
 };
 const SCORE_ESTENDIDO_MAP = {
-  Utilizacao: ['Q43'],
-  Impacto: ['Q48','Q49'],
+  Utilizacao: ['Q43','Q64'],
+  Impacto: ['Q48','Q49','Q63'],
   Governanca: ['Q51']
 };
 
@@ -440,7 +444,7 @@ function VisaoGeral({ onNavigate }) {
     { icon:'📊', titulo:'Diagnóstico Executivo', desc:'Gerar relatório consolidado para CIO e Comite de IA' }
   ];
   const kpis = [
-    { valor:'35', label:'Perguntas', cor:'#3B82F6' },
+    { valor:'37', label:'Perguntas', cor:'#3B82F6' },
     { valor:'21', label:'Itens no Score', cor:'#10B981' },
     { valor:'5', label:'Dimensões', cor:'#8B5CF6' },
     { valor:'4', label:'Níveis', cor:'#F59E0B' },
@@ -451,7 +455,7 @@ function VisaoGeral({ onNavigate }) {
     { label:'Objetivo', desc:'5 objetivos estratégicos', tab:'Visão Geral', cor:'#3B82F6' },
     { label:'Matriz', desc:'5 dimensões × 4 níveis', tab:'Matriz', cor:'#10B981' },
     { label:'CSD', desc:'17 suposições + 8 dúvidas', tab:'Hipóteses', cor:'#8B5CF6' },
-    { label:'Perguntas', desc:'35 perguntas em 6 fases', tab:'Perguntas', cor:'#F59E0B' },
+    { label:'Perguntas', desc:'37 perguntas em 6 fases', tab:'Perguntas', cor:'#F59E0B' },
     { label:'Scoring', desc:'21 itens + estendido', tab:'Scoring', cor:'#EC4899' }
   ];
 
@@ -821,7 +825,7 @@ function PerguntasView({ onOpenDrawer }) {
     '0.5':     { nome: 'Fase 0.5 — Mapa de Uso Atual',              desc: '4 perguntas | ~2 min | Filtro, ferramentas, tarefas e origem do uso', cor: '#64748B', icon: 'M' },
     '1':       { nome: 'Fase 1 — Maturidade nas 5 Dimensões',       desc: '21 perguntas | ~7 min | Score Comum (21 itens)', cor: '#3B82F6', icon: 'S' },
     'Controle':{ nome: 'Controle de Qualidade + Multiplicador',      desc: '3 perguntas | Attention check, barreiras e interesse em multiplicar',  cor: '#6B7280', icon: 'C' },
-    '2A':      { nome: 'Fase 2A — Cluster Execução',                desc: '3 perguntas | ~2 min | Assistentes, Analistas, Especialistas, Coordenadores', cor: '#8B5CF6', icon: 'E' },
+    '2A':      { nome: 'Fase 2A — Cluster Execução',                desc: '5 perguntas | ~2 min | Assistentes, Analistas, Especialistas, Coordenadores', cor: '#8B5CF6', icon: 'E' },
     '2B':      { nome: 'Fase 2B — Cluster Gestão',                  desc: '4 perguntas | ~2 min | Gerentes, Diretores',                         cor: '#A855F7', icon: 'G' },
     '3':       { nome: 'Fase 3 — Perguntas Abertas',                desc: '3 perguntas | ~2 min | Q53 obrigatória, Q54 e Q57 opcionais',        cor: '#EC4899', icon: 'A' }
   };
@@ -1530,6 +1534,8 @@ const CENARIO_OPTIONS = {
   Q48: [{label:'e) Não saberia priorizar',s:1},{label:'d) O que o time pede',s:2},{label:'a) Economia de custo',s:2.5},{label:'b) Experiência do cliente',s:3},{label:'c) Receita/diferenciação',s:4}],
   Q49: [{label:'d) Não penso nisso',s:1},{label:'e) Quero mas não sei',s:1.5},{label:'c) Informalmente',s:2},{label:'b) Anoto sem processo',s:3},{label:'a) Processo estruturado',s:4}],
   Q51: [{label:'Não',s:1},{label:'Pretendo fazer',s:2},{label:'Informais/verbais',s:3},{label:'Formais documentadas',s:4}],
+  Q63: [{label:'Não economizo',s:1},{label:'Menos de 1h',s:2},{label:'1-3h',s:3},{label:'Mais de 3h',s:4}],
+  Q64: [{label:'Nenhum impacto',s:1},{label:'Baixo',s:2},{label:'Médio',s:3},{label:'Alto',s:4}],
 };
 
 function SimQuestion({ q, value, onChange }) {
