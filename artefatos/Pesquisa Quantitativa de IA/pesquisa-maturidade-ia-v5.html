@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pesquisa de Maturidade em IA — Swift v5</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] }
+    }
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.drawer-overlay { animation: overlayIn 0.2s ease; }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+.drawer-panel { animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+// ─── COLOR CONSTANTS ───
+const DIM_COLORS = {
+  Utilizacao: '#3B82F6',
+  Dados: '#10B981',
+  Governanca: '#8B5CF6',
+  Impacto: '#F59E0B',
+  Cultura: '#EC4899'
+};
+const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316' };
+const PRIO_COLORS = { Critica: '#EF4444', Alta: '#F97316', Media: '#EAB308' };
+const CLUSTER_COLORS = { Execucao: '#3B82F6', Gestao: '#8B5CF6', Transversal: '#6B7280' };
+
+const DIMENSIONS = ['Utilizacao','Dados','Governanca','Impacto','Cultura'];
+const LEVELS = ['Iniciante','Básico','Intermediário','Avançado'];
+const LEVEL_KEYS = ['N1','N2','N3','N4'];
+
+// ─── MATRIX DESCRIPTORS ───
+const MATRIX = {
+  Utilizacao: {
+    N1: 'Não usa IA',
+    N2: 'Uso pontual e operacional',
+    N3: 'Uso regular com prompts eficientes',
+    N4: 'Uso estratégico para decisões complexas'
+  },
+  Dados: {
+    N1: 'Desconhece a relação dados e IA',
+    N2: 'Sabe que dados são importantes',
+    N3: 'Compreende qualidade e organização',
+    N4: 'Domina preparação e aplicação em modelos'
+  },
+  Governanca: {
+    N1: 'Sem conhecimento',
+    N2: 'Noções básicas de uso responsável',
+    N3: 'Entende princípios e boas práticas',
+    N4: 'Aplica governança, ética e compliance'
+  },
+  Impacto: {
+    N1: 'Não identifica oportunidades',
+    N2: 'Identifica casos simples',
+    N3: 'Sugere melhorias em processos',
+    N4: 'Estrutura business cases'
+  },
+  Cultura: {
+    N1: 'Curiosidade inicial',
+    N2: 'Interesse ativo em aprender',
+    N3: 'Incentivador na equipe',
+    N4: 'Agente de transformação'
+  }
+};
+
+// ─── PROGRESSIVE SCALE ───
+const PROGRESSIVE_SCALE = [{r:1,s:1.0},{r:2,s:1.5},{r:3,s:2.5},{r:4,s:3.5},{r:5,s:4.0}];
+
+// ─── FAIXAS DE CORTE ───
+const FAIXAS = [
+  { nivel: 'Iniciante', min: 1.0, max: 1.49, cor: '#94A3B8' },
+  { nivel: 'Básico', min: 1.5, max: 2.49, cor: '#22C55E' },
+  { nivel: 'Intermediário', min: 2.5, max: 3.49, cor: '#EAB308' },
+  { nivel: 'Avançado', min: 3.5, max: 4.0, cor: '#F97316' }
+];
+
+function getNivel(score) {
+  for (const f of FAIXAS) {
+    if (score >= f.min && score <= f.max) return f;
+  }
+  return FAIXAS[0];
+}
+
+// ─── CLUSTER QUESTIONS ───
+const CLUSTER_QUESTIONS = ['U4','D2','G2','G4','G5','I2','I5'];
+
+// ─── SCORE MAP ───
+const SCORE_MAP = {
+  Utilizacao: ['U1','U2','U3','U4'],
+  Dados: ['D1','D2','D3','D4'],
+  Governanca: ['G1','G2','G3','G4','G5'],
+  Impacto: ['I1','I2','I3','I4'],
+  Cultura: ['C1','C2','C3','C4']
+};
+
+// ─── FASE META ───
+const FASE_META = {
+  '0':         { nome: 'Fase 0 — Identificação',             desc: '2 perguntas | CPF + Curso de IA',                          cor: '#94A3B8', icon: 'I' },
+  '1':         { nome: 'Fase 1 — Maturidade (Tronco Comum)', desc: '16 perguntas | Compartilhadas por todos',                 cor: '#3B82F6', icon: 'T' },
+  '1-cluster': { nome: 'Fase 1C — Maturidade (Cluster)',     desc: 'Exec: 4 perguntas | Gestão: 7 perguntas',                 cor: '#8B5CF6', icon: 'C' }
+};
+const FASE_ORDER = ['0','1','1-cluster'];
+
+// ─── SUPOSIÇÕES ───
+const SUPOSICOES = [
+  { id:'S1', titulo:'Maioria já usa IA de forma rasa', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['U1','U4'],
+    desc:'A maioria dos colaboradores já utiliza ferramentas de IA generativa (ChatGPT, Copilot), porém de forma pontual e superficial — gerar textos, tirar dúvidas rápidas. Não exploram recursos avançados nem integram ao fluxo de trabalho.',
+    importa:'Define de onde a capacitação parte. Se confirmada, não precisa evangelizar — o time já usa, só falta profundidade e estrutura.',
+    confirmada:'Capacitação parte do nível 2 (Básico), foco em profundidade e dados. Argumento para Comitê: "o time já usa, só falta estrutura."',
+    refutada:'Se o uso for mais profundo que o imaginado, trilha pode começar mais avançada — economia de tempo e investimento.' },
+  { id:'S2', titulo:'Uso por iniciativa própria', dimensao:'Cultura', cluster:'Execucao', prioridade:'Alta', transicao:'1→2', validacao:['C3'],
+    desc:'Os colaboradores que já usam IA começaram por conta própria, sem incentivo formal da empresa. Indica energia orgânica reprimida que a esteira pode canalizar.',
+    importa:'Se a adoção é orgânica, o programa tem vento a favor. A esteira não precisa criar demanda — precisa estruturar a demanda que já existe.',
+    confirmada:'Confirma energia orgânica. Argumento forte para o CIO: "seu time já quer, só falta estrutura."',
+    refutada:'Se a empresa já incentivou, há tentativas passadas que podem ter falhado — investigar por quê.' },
+  { id:'S3', titulo:'Não conectam com dados reais', dimensao:'Dados', cluster:'Execucao', prioridade:'Critica', transicao:'1→2', validacao:['D1','D2'],
+    desc:'Colaboradores usam IA com dados genéricos (perguntas gerais, textos públicos), mas não alimentam com dados reais do negócio — planilhas de vendas, bases de clientes, indicadores de desempenho.',
+    importa:'Sem dados reais, toda experimentação é cosmética. Prototipar com dados genéricos não gera valor de negócio.',
+    confirmada:'Trilha de Execução precisa priorizar letramento em dados ANTES de vibe coding. Muda a sequência da capacitação.',
+    refutada:'Se já conectam, capacitação pode ir direto para automação avançada. Acelera o cronograma.' },
+  { id:'S4', titulo:'Gen Z usa mais, profundidade igual', dimensao:'Utilizacao', cluster:'Execucao', prioridade:'Media', transicao:'2→3', validacao:['U2','U3'],
+    desc:'A Gen Z (23% do time) usa IA com mais frequência que outras gerações, mas a profundidade do uso (avaliar outputs, adaptar prompts, corrigir erros) é similar à da Gen Y.',
+    importa:'Evita falsa sensação de maturidade por ter time jovem. "Jovem e digital" não significa "pronto pra IA aplicada". Calibra expectativas do Comitê.',
+    confirmada:'Reforço de que frequência de uso não equivale a profundidade. Evita atalhos na capacitação.',
+    refutada:'Se Gen Z for mais profunda, identificar como multiplicadores prioritários para Germinare.' },
+  { id:'S5', titulo:'Medo de substituição', dimensao:'Cultura', cluster:'Execucao', prioridade:'Media', transicao:'2→3', validacao:['C2'],
+    desc:'Mesmo entre colaboradores entusiastas com IA, existe um medo subjacente de que a automação possa substituir suas funções. Esse medo gera adoção seletiva — usam para coisas "seguras" mas evitam aplicações que transformam.',
+    importa:'Entusiasmo com medo por baixo trava a transição de "usuário curioso" para "incentivador na equipe". A pessoa não quer ser vista promovendo algo que pode tirar empregos.',
+    confirmada:'Comunicação do programa precisa endereçar explicitamente: "IA como copiloto, não substituto".',
+    refutada:'Um risco a menos. Comunicação pode focar 100% em potência e oportunidade.' },
+  { id:'S6', titulo:'Gestores não formulam hipóteses', dimensao:'Impacto', cluster:'Gestao', prioridade:'Critica', transicao:'2→3, 3→4', validacao:['I1','I2','I3'],
+    desc:'Gestores (~65 pessoas) não conseguem traduzir problemas de negócio em hipóteses testáveis com IA. Sabem que IA é importante, mas não sabem formular "quero testar se X melhora Y em Z%".',
+    importa:'É o gargalo número 1 da esteira. Se a liderança não sabe formular hipóteses, o intake recebe demandas vagas e de baixa qualidade. A esteira nasce morta na origem.',
+    confirmada:'Trilha Estratégica começa por "pensamento de hipótese", não por ferramentas. Framework de formulação de hipóteses é prioridade absoluta.',
+    refutada:'Esteira pode ser ativada mais rápido — o bottleneck está em outro lugar. Muda radicalmente prioridade de investimento.' },
+  { id:'S7', titulo:'IA como coisa de TI', dimensao:'Impacto', cluster:'Gestao', prioridade:'Critica', transicao:'1→2', validacao:['I4','I2'],
+    desc:'Gestores veem IA como responsabilidade do time de TI/Dados, não como ferramenta do seu domínio de negócio. Delegam ownership e esperam que "TI resolva".',
+    importa:'Se delegam ownership para TI, nunca alimentam a esteira. O modelo de governança distribuída depende de gestores assumirem responsabilidade por identificar oportunidades na sua área.',
+    confirmada:'Capacitação estratégica foca em "IA é ferramenta de negócio, responsabilidade sua". Mindset antes de método.',
+    refutada:'O desafio é dar ferramentas de priorização, não convencer sobre responsabilidade. Mais fácil e mais rápido.' },
+  { id:'S8', titulo:'Não diferenciam cosmético de impacto', dimensao:'Impacto', cluster:'Gestao', prioridade:'Alta', transicao:'3→4', validacao:['I3','I4','I2'],
+    desc:'Gestores não conseguem diferenciar quando IA só economiza tempo (eficiência cosmética) de quando muda o resultado entregue (impacto real). Priorizam por "o que é mais fácil" em vez de "o que gera mais valor".',
+    importa:'Se não conseguem priorizar por impacto, o Comitê de IA recebe demandas de baixa qualidade e o pipeline fica poluído com projetos cosméticos.',
+    confirmada:'Precisa de framework de priorização urgente (parte da trilha Estratégica). Ensinar a diferenciar eficiência de alavanca.',
+    refutada:'O problema é "só" operacionalizar — a esteira resolve com processo.' },
+  { id:'S9', titulo:'Capturam ideias desestruturadamente', dimensao:'Impacto', cluster:'Gestao', prioridade:'Media', transicao:'2→3', validacao:['I1','I2'],
+    desc:'Gestores até identificam oportunidades de uso de IA, mas registram de forma informal (post-its, conversas, e-mails soltos). Não há processo estruturado de captura e priorização.',
+    importa:'Sem processo, boas ideias se perdem. A esteira fornece o processo, mas precisa saber o tamanho do gap para dimensionar o onboarding.',
+    confirmada:'Incluir etapa de "onboarding de gestores na esteira" antes de ativar o pipeline. Ensinar o processo de intake.',
+    refutada:'Se já há alguma estruturação, a esteira se acopla mais fácil. Reduz atrito de adoção.' },
+  { id:'S10', titulo:'Governança muito baixa', dimensao:'Governanca', cluster:'Transversal', prioridade:'Critica', transicao:'1→2', validacao:['G1','G2','G3'],
+    desc:'O nível de conhecimento sobre governança, ética e riscos de IA é muito baixo em todos os níveis hierárquicos. Colaboradores não sabem quais informações não compartilhar, não conhecem diretrizes, e podem estar colando dados confidenciais em ferramentas públicas.',
+    importa:'Acelerar uso sem governança é perigoso. Risco jurídico e de compliance real. Se confirmada, muda a sequência do programa inteiro.',
+    confirmada:'Governança precisa ser a PRIMEIRA intervenção transversal, antes de ampliar uso. Módulo obrigatório para todos.',
+    refutada:'Pode avançar em uso e dados com mais velocidade. Grande impacto positivo no cronograma.' },
+  { id:'S11', titulo:'15-20% early adopters', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'3→4', validacao:['U1','C1','C3','C4'],
+    desc:'Entre 15% e 20% dos colaboradores já são early adopters — usam IA com frequência, experimentam ferramentas novas, e compartilham aprendizados com colegas. São multiplicadores naturais.',
+    importa:'Cada multiplicador impacta 5-8 colegas via Germinare. Sem eles, a IONIX faz todo o trabalho de disseminação sozinha — mais caro e mais lento.',
+    confirmada:'Ativar via Germinare imediatamente como "embaixadores de IA".',
+    refutada:'Se forem menos de 10%, Germinare precisa de mais suporte externo. Se forem mais de 30%, transformação mais rápida e barata que o previsto.' },
+  { id:'S12', titulo:'Gap quero vs sei como', dimensao:'Cultura', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['C3','C4'],
+    desc:'Existe um gap entre "quero aprender sobre IA" (interesse declarado alto) e "sei por onde começar" (ação concreta baixa). As pessoas querem, mas não sabem o primeiro passo.',
+    importa:'Se o problema é falta de direção e não falta de interesse, a solução é curadoria e ponto de entrada claro — não campanha de engajamento.',
+    confirmada:'Trilha guiada com curadoria de conteúdo, ferramentas aprovadas e ponto de entrada claro. A solução é dar direção.',
+    refutada:'Se a barreira for outra (medo, falta de tempo, gestor não apoia), a intervenção é completamente diferente.' },
+  { id:'S13', titulo:'Não avaliam outputs', dimensao:'Utilizacao', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['U2','U3','D4'],
+    desc:'A maioria dos colaboradores que usa IA não sabe avaliar criticamente se o resultado é bom, adaptar prompts, ou corrigir erros. Aceitam o primeiro output sem questionar.',
+    importa:'A Matriz define nível 3 como "formular prompts eficientes e avaliar resultados". Sem avaliação crítica, estão no nível 2 mesmo que usem com frequência.',
+    confirmada:'Trilha de Execução precisa incluir módulo de "avaliação crítica de outputs" e "engenharia de prompt com critério".',
+    refutada:'Se já avaliam criticamente, o cluster Execução está mais avançado em Utilização. Capacitação pode focar direto em automação e casos complexos.' },
+  { id:'S14', titulo:'Não preparam dados', dimensao:'Dados', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['D1','D2','D3'],
+    desc:'Colaboradores sabem que dados são importantes para IA (nível 2), mas não sabem preparar, limpar ou estruturar dados antes de usar (gap para nível 3).',
+    importa:'A Matriz define nível 3 em Dados como "compreende qualidade, organização e relevância". Sem preparação prática, estão travados.',
+    confirmada:'Incluir na trilha de Execução: módulo prático de limpeza, estruturação e qualidade de dados com cases reais da Swift.',
+    refutada:'Se já preparam dados, o gap em Dados é menor que o esperado. Focar capacitação nas outras dimensões.' },
+  { id:'S15', titulo:'Gestores não aplicam governança', dimensao:'Governanca', cluster:'Gestao', prioridade:'Alta', transicao:'3→4', validacao:['G4'],
+    desc:'Gestores podem até conhecer princípios de governança de IA, mas não traduzem em políticas e práticas concretas nas suas áreas. Não definem diretrizes para o time.',
+    importa:'A esteira precisa de sponsors que saibam avaliar riscos. Se gestores não aplicam governança, cada projeto vira um risco não gerenciado e o Comitê de IA fica sobrecarregado.',
+    confirmada:'Trilha Estratégica precisa de módulo: "governança aplicada — como avaliar riscos e definir políticas de IA na sua área".',
+    refutada:'Se gestores já sabem aplicar, a governança pode ser descentralizada mais rápido. Reduz carga no Comitê de IA.' },
+  { id:'S16', titulo:'Desconhecem viés algorítmico e riscos legais/LGPD', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'2→3', validacao:['G3'],
+    desc:'S10 testa a camada básica: não compartilhar dados confidenciais (N1→N2). S16 testa riscos mais sofisticados: viés algorítmico e riscos legais (LGPD, responsabilidade civil).',
+    importa:'Colaboradores que não conhecem viés podem replicar discriminação involuntariamente. Quem ignora a LGPD pode expor a Swift a notificações da ANPD.',
+    confirmada:'Módulo obrigatório de ética e compliance precisa cobrir viés + LGPD, não só "não cole dados sigilosos".',
+    refutada:'Se a maioria já conhece viés e LGPD, o baseline de governança é mais alto que o esperado.' },
+  { id:'S17', titulo:'Percepção de vazio de governança na Swift', dimensao:'Governanca', cluster:'Transversal', prioridade:'Alta', transicao:'Transversal', validacao:['G1','G2'],
+    desc:'Colaboradores podem saber o que não compartilhar e ainda assim sentir que a empresa não tem políticas claras — ou vice-versa.',
+    importa:'Percepção de vazio: programa precisa publicar política básica de uso de IA antes de ampliar uso.',
+    confirmada:'Primeiro ato do programa: publicar política básica de uso de IA + comunicar o Comitê de IA.',
+    refutada:'Auditar o que as pessoas acreditam que existe vs. o que de fato existe. Pode revelar falsa sensação de segurança.' }
+];
+
+// ─── DÚVIDAS ───
+const DUVIDAS = [
+  { id:'DV1', titulo:'Áreas com iniciativas informais', dimensao:'Transversal', prioridade:'Alta', validacao:['U1'],
+    desc:'Quais áreas/departamentos já têm colaboradores usando IA por conta própria? Existem "bolsões de maturidade" espontâneos?',
+    desbloqueia:'Identifica áreas que podem ser pilotos da esteira ou showcase interno.' },
+  { id:'DV2', titulo:'Processos candidatos à IA', dimensao:'Impacto', prioridade:'Critica', validacao:['I1'],
+    desc:'Quais processos e tarefas os próprios colaboradores enxergam como candidatos à automação ou melhoria com IA?',
+    desbloqueia:'Backlog da esteira. I1 indica quem já identifica oportunidades de aplicação de IA.' },
+  { id:'DV3', titulo:'Variação entre áreas', dimensao:'Transversal', prioridade:'Alta', validacao:[],
+    desc:'A maturidade em IA varia significativamente entre áreas/departamentos, ou é relativamente homogênea?',
+    desbloqueia:'Variação grande → customizar capacitação por área. Homogênea → trilha unificada por cluster.' },
+  { id:'DV4', titulo:'Nível de confiança', dimensao:'Utilizacao', prioridade:'Media', validacao:['U2'],
+    desc:'Qual o nível de confiança que os colaboradores depositam nos resultados de IA? Confiança calibrada, excessiva ou insuficiente?',
+    desbloqueia:'Confiança excessiva = risco de governança. Confiança baixa = barreira de adoção. Extremos exigem intervenções diferentes.' },
+  { id:'DV5', titulo:'Experiência negativa', dimensao:'Cultura', prioridade:'Media', validacao:['U2'],
+    desc:'Colaboradores já tiveram experiências negativas com IA ou automação? Tentaram usar e não funcionou?',
+    desbloqueia:'Frustrações passadas criam resistência oculta. Precisam ser endereçadas na comunicação do programa.' },
+  { id:'DV6', titulo:'Como preferem aprender', dimensao:'Cultura', prioridade:'Alta', validacao:['C2'],
+    desc:'Qual formato de aprendizado os colaboradores preferem? Workshops práticos, mentoria, vídeos, pair work?',
+    desbloqueia:'Calibra formato da Germinare e trilhas de capacitação. Errar o formato queima engajamento.' },
+  { id:'DV7', titulo:'Quais dados lidam', dimensao:'Dados', prioridade:'Alta', validacao:['D2','D3'],
+    desc:'Quais tipos de dados os colaboradores manipulam no dia a dia? Planilhas, bases de clientes, indicadores?',
+    desbloqueia:'Mapa da "matéria-prima" disponível para IA. Define quais cases de uso o Pod Volante vai prototipar.' },
+  { id:'DV8', titulo:'Articulam modelo de negócio ou só eficiência', dimensao:'Impacto', prioridade:'Alta', validacao:['I3','I4','I2'],
+    desc:'Quando gestores pensam em IA, articulam impacto no modelo de negócio (receita, diferenciação) ou pensam apenas em eficiência operacional?',
+    desbloqueia:'Se só veem custo, a narrativa de alavanca de negócio precisa ser construída.' }
+];
+
+// ─── CERTEZAS ───
+const CERTEZAS = [
+  { id:'CT1', titulo:'81% Gen Y+Z — entusiastas, resistência cultural baixa', dimensao:'Cultura', fonte:'Perfil demográfico',
+    desc:'A composição geracional da Swift (81% Millennials + Gen Z) indica público naturalmente receptivo à tecnologia.',
+    importa:'Define o tom do programa. Não estamos tentando vencer resistência — estamos tentando canalizar energia que já existe.' },
+  { id:'CT2', titulo:'Analistas = 50% do headcount (~99 pessoas)', dimensao:'Utilizacao', fonte:'Perfil demográfico',
+    desc:'Analistas são o maior grupo da Swift, representando metade dos colaboradores. São o público-alvo natural da capacitação técnica.',
+    importa:'É o grupo que define sucesso ou fracasso da esteira. Se os analistas não evoluírem, a transformação não escala.' },
+  { id:'CT3', titulo:'Gerentes/Diretores com ~8.8 anos de casa', dimensao:'Impacto', fonte:'Perfil demográfico',
+    desc:'A liderança tem alto tempo de empresa — profundo conhecimento do negócio. Matéria-prima para formular hipóteses de IA relevantes.',
+    importa:'Conhecem o negócio (potencial latente), mas podem estar desconectados das capacidades da tecnologia.' },
+  { id:'CT4', titulo:'Sem programa formal de IA — começando do zero', dimensao:'Transversal', fonte:'Proposta IONIX',
+    desc:'A Swift não tem programa formal de capacitação ou governança de IA. Qualquer maturidade encontrada é orgânica.',
+    importa:'O baseline é o ponto zero real. Qualquer maturidade encontrada é potencial reprimido que a esteira pode canalizar.' },
+  { id:'CT5', titulo:'Germinare existe como plataforma train-the-trainer', dimensao:'Cultura', fonte:'Proposta IONIX',
+    desc:'A Swift já possui a Germinare, escola interna com modelo train-the-trainer. Canal de escala pronto para multiplicar conhecimento de IA.',
+    importa:'Canal de escala já existe. A pesquisa alimenta a Germinare com os early adopters certos.' },
+  { id:'CT6', titulo:'Stack: Lovable + N8N + Claude/Claude Code', dimensao:'Utilizacao', fonte:'Proposta IONIX',
+    desc:'O programa utiliza ferramentas específicas de vibe coding e automação.',
+    importa:'Saber quem já conhece essas ferramentas ajuda a calibrar o ponto de partida das trilhas práticas.' }
+];
+
+// ─── PERGUNTAS V5 ───
+const PERGUNTAS = [
+  // ── Fase 0: Identificação ──
+  { id:'Q1', fase:'0', dimensao:'infra', tipo:'Texto', scoring:'Nenhum', texto:'CPF',
+    textoCompleto:'CPF',
+    opcoes: null, hipoteses:[], importa:null },
+
+  { id:'Q2', fase:'0', dimensao:'infra', tipo:'Likert', scoring:'Nenhum', texto:'Curso ou capacitação sobre IA',
+    textoCompleto:'Você está fazendo ou já fez algum curso ou capacitação sobre Inteligência Artificial?',
+    opcoes: ['Não, nunca fiz','Estou aprendendo por conta própria (vídeos, artigos, tutoriais)','Sim, fiz um curso online (ex: Coursera, Udemy, Alura)','Sim, fiz um curso formal presencial ou da empresa','Sim, já fiz mais de um curso e continuo me atualizando'],
+    hipoteses:['S11','S12'], importa:'Identifica champions e segmenta respondentes por nível de investimento em aprendizado.' },
+
+  // ── Fase 1: Maturidade (Tronco Comum) — Utilização ──
+  { id:'U1', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Frequência de uso de IA no trabalho',
+    textoCompleto:'Com que frequência você usa ferramentas de IA (ChatGPT, Copilot, Gemini etc.) no seu trabalho?',
+    opcoes: ['Nunca usei','Já experimentei, mas não uso no dia a dia','Uso pelo menos 1× por semana','Uso diariamente em tarefas específicas','É parte essencial do meu fluxo de trabalho'],
+    hipoteses:['S1','S11'], importa:'Mede frequência real de uso. Diferencia quem nunca usou, quem experimentou e quem integrou ao fluxo. Essencial para mapear adoção.' },
+  { id:'U2', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Como lida com o resultado da IA',
+    textoCompleto:'Quando você usa IA para gerar um texto, análise ou resposta, como você lida com o resultado?',
+    opcoes: ['Não uso IA para isso','Aceito o resultado como está','Leio e faço pequenos ajustes','Avalio criticamente e reformulo o que for necessário','Itero com novos prompts até chegar num resultado de alta qualidade'],
+    hipoteses:['S4','S13','DV4'], importa:'Avalia pensamento crítico e profundidade de uso. Distingue aceitação cega de iteração consciente.' },
+  { id:'U3', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Familiaridade com o conceito de prompt',
+    textoCompleto:'O quão familiarizado você está com o conceito de prompt e as práticas envolvidas?',
+    opcoes: ['Não sei o que é um prompt','Sei o que é, mas só escrevo instruções simples','Consigo dar contexto, especificar formato e usar exemplos','Uso técnicas como persona, restrições e cadeia de raciocínio','Construo prompts complexos e ensino colegas a fazer o mesmo'],
+    hipoteses:['S4','S13'], importa:'Mede a habilidade técnica central da utilização de IA. Prompt engineering é o skill mais transferível entre ferramentas.' },
+
+  // ── Fase 1-cluster: U4 (Execução) ──
+  { id:'U4', fase:'1-cluster', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Quantas tarefas diferentes já usou IA',
+    textoCompleto:'Para quantas tarefas diferentes do seu trabalho você já usou IA como apoio?',
+    opcoes: ['Nenhuma','1 tipo de tarefa (ex: só resumos)','2-3 tipos de tarefas','4-5 tipos de tarefas','Mais de 5 tipos, em diferentes contextos do meu trabalho'],
+    hipoteses:['S1'], importa:'Mede amplitude de uso no cluster Execução. Diferencia quem usa IA para uma coisa de quem usa para múltiplas tarefas.' },
+
+  // ── Fase 1-cluster: U4 (Gestão) ──
+  { id:'U4', fase:'1-cluster', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Percentual da equipe usando IA regularmente',
+    textoCompleto:'Na sua equipe, que percentual dos colaboradores você estima que usa IA regularmente no trabalho?',
+    opcoes: ['Menos de 10%','10-25%','25-50%','50-75%','Mais de 75%'],
+    hipoteses:['S1'], importa:'Mede percepção da adoção no time do gestor. Indica nível de liderança e incentivo à adoção.' },
+
+  // ── Fase 1: Utilização — U5 (barreira, não scored) ──
+  { id:'U5', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Nenhum', texto:'Maior barreira para usar mais IA',
+    textoCompleto:'Qual é a sua maior barreira para usar mais IA no trabalho?',
+    opcoes: ['Não vejo aplicação no que faço','Não sei por onde começar','Não sei se posso usar (dúvida sobre permissão/política)','Falta de ferramentas aprovadas pela empresa','Medo de errar ou gerar problemas','Falta de tempo','Já uso bastante, não tenho barreiras'],
+    hipoteses:['S5','S12'], importa:'Nova na V5. Inclui opção "Não sei se posso". Análise qualitativa, não entra no score.' },
+
+  // ── Fase 1: Maturidade (Tronco Comum) — Dados ──
+  { id:'D1', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Entendimento de como a IA funciona',
+    textoCompleto:'Qual afirmação melhor descreve seu entendimento sobre como a IA funciona?',
+    opcoes: ['Não sei como funciona','Sei que tem algo a ver com dados, mas não entendo como','Entendo que a IA aprende a partir de dados e reconhece padrões','Compreendo a diferença entre dados de treinamento e dados de entrada, e como isso afeta resultados','Consigo avaliar quando um resultado da IA pode estar enviesado por limitações nos dados'],
+    hipoteses:['S3','S14'], importa:'Mede letramento técnico em dados e IA. Diferencia conhecimento superficial de compreensão funcional.' },
+  { id:'D3', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Identifica problemas de qualidade de dados',
+    textoCompleto:'Você consegue identificar problemas de qualidade nos dados que sua área gera ou utiliza?',
+    opcoes: ['Nunca pensei sobre isso','Sei que dados podem ter problemas, mas não sei identificá-los','Identifico problemas óbvios como campos vazios ou duplicados','Consigo avaliar consistência, atualização e confiabilidade dos dados','Proponho melhorias na coleta e organização de dados da minha área'],
+    hipoteses:['S14'], importa:'Mede capacidade prática de avaliar qualidade de dados. Essencial para uso responsável de IA com dados reais.' },
+  { id:'D4', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Atribuição quando IA erra',
+    textoCompleto:'Quando uma ferramenta de IA dá uma resposta errada ou estranha, a que você atribui o problema?',
+    opcoes: ['Não sei explicar','Acho que a IA "errou"','Desconfio que minha instrução não foi boa o suficiente','Considero que pode ser limitação dos dados ou do modelo','Avalio se é problema do prompt, dos dados, do modelo ou do contexto antes de tentar de novo'],
+    hipoteses:['S13'], importa:'Mede sofisticação na atribuição de causa. Distingue "IA errou" de análise multicausal.' },
+
+  // ── Fase 1-cluster: D2 (Execução) ──
+  { id:'D2', fase:'1-cluster', dimensao:'Dados', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Preparar dados para solução de IA',
+    textoCompleto:'Se alguém pedisse para você preparar dados da sua área para alimentar uma solução de IA, como reagiria?',
+    opcoes: ['Não saberia por onde começar','Tentaria, mas não tenho clareza sobre o que é "dado pronto para IA"','Saberia identificar quais dados são relevantes e onde estão','Conseguiria organizar e limpar os dados para uso','Saberia preparar, validar a qualidade e documentar os dados adequadamente'],
+    hipoteses:['S3','S14'], importa:'Mede capacidade prática de preparação de dados no cluster Execução.' },
+
+  // ── Fase 1-cluster: D2 (Gestão) ──
+  { id:'D2', fase:'1-cluster', dimensao:'Dados', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Dados da área organizados para IA',
+    textoCompleto:'Sua área tem dados organizados e acessíveis o suficiente para alimentar soluções de IA?',
+    opcoes: ['Não sei dizer','Dados existem mas são desorganizados e dispersos','Dados estão parcialmente organizados, com gaps conhecidos','Dados estão bem organizados e acessíveis para análises','Temos dados prontos e já alimentam soluções analíticas ou de IA'],
+    hipoteses:['S3','S14'], importa:'Mede percepção do gestor sobre a maturidade de dados da sua área.' },
+
+  // ── Fase 1: Maturidade (Tronco Comum) — Governança ──
+  { id:'G1', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', texto:'Preocupação ao analisar dados de clientes com IA',
+    textoCompleto:'Se você precisasse usar IA para analisar dados de clientes da Swift, qual seria sua primeira preocupação?',
+    opcoes: ['Não saberia por onde começar','Se a IA daria a resposta certa','Se os dados poderiam ser expostos ou usados para treinar o modelo','Se existe uma política interna aprovada para esse tipo de uso','Verificaria a política interna E avaliaria o risco de privacidade antes de prosseguir'],
+    hipoteses:['S10'], importa:'Mede consciência de governança e privacidade em contexto prático. Diferencia preocupação com acurácia de preocupação com compliance.' },
+  { id:'G3', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', texto:'Explicabilidade dos resultados da IA',
+    textoCompleto:'Se alguém te pedisse para explicar como a IA chegou em determinado resultado, você conseguiria?',
+    opcoes: ['Não, não saberia explicar','Diria apenas que "a IA gerou"','Explicaria de forma geral o que pedi e o que recebi','Explicaria o processo: qual dado usei, que prompt fiz e por que confio no resultado','Explicaria com rastreabilidade completa e saberia apontar limitações do resultado'],
+    hipoteses:['S10','S16'], importa:'Mede capacidade de explicar e rastrear o raciocínio da IA. Nova pergunta V5 sobre explicabilidade.' },
+
+  // ── Fase 1-cluster: G2 (Execução) — Verificação entrada/saída ──
+  { id:'G2', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Verificação de dados e resultados no uso de IA',
+    textoCompleto:'Quando você usa IA no trabalho, como você lida com a verificação dos dados e resultados?',
+    opcoes: ['Não verifico — confio no que a IA entrega','Dou uma olhada rápida, mas não confiro com profundidade','Verifico o resultado final antes de usar, mas não os dados de entrada','Verifico tanto os dados que envio quanto o resultado que recebo','Verifico entrada e saída, cruzo com outras fontes e documento o processo'],
+    hipoteses:['S10','S13'], importa:'Merge Q17+Q22+Q27. Verifica responsabilidade no uso.' },
+
+  // ── Fase 1-cluster: G2 (Gestão) — Info sensível ──
+  { id:'G2', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Conhecimento sobre dados que não devem ir para IA',
+    textoCompleto:'Você sabe dizer quais tipos de informação da Swift NÃO devem ser inseridos em ferramentas de IA públicas?',
+    opcoes: ['Nunca pensei sobre isso','Imagino que dados de clientes não devem, mas não tenho certeza','Sei que dados pessoais e financeiros não devem ser compartilhados','Conheço as categorias de dados sensíveis e sei distinguir o que pode ou não ser usado','Conheço as diretrizes da empresa e oriento colegas sobre o tema'],
+    hipoteses:['S10'], importa:'Info sensível — mantida apenas para gestão na V5.' },
+
+  // ── Fase 1-cluster: G4 (Gestão) — Consciência de mecanismos de governança ──
+  { id:'G4', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Consciência dos mecanismos de governança de IA',
+    textoCompleto:'Qual frase melhor descreve sua consciência sobre os mecanismos de governança de IA na Swift?',
+    opcoes: ['Não sei se existem mecanismos de governança para IA','Sei que deve existir algo, mas nunca procurei saber','Conheço algumas diretrizes gerais da empresa sobre o tema','Tenho plena consciência dos mecanismos e sei como se aplicam ao meu trabalho','Conheço profundamente, ajudo a definir e oriento minha equipe sobre eles'],
+    hipoteses:['S15','S17'], importa:'Reformulada ex-Q58 (viés algorítmico) para consciência de governança real.' },
+
+  // ── Fase 1-cluster: G5 (Gestão) — Orientações para equipe ──
+  { id:'G5', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Definição de orientações sobre uso de IA na área',
+    textoCompleto:'Na sua área, você já definiu orientações específicas sobre como a equipe deve usar ferramentas de IA?',
+    opcoes: ['Não','Não, mas pretendo fazer','Sim, orientações informais/verbais','Sim, com diretrizes documentadas','Sim, com diretrizes documentadas e monitoramento de conformidade'],
+    hipoteses:['S15'], importa:'Se o gestor já traduziu governança em ações concretas.' },
+
+  // ── Fase 1: Maturidade (Tronco Comum) — Impacto ──
+  { id:'I1', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', texto:'Identifica processos melhoráveis com IA',
+    textoCompleto:'Você consegue identificar processos da sua área que poderiam ser melhorados com IA?',
+    opcoes: ['Não consigo pensar em nenhum','Tenho uma ideia vaga, mas não saberia explicar','Sim, consigo descrever o processo e o ganho esperado','Sim, e já sugeri ou implementei uma melhoria com IA','Já estruturei um caso de uso com métricas de impacto'],
+    hipoteses:['S6','S9','DV2'], importa:'Mede capacidade de identificar oportunidades. É o início do pipeline da esteira.' },
+  { id:'I3', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', texto:'Estima impacto do uso de IA',
+    textoCompleto:'Você consegue estimar o impacto (tempo economizado, custo reduzido, qualidade melhorada) de usar IA em uma atividade?',
+    opcoes: ['Não, nunca pensei em medir isso','Tenho noção intuitiva, mas não sei quantificar','Consigo estimar de forma aproximada (ex: "economiza umas 2h por semana")','Sei medir antes e depois com indicadores concretos','Já meço o impacto e uso os dados para justificar novas iniciativas'],
+    hipoteses:['S6','S8','DV8'], importa:'Mede capacidade de quantificar valor. Essencial para priorização na esteira e business cases.' },
+  { id:'I4', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', texto:'Visão sobre IA e o trabalho',
+    textoCompleto:'Qual frase melhor descreve como você enxerga a IA em relação ao seu trabalho?',
+    opcoes: ['Não vejo relação com o que eu faço','Pode ajudar em coisas pequenas, mas nada essencial','Pode melhorar a eficiência de várias atividades da minha área','Pode transformar a forma como minha área opera','É uma vantagem competitiva estratégica para a Swift'],
+    hipoteses:['S7','S8','DV8'], importa:'Mede visão estratégica. Diferencia quem vê IA como ferramenta tática de quem vê como alavanca de negócio.' },
+
+  // ── Fase 1-cluster: I2 (Execução) ──
+  { id:'I2', fase:'1-cluster', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Proposta de uso de IA na área',
+    textoCompleto:'Se sua liderança pedisse uma proposta de uso de IA na sua área, o que você conseguiria entregar?',
+    opcoes: ['Não saberia montar uma proposta','Daria uma ideia genérica em conversa informal','Escreveria uma descrição do problema e da solução proposta','Montaria uma proposta com problema, solução, benefícios e riscos','Estruturaria um business case com métricas, esforço estimado e critérios de sucesso'],
+    hipoteses:['S6','S7','S8','S9','DV8'], importa:'Mede capacidade de estruturar propostas concretas no cluster Execução.' },
+
+  // ── Fase 1-cluster: I2 (Gestão) — Business case ──
+  { id:'I2', fase:'1-cluster', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Avaliar indicadores e business case de IA',
+    textoCompleto:'Você é capaz de avaliar indicadores e variáveis que justifiquem o investimento em uma iniciativa de IA?',
+    opcoes: ['Não, nunca pensei nisso','Tenho noção intuitiva mas não sei estruturar','Consigo identificar os indicadores relevantes (tempo, custo, qualidade)','Sei montar um business case básico com métricas de antes e depois','Estruturo business cases completos com ROI, riscos e critérios de sucesso'],
+    hipoteses:['S6','S8'], importa:'Nova na V5. Avalia capacidade de justificar investimento com indicadores concretos.' },
+
+  // ── Fase 1-cluster: I5 (Gestão) — Priorização checkbox ──
+  { id:'I5', fase:'1-cluster', dimensao:'Impacto', tipo:'Checkbox', scoring:'Nenhum', cluster:'Gestao', texto:'Critérios de priorização de projetos de IA',
+    textoCompleto:'Se você pudesse escolher projetos de IA para sua área, quais critérios usaria para priorizar?',
+    opcoes: ['Eficiência operacional / produtividade','Economia de custo imediata','Melhoria da experiência do cliente','Geração de receita nova ou diferenciação','O que o time mais pede','Pedido ou direcionamento da diretoria','Não saberia como priorizar'],
+    hipoteses:['S6','S7','S8'], importa:'Nova V5. Checkbox com múltipla escolha. Inclui eficiência e pedido da diretoria. Não entra no score — análise de perfil decisório.' },
+
+  // ── Fase 1: Maturidade (Tronco Comum) — Cultura ──
+  { id:'C1', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Scored', texto:'Compartilhou aprendizado de IA nos últimos 30 dias',
+    textoCompleto:'Nos últimos 30 dias, você compartilhou algum aprendizado, dica ou caso de uso de IA com colegas?',
+    opcoes: ['Não, e o tema não surgiu','Não, mas já vi colegas comentando','Sim, em conversa informal','Sim, em reunião de equipe ou canal oficial','Sim, e ajudei um colega a usar IA em uma tarefa concreta'],
+    hipoteses:['S11'], importa:'Mede disseminação ativa de conhecimento. Identifica quem já é multiplicador natural.' },
+  { id:'C2', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Scored', texto:'Reação a capacitação avançada em IA',
+    textoCompleto:'Se a Swift oferecesse uma capacitação avançada em IA, qual seria sua reação?',
+    opcoes: ['Não participaria','Pensaria sobre, mas provavelmente não iria','Participaria se fosse curto e prático','Participaria com interesse','Participaria e ainda incentivaria colegas a ir'],
+    hipoteses:['S5','DV6'], importa:'Mede abertura para capacitação e formato preferido. Calibra a abordagem da Germinare.' },
+  { id:'C3', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Scored', texto:'Reação a nova ferramenta de IA',
+    textoCompleto:'Como você reage quando descobre uma nova ferramenta ou funcionalidade de IA?',
+    opcoes: ['Não costumo ficar sabendo dessas novidades','Vejo, mas não testo','Testo por curiosidade quando tenho tempo','Testo e avalio se serve para alguma tarefa minha','Testo, avalio e compartilho com a equipe se for útil'],
+    hipoteses:['S2','S11','S12'], importa:'Mede proatividade e curiosidade aplicada. Distingue observador de experimentador e multiplicador.' },
+  { id:'C4', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Scored', texto:'Papel na adoção de IA na Swift',
+    textoCompleto:'Qual papel você sente que exerce hoje na adoção de IA dentro da Swift?',
+    opcoes: ['Nenhum, não é meu tema','Observador — acompanho de longe','Participante — uso quando aparece oportunidade','Incentivador — recomendo e ajudo colegas','Multiplicador — atuo ativamente para disseminar o uso de IA na minha área'],
+    hipoteses:['S11','S12'], importa:'Autoavaliação de papel na transformação. Identifica a curva de difusão de inovação dentro da Swift.' },
+
+];
+
+// ─── HELPER: conversion for scoring ───
+function getConversion(q) {
+  if (q.tipo === 'Likert' && q.scoring === 'Scored') return PROGRESSIVE_SCALE;
+  return null;
+}
+
+// ─── SHARED COMPONENTS ───
+function Badge({ text, color, small }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full font-medium ${small ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'}`}
+      style={{ backgroundColor: color + '20', color: color }}
+    >
+      {text}
+    </span>
+  );
+}
+
+function Header({ dark, toggleDark }) {
+  return (
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-extrabold tracking-tight">Pesquisa de Maturidade em IA — Swift v5</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Design doc interativo | IONIX</p>
+        </div>
+        <button
+          onClick={toggleDark}
+          className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          title={dark ? 'Modo claro' : 'Modo escuro'}
+        >
+          {dark ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          )}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Clusters'];
+
+function TabNav({ active, onChange }) {
+  return (
+    <div className="flex gap-1 overflow-x-auto pb-1">
+      {TABS.map(t => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+            active === t
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Drawer({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="drawer-overlay absolute inset-0 bg-black/40" onClick={onClose}/>
+      <div className="drawer-panel relative w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-5 py-4 flex items-center justify-between z-10">
+          <h3 className="font-bold text-lg">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="p-5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 1: VISÃO GERAL
+// ═══════════════════════════════════════════
+function VisaoGeral({ onNavigate }) {
+  const objectives = [
+    { icon:'1', title:'Diagnosticar maturidade', desc:'Medir o nível atual nas 5 dimensões por cluster e área' },
+    { icon:'2', title:'Priorizar capacitação', desc:'Identificar gaps críticos e sequenciar trilhas de aprendizagem' },
+    { icon:'3', title:'Identificar multiplicadores', desc:'Encontrar os 15-20% de early adopters para a Germinare' },
+    { icon:'4', title:'Gerar backlog da esteira', desc:'Coletar casos de uso reais para alimentar o pipeline de IA' },
+    { icon:'5', title:'Produzir executive report', desc:'Dados concretos para o Comitê de IA e CIO' }
+  ];
+
+  const kpis = [
+    { label:'Perguntas Exec', value:'26', detail:'CPF + Q2 + 20 scored + U5 + 3 abertas (A1-A3)' },
+    { label:'Perguntas Gestão', value:'31', detail:'CPF + Q2 + 20 scored + U5 + I5 + G4 + G5 + 3 abertas (A1-A3)' },
+    { label:'Dimensões', value:'5', detail:'Utilização, Dados, Governança, Impacto, Cultura' },
+    { label:'Níveis', value:'4', detail:'Iniciante → Básico → Intermediário → Avançado' },
+    { label:'Clusters', value:'2', detail:'Execução (reduzido) + Gestão (expandido)' },
+    { label:'Suposições', value:'17', detail:'hipóteses a validar com a pesquisa' }
+  ];
+
+  const changes = [
+    'CPF + Q2 (cursos de IA) + 20 perguntas de dimensão + U5 (barreira) + I5 gestão (priorização)',
+    'IDs: Q1-Q2, U1-U5, D1-D4, G1-G5, I1-I5, C1-C4',
+    'G2 reformulada: merge Q17+Q22+Q27 → verificação entrada/saída (exec) | info sensível (gestão)',
+    'G3 nova: explicabilidade dos resultados da IA',
+    'G4-gestão nova: consciência de mecanismos de governança (ex-Q58 viés)',
+    'I2-gestão: avaliar indicadores/business case',
+    'I5-gestão: priorização checkbox (+eficiência, +pedido diretoria)',
+    'U5 nova: maior barreira (+não sei se posso usar)',
+    'Governança reduzida para Execução (3 perguntas) | completa para Gestão (5)',
+    'Cultura: C3 (nova ferramenta) mantida apenas conceitual no tronco comum'
+  ];
+
+  const pipeline = [
+    { label:'Fase 0 — Identificação', desc:'CPF + Curso de IA', cor:'#94A3B8' },
+    { label:'Fase 1 — Tronco Comum', desc:'16 perguntas shared (todas as dimensões)', cor:'#3B82F6' },
+    { label:'Fase 1C — Cluster', desc:'Exec: 4 perguntas | Gestão: 7 perguntas', cor:'#8B5CF6' }
+  ];
+
+  return (
+    <div className="fade-in space-y-8">
+      {/* Objectives */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Objetivos da Pesquisa</h2>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {objectives.map((o,i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm mb-2">{o.icon}</div>
+              <div className="font-semibold text-sm mb-1">{o.title}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{o.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* KPIs */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Números-Chave</h2>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {kpis.map((k,i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+              <div className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{k.value}</div>
+              <div className="text-sm font-semibold mt-1">{k.label}</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{k.detail}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* V4→V5 Changes */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Mudanças V4 → V5</h2>
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-800">
+          <div className="space-y-2">
+            {changes.map((c,i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">&#9656;</span>
+                <span className="text-gray-700 dark:text-gray-300">{c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pipeline */}
+      <section>
+        <h2 className="text-lg font-bold mb-4">Pipeline do Questionário</h2>
+        <div className="flex flex-col gap-2">
+          {pipeline.map((p,i) => (
+            <React.Fragment key={i}>
+              <button
+                onClick={() => onNavigate('Perguntas')}
+                className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border-2 hover:shadow-md transition-all text-left"
+                style={{ borderColor: p.cor + '60' }}
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0" style={{backgroundColor:p.cor}}>
+                  {i+1}
+                </div>
+                <div>
+                  <div className="font-semibold text-sm">{p.label}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{p.desc}</div>
+                </div>
+                <svg className="ml-auto w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              {i < pipeline.length - 1 && (
+                <div className="w-0.5 h-4 rounded ml-5" style={{backgroundColor: p.cor + '40'}}/>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 2: MATRIZ
+// ═══════════════════════════════════════════
+function MatrizView({ onOpenDrawer }) {
+  const [selectedCell, setSelectedCell] = useState(null);
+
+  function getCellHipoteses(dim) {
+    return [...new Set([...SUPOSICOES, ...DUVIDAS].filter(h => {
+      return h.dimensao === dim || h.dimensao === 'Transversal';
+    }).map(h => h.id))];
+  }
+
+  function getCellPerguntas(dim) {
+    const seen = new Set();
+    return PERGUNTAS.filter(q => q.dimensao === dim && q.scoring === 'Scored').filter(q => {
+      const key = q.id + (q.cluster || '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).map(q => q.id + (q.cluster ? ` (${q.cluster})` : ''));
+  }
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Matriz de Letramento em IA</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">Clique em uma célula para ver detalhes, perguntas associadas e hipóteses CSD.</p>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Níveis:</span>
+          {LEVEL_KEYS.map((k,i) => (
+            <span key={k} className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded" style={{backgroundColor:LEVEL_COLORS[k]}}/>
+              {LEVELS[i]}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[700px]">
+          {/* Header row */}
+          <div className="grid grid-cols-5 gap-2 mb-2">
+            <div/>
+            {LEVEL_KEYS.map((k,i) => (
+              <div key={k} className="text-center text-xs font-bold py-2 rounded-lg text-white" style={{backgroundColor:LEVEL_COLORS[k]}}>
+                {LEVELS[i]} (N{i+1})
+              </div>
+            ))}
+          </div>
+          {/* Rows */}
+          {DIMENSIONS.map(dim => (
+            <div key={dim} className="grid grid-cols-5 gap-2 mb-2">
+              <div
+                className="flex items-center px-3 py-3 rounded-lg text-white text-sm font-bold"
+                style={{backgroundColor:DIM_COLORS[dim]}}
+              >
+                {dim}
+              </div>
+              {LEVEL_KEYS.map((lk,li) => {
+                const isSelected = selectedCell && selectedCell.dim === dim && selectedCell.level === lk;
+                return (
+                  <button
+                    key={lk}
+                    onClick={() => setSelectedCell(isSelected ? null : {dim, level:lk, levelIdx:li})}
+                    className={`text-left p-3 rounded-lg text-xs transition-all border-2 ${
+                      isSelected
+                        ? 'shadow-lg scale-[1.02]'
+                        : 'shadow-sm hover:shadow-md'
+                    } bg-white dark:bg-gray-800`}
+                    style={{
+                      borderColor: isSelected ? DIM_COLORS[dim] : 'transparent'
+                    }}
+                  >
+                    <span className="text-gray-700 dark:text-gray-300">{MATRIX[dim][lk]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Detail Panel */}
+      {selectedCell && (
+        <div className="fade-in bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border-2" style={{borderColor:DIM_COLORS[selectedCell.dim]}}>
+          <div className="flex items-center gap-3 mb-4">
+            <Badge text={selectedCell.dim} color={DIM_COLORS[selectedCell.dim]}/>
+            <Badge text={LEVELS[selectedCell.levelIdx]} color={LEVEL_COLORS[selectedCell.level]}/>
+          </div>
+          <h3 className="font-bold mb-2">{MATRIX[selectedCell.dim][selectedCell.level]}</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <h4 className="text-sm font-semibold mb-2 text-gray-500">Perguntas que discriminam este nível</h4>
+              <div className="flex flex-wrap gap-1">
+                {getCellPerguntas(selectedCell.dim).map((qLabel,idx) => (
+                  <button key={idx} onClick={() => onOpenDrawer('pergunta', qLabel.split(' ')[0])} className="text-xs px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition">
+                    {qLabel}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-2 text-gray-500">Hipóteses CSD associadas</h4>
+              <div className="flex flex-wrap gap-1">
+                {getCellHipoteses(selectedCell.dim).map(hid => (
+                  <button key={hid} onClick={() => onOpenDrawer('hipotese', hid)} className="text-xs px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition">
+                    {hid}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 3: HIPÓTESES CSD
+// ═══════════════════════════════════════════
+function HipotesesView({ onOpenDrawer }) {
+  const [subTab, setSubTab] = useState('S');
+  const [filterDim, setFilterDim] = useState('Todas');
+  const [filterCluster, setFilterCluster] = useState('Todos');
+  const [filterPrio, setFilterPrio] = useState('Todas');
+  const [expanded, setExpanded] = useState(null);
+
+  const items = subTab === 'C' ? CERTEZAS : subTab === 'S' ? SUPOSICOES : DUVIDAS;
+
+  const filtered = useMemo(() => {
+    return items.filter(h => {
+      if (filterDim !== 'Todas' && h.dimensao !== filterDim) return false;
+      if (subTab === 'S' && filterCluster !== 'Todos' && h.cluster !== filterCluster) return false;
+      if (subTab !== 'C' && filterPrio !== 'Todas' && h.prioridade !== filterPrio) return false;
+      return true;
+    });
+  }, [items, filterDim, filterCluster, filterPrio, subTab]);
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Hipóteses CSD</h2>
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800">
+        <h3 className="font-bold text-sm mb-2">O que é a Matriz CSD?</h3>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          A Matriz CSD (Certezas, Suposições, Dúvidas) é a ferramenta que usamos para organizar <strong>o que sabemos, o que achamos que sabemos, e o que não sabemos</strong> sobre a maturidade em IA da Swift — antes de aplicar a pesquisa.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-green-600 mb-1">Certezas (CT1-CT6)</div>
+            <div className="text-gray-600 dark:text-gray-400">Fatos que já sabemos (perfil demográfico, stack, etc). Não precisam de validação — definem como interpretamos os resultados.</div>
+          </div>
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-orange-600 mb-1">Suposições (S1-S17)</div>
+            <div className="text-gray-600 dark:text-gray-400">Hipóteses que <strong>achamos</strong> que são verdade mas precisamos validar. Se confirmadas ou refutadas, <strong>mudam decisões concretas</strong> sobre o programa de capacitação.</div>
+          </div>
+          <div className="bg-white/70 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="font-bold text-blue-600 mb-1">Dúvidas (DV1-DV8)</div>
+            <div className="text-gray-600 dark:text-gray-400">Questões exploratórias — não temos nem hipótese. O valor é gerar <strong>insights novos</strong> que nenhuma suposição captura.</div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Cada suposição e dúvida está mapeada a perguntas específicas da pesquisa e a dimensões da Matriz de Letramento. Clique em qualquer card abaixo para ver os detalhes.</p>
+      </div>
+
+      {/* Sub tabs */}
+      <div className="flex gap-2">
+        <button onClick={() => {setSubTab('C');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='C'?'bg-green-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Certezas ({CERTEZAS.length})
+        </button>
+        <button onClick={() => {setSubTab('S');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='S'?'bg-purple-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Suposições ({SUPOSICOES.length})
+        </button>
+        <button onClick={() => {setSubTab('D');setExpanded(null);}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${subTab==='D'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Dúvidas ({DUVIDAS.length})
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <select value={filterDim} onChange={e=>setFilterDim(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas dimensões</option>
+          {[...new Set(items.map(h=>h.dimensao))].map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+        {subTab === 'S' && (
+          <select value={filterCluster} onChange={e=>setFilterCluster(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+            <option value="Todos">Todos clusters</option>
+            <option value="Execucao">Execucao</option>
+            <option value="Gestao">Gestao</option>
+            <option value="Transversal">Transversal</option>
+          </select>
+        )}
+        {subTab !== 'C' && (
+          <select value={filterPrio} onChange={e=>setFilterPrio(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+            <option value="Todas">Todas prioridades</option>
+            <option value="Critica">Crítica</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Média</option>
+          </select>
+        )}
+      </div>
+
+      {/* Cards */}
+      <div className="space-y-3">
+        {filtered.map(h => {
+          const isExp = expanded === h.id;
+          return (
+            <div key={h.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-md">
+              <button onClick={() => setExpanded(isExp ? null : h.id)} className="w-full text-left p-4 flex items-start gap-3">
+                <span className="text-sm font-mono font-bold text-gray-400 dark:text-gray-500 shrink-0 mt-0.5">{h.id}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm mb-2">{h.titulo}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {h.prioridade && <Badge text={h.prioridade} color={PRIO_COLORS[h.prioridade]} small/>}
+                    <Badge text={h.dimensao} color={DIM_COLORS[h.dimensao] || '#6B7280'} small/>
+                    {h.cluster && <Badge text={h.cluster} color={CLUSTER_COLORS[h.cluster]} small/>}
+                    {h.transicao && <Badge text={h.transicao} color="#6B7280" small/>}
+                    {h.fonte && <Badge text={h.fonte} color="#6B7280" small/>}
+                  </div>
+                </div>
+                <svg className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${isExp?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              {isExp && (
+                <div className="px-4 pb-4 pt-0 border-t border-gray-100 dark:border-gray-700 fade-in">
+                  <div className="mt-3 space-y-4">
+                    {h.desc && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 mb-1.5">O que estamos testando</h4>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{h.desc}</p>
+                      </div>
+                    )}
+                    {h.importa && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                        <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Por que é relevante</h4>
+                        <p className="text-sm text-amber-800 dark:text-amber-300">{h.importa}</p>
+                      </div>
+                    )}
+                    {h.desbloqueia && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                        <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">O que desbloqueia</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-300">{h.desbloqueia}</p>
+                      </div>
+                    )}
+                    {(h.confirmada || h.refutada) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {h.confirmada && (
+                          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                            <h4 className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Se confirmada</h4>
+                            <p className="text-xs text-green-800 dark:text-green-300">{h.confirmada}</p>
+                          </div>
+                        )}
+                        {h.refutada && (
+                          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                            <h4 className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Se refutada</h4>
+                            <p className="text-xs text-red-800 dark:text-red-300">{h.refutada}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {h.validacao && h.validacao.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 mb-2">Perguntas que validam</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {h.validacao.map(qid => (
+                            <button key={qid} onClick={(e) => {e.stopPropagation(); onOpenDrawer('pergunta', qid);}} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 font-medium transition">
+                              {qid}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="text-center text-gray-400 py-8 text-sm">Nenhum item encontrado com os filtros selecionados.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 4: PERGUNTAS
+// ═══════════════════════════════════════════
+function PerguntasView({ onOpenDrawer }) {
+  const [perfilTab, setPerfilTab] = useState('execucao');
+  const [filterFase, setFilterFase] = useState('Todas');
+  const [filterDim, setFilterDim] = useState('Todas');
+  const [expanded, setExpanded] = useState(null);
+  const [collapsedFases, setCollapsedFases] = useState({});
+
+  const fases = Object.keys(FASE_META);
+  const dims = [...new Set(PERGUNTAS.map(q=>q.dimensao))];
+
+  const filtered = useMemo(() => {
+    return PERGUNTAS.filter(q => {
+      if (perfilTab === 'execucao' && q.cluster === 'Gestao') return false;
+      if (perfilTab === 'gestao' && q.cluster === 'Execucao') return false;
+      if (filterFase !== 'Todas' && q.fase !== filterFase) return false;
+      if (filterDim !== 'Todas' && q.dimensao !== filterDim) return false;
+      return true;
+    });
+  }, [perfilTab, filterFase, filterDim]);
+
+  const grouped = useMemo(() => {
+    const groups = {};
+    FASE_ORDER.forEach(f => { groups[f] = []; });
+    filtered.forEach(q => {
+      if (groups[q.fase]) groups[q.fase].push(q);
+    });
+    return groups;
+  }, [filtered]);
+
+  const showingAllFases = filterFase === 'Todas';
+
+  function toggleFase(fase) {
+    setCollapsedFases(prev => ({...prev, [fase]: !prev[fase]}));
+  }
+
+  function getFaseBadgeColor(fase) {
+    return FASE_META[fase]?.cor || '#6B7280';
+  }
+
+  function getScoringColor(s) {
+    if(s==='Scored') return '#10B981';
+    return '#94A3B8';
+  }
+
+  function renderOpcoes(q) {
+    const dimColor = DIM_COLORS[q.dimensao] || '#6B7280';
+    if (q.opcoes === null) {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Formato de resposta</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300 italic">Resposta aberta (campo de texto)</div>
+        </div>
+      );
+    }
+
+    if (q.tipo === 'Likert' && q.scoring === 'Scored') {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Escala progressiva (1→5 = 1.0→4.0)</div>
+          <div className="space-y-1.5">
+            {q.opcoes.map((op, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <span className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white shrink-0" style={{backgroundColor: dimColor}}>
+                  {i+1}
+                </span>
+                <span className="text-gray-700 dark:text-gray-300 flex-1">{op}</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 shrink-0">
+                  = {PROGRESSIVE_SCALE[i].s.toFixed(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Opções de resposta</div>
+        <div className="space-y-1">
+          {q.opcoes.map((op, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <span className="w-3 h-3 rounded-full border-2 border-gray-300 dark:border-gray-500 shrink-0"></span>
+              <span className="text-gray-700 dark:text-gray-300">{op}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderQuestion(q) {
+    const qKey = q.id + (q.cluster || '');
+    const isExp = expanded === qKey;
+    const dimColor = DIM_COLORS[q.dimensao] || '#6B7280';
+    const isCluster = !!q.cluster;
+    return (
+      <div key={qKey} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all ${isCluster ? 'border-2' : 'border border-gray-100 dark:border-gray-700'}`}
+        style={isCluster ? {borderColor: CLUSTER_COLORS[q.cluster] + '60'} : {}}>
+        <button onClick={() => setExpanded(isExp ? null : qKey)} className="w-full text-left p-3 flex items-start gap-3">
+          <div className="shrink-0 flex flex-col items-center gap-1">
+            <span className="inline-flex items-center justify-center rounded-lg font-bold text-white text-[10px] px-2 py-1 leading-tight" style={{backgroundColor: dimColor}}>
+              {q.dimensao}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-base font-mono font-extrabold" style={{color: dimColor}}>{q.id}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{q.texto}</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {!showingAllFases && <Badge text={`Fase ${q.fase}`} color={getFaseBadgeColor(q.fase)} small/>}
+              <Badge text={q.tipo} color="#6B7280" small/>
+              <Badge text={q.scoring} color={getScoringColor(q.scoring)} small/>
+              {isCluster && <Badge text={`Cluster: ${q.cluster}`} color={CLUSTER_COLORS[q.cluster]} small/>}
+            </div>
+          </div>
+          <svg className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${isExp?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        {isExp && (
+          <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 fade-in">
+            <div className="mt-3 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-400 mb-1">Texto completo da pergunta</div>
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-relaxed">{q.textoCompleto || q.texto}</div>
+              </div>
+
+              {q.importa && (
+                <div className="rounded-lg p-3 border" style={{backgroundColor: dimColor + '10', borderColor: dimColor + '40'}}>
+                  <h4 className="text-xs font-semibold mb-1" style={{color: dimColor}}>Por que esta pergunta é importante</h4>
+                  <p className="text-sm" style={{color: dimColor + 'DD'}}>{q.importa}</p>
+                </div>
+              )}
+
+              {renderOpcoes(q)}
+
+              <div className="flex flex-wrap gap-2">
+                <Badge text={q.dimensao} color={dimColor}/>
+                <Badge text={q.tipo} color="#6B7280"/>
+                <Badge text={q.scoring} color={getScoringColor(q.scoring)}/>
+                {q.cluster && <Badge text={`Cluster: ${q.cluster}`} color={CLUSTER_COLORS[q.cluster]}/>}
+              </div>
+
+              {q.hipoteses.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Hipóteses CSD que valida</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {q.hipoteses.map(hid => {
+                      const hip = [...SUPOSICOES, ...DUVIDAS].find(h => h.id === hid);
+                      return (
+                        <button key={hid} onClick={e=>{e.stopPropagation();onOpenDrawer('hipotese',hid)}} className="text-xs px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition font-medium text-left">
+                          <span className="font-bold">{hid}</span>
+                          {hip && <span className="ml-1 text-purple-400 dark:text-purple-500">{hip.titulo}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const execCount = PERGUNTAS.filter(q => q.cluster !== 'Gestao').length;
+  const gestaoCount = PERGUNTAS.filter(q => q.cluster !== 'Execucao').length;
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Perguntas V5</h2>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => {setPerfilTab('execucao');setFilterFase('Todas');}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${perfilTab==='execucao'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Execução ({execCount} perguntas)
+        </button>
+        <button onClick={() => {setPerfilTab('gestao');setFilterFase('Todas');}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${perfilTab==='gestao'?'bg-purple-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+          Gestão ({gestaoCount} perguntas)
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <select value={filterFase} onChange={e=>setFilterFase(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas as fases</option>
+          {fases.map(f=><option key={f} value={f}>{FASE_META[f].nome}</option>)}
+        </select>
+        <select value={filterDim} onChange={e=>setFilterDim(e.target.value)} className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <option value="Todas">Todas dimensões</option>
+          {dims.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+
+      <div className="text-xs text-gray-500">{filtered.length} perguntas encontradas</div>
+
+      {showingAllFases ? (
+        <div className="space-y-6">
+          {FASE_ORDER.map(fase => {
+            const meta = FASE_META[fase];
+            const qs = grouped[fase];
+            if (!qs || qs.length === 0) return null;
+            const isCollapsed = collapsedFases[fase];
+            return (
+              <div key={fase}>
+                <button
+                  onClick={() => toggleFase(fase)}
+                  className="w-full text-left mb-3 group"
+                >
+                  <div className="flex items-center gap-3 p-3 rounded-xl transition-all hover:shadow-md" style={{backgroundColor: meta.cor + '12', border: `2px solid ${meta.cor}40`}}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0" style={{backgroundColor: meta.cor}}>
+                      {meta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm" style={{color: meta.cor}}>{meta.nome}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{meta.desc}</div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{backgroundColor: meta.cor + '20', color: meta.cor}}>
+                        {qs.length} {qs.length === 1 ? 'pergunta' : 'perguntas'}
+                      </span>
+                      <svg className={`w-5 h-5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} style={{color: meta.cor}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                  </div>
+                </button>
+                {!isCollapsed && (
+                  <div className="space-y-2 ml-2 pl-4" style={{borderLeft: `3px solid ${meta.cor}30`}}>
+                    {qs.map(q => renderQuestion(q))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(q => renderQuestion(q))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 5: SCORING
+// ═══════════════════════════════════════════
+function ScoringView() {
+  const [scoreTab, setScoreTab] = useState('como');
+  const [simDim, setSimDim] = useState('Utilizacao');
+  const [simAnswers, setSimAnswers] = useState({});
+
+  const scoreTabs = [
+    { id:'como', label:'Como funciona' },
+    { id:'conversao', label:'Conversão' },
+    { id:'composicao', label:'Composição' },
+    { id:'simulador', label:'Simulador' },
+  ];
+
+  const simQuestions = useMemo(() => {
+    const ids = SCORE_MAP[simDim] || [];
+    return ids.map(id => {
+      return PERGUNTAS.find(q => q.id === id && q.scoring === 'Scored' && (!q.cluster || q.cluster === 'Execucao')) || PERGUNTAS.find(q => q.id === id && q.scoring === 'Scored');
+    }).filter(Boolean);
+  }, [simDim]);
+
+  const simResult = useMemo(() => {
+    const scores = [];
+    simQuestions.forEach(q => {
+      const ans = simAnswers[q.id];
+      if (ans === undefined || ans === '') return;
+      const found = PROGRESSIVE_SCALE.find(c => c.r === ans);
+      if (found) scores.push(found.s);
+    });
+    if (scores.length === 0) return null;
+    const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+    return { avg: avg.toFixed(2), nivel: getNivel(avg), count: scores.length, total: simQuestions.length };
+  }, [simAnswers, simQuestions]);
+
+  function resetSim() {
+    setSimAnswers({});
+  }
+
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Sistema de Scoring</h2>
+
+      <div className="flex gap-2 flex-wrap">
+        {scoreTabs.map(t => (
+          <button key={t.id} onClick={() => setScoreTab(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${scoreTab===t.id ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB: Como funciona */}
+      {scoreTab === 'como' && (
+        <div className="space-y-6 fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 className="font-semibold mb-4">Fluxo de cálculo</h3>
+            <div className="flex flex-col md:flex-row items-stretch gap-0">
+              {[
+                { icon:'1', title:'Resposta bruta', desc:'Likert 1-5', cor:'#3B82F6' },
+                { icon:'2', title:'Conversão progressiva', desc:'1=1.0, 2=1.5, 3=2.5, 4=3.5, 5=4.0', cor:'#8B5CF6' },
+                { icon:'3', title:'Score dimensão', desc:'Média dos 4 itens', cor:'#10B981' },
+                { icon:'4', title:'Nível Matriz', desc:'Faixas de corte', cor:'#F59E0B' },
+                { icon:'5', title:'Score geral', desc:'Média das 5 dimensões', cor:'#EC4899' },
+              ].map((step, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <div className="hidden md:flex items-center px-1"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 4l6 6-6 6" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round"/></svg></div>}
+                  {i > 0 && <div className="md:hidden flex justify-center py-1"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round"/></svg></div>}
+                  <div className="flex-1 rounded-xl p-3 text-center" style={{backgroundColor: step.cor + '10', border: `2px solid ${step.cor}30`}}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm mx-auto mb-1" style={{backgroundColor: step.cor}}>{step.icon}</div>
+                    <div className="font-bold text-xs" style={{color: step.cor}}>{step.title}</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{step.desc}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800">
+            <h4 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">Escala Unificada (V5)</h4>
+            <p className="text-sm text-emerald-800 dark:text-emerald-300 mb-3">Na V5, todas as 20 perguntas scored usam a mesma escala progressiva. Não há mais cenários comportamentais ou escalas invertidas. Cada dimensão tem exatamente 4 itens (3 shared + 1 cluster-specific).</p>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400">Benefício: scoring transparente, comparável entre dimensões, fácil de explicar ao Comitê de IA.</div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 className="font-semibold mb-4">Faixas de Corte</h3>
+            <div className="flex rounded-lg overflow-hidden h-14 mb-4">
+              {FAIXAS.map((f,i) => {
+                const width = ((f.max - f.min) / 3.0 * 100);
+                return (
+                  <div key={i} className="flex items-center justify-center text-white text-xs font-bold" style={{backgroundColor:f.cor, width:`${width}%`, minWidth:'70px'}}>
+                    <div className="text-center">
+                      <div>{f.nivel}</div>
+                      <div className="text-[10px] opacity-80">{f.min.toFixed(1)} — {f.max.toFixed(1)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[0].cor}}>Nível 1</span> — estreito (0.49) porque é estado bem definido</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[1].cor}}>Nível 2</span> — amplo (1.0) porque é onde a maioria estará no baseline</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[2].cor}}>Nível 3</span> — amplo (1.0) para capturar a faixa-alvo de evolução</div>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"><span className="font-bold" style={{color:FAIXAS[3].cor}}>Nível 4</span> — estreito (0.5) porque exige consistência alta em todos os itens</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Conversão */}
+      {scoreTab === 'conversao' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Na V5, todas as 20 perguntas scored usam a mesma tabela de conversão progressiva.</p>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h4 className="font-semibold text-sm mb-3">Escala Progressiva Unificada (20 itens)</h4>
+            <table className="w-full text-center text-sm">
+              <thead>
+                <tr>
+                  <th className="py-2 text-gray-500 font-bold">Resposta (Likert)</th>
+                  {PROGRESSIVE_SCALE.map(d => <th key={d.r} className="py-2 text-gray-500 font-bold">{d.r}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="py-2 text-gray-500 font-bold">Score</td>
+                  {PROGRESSIVE_SCALE.map(d => (
+                    <td key={d.r+'s'} className="py-2">
+                      <span className="inline-block px-3 py-1 rounded font-bold bg-gray-100 dark:bg-gray-700 text-lg">
+                        {d.s.toFixed(1)}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-2 text-gray-500 font-bold text-xs">Nível</td>
+                  {PROGRESSIVE_SCALE.map(d => (
+                    <td key={d.r+'n'} className="py-2">
+                      <Badge text={getNivel(d.s).nivel} color={getNivel(d.s).cor} small/>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
+            <strong>Por que não é linear?</strong> A Matriz tem 4 níveis, a escala tem 5 pontos. O ponto 3 ("neutro/intermediário") mapeia para 2.5 (início do nível Intermediário). O salto de 1.0 para 1.5 é rápido porque sair de "não sei nada" para "algo básico" é uma transição pequena.
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Composição */}
+      {scoreTab === 'composicao' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Cada dimensão é calculada como a média simples dos seus 4 itens (3 shared + 1 cluster-specific). Não há ponderação entre itens.</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left p-3 font-semibold">Dimensão</th>
+                  <th className="text-left p-3 font-semibold">Shared (3)</th>
+                  <th className="text-left p-3 font-semibold">Cluster (1)</th>
+                  <th className="text-center p-3 font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DIMENSIONS.map(dim => {
+                  const ids = SCORE_MAP[dim];
+                  const shared = ids.filter(id => !CLUSTER_QUESTIONS.includes(id));
+                  const cluster = ids.filter(id => CLUSTER_QUESTIONS.includes(id));
+                  return (
+                    <tr key={dim} className="border-b border-gray-100 dark:border-gray-700/50">
+                      <td className="p-3"><Badge text={dim} color={DIM_COLORS[dim]}/></td>
+                      <td className="p-3 text-xs font-mono">{shared.join(', ')}</td>
+                      <td className="p-3 text-xs font-mono">{cluster.join(', ')} <Badge text="Exec/Gestão" color="#8B5CF6" small/></td>
+                      <td className="p-3 text-center text-xs font-bold">4</td>
+                    </tr>
+                  );
+                })}
+                <tr className="font-bold bg-gray-50 dark:bg-gray-700/30">
+                  <td className="p-3">Total</td>
+                  <td className="p-3">16 shared</td>
+                  <td className="p-3">4 cluster-specific</td>
+                  <td className="p-3 text-center">20</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="font-semibold">Detalhamento por dimensão</h3>
+          <div className="space-y-3">
+            {DIMENSIONS.map(dim => {
+              const ids = SCORE_MAP[dim];
+              const questions = ids.map(id => {
+                const shared = PERGUNTAS.find(q => q.id === id && !q.cluster && q.scoring === 'Scored');
+                if (shared) return { ...shared, isCluster: false };
+                const exec = PERGUNTAS.find(q => q.id === id && q.cluster === 'Execucao');
+                if (exec) return { ...exec, isCluster: true };
+                return null;
+              }).filter(Boolean);
+              return (
+                <div key={dim} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4" style={{borderLeftColor: DIM_COLORS[dim]}}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge text={dim} color={DIM_COLORS[dim]}/>
+                    <span className="text-xs text-gray-500">4 itens (3 shared + 1 cluster)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {questions.map(q => (
+                      <div key={q.id + (q.cluster || '')} className={`text-xs rounded-lg p-2 flex items-start gap-2 ${q.isCluster ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                        <span className={`font-mono font-bold shrink-0 ${q.isCluster ? 'text-purple-500' : 'text-gray-400'}`}>{q.id}</span>
+                        <div>
+                          <span className={q.isCluster ? 'text-purple-800 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}>{q.texto}</span>
+                          {q.isCluster && <div className="mt-1"><Badge text="Cluster" color="#8B5CF6" small/></div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Simulador */}
+      {scoreTab === 'simulador' && (
+        <div className="space-y-6 fade-in">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Selecione respostas e veja o score atualizar em tempo real. Escolha uma dimensão para simular.</p>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <label className="text-sm font-medium">Dimensão:</label>
+              <div className="flex gap-2 flex-wrap">
+                {DIMENSIONS.map(d => (
+                  <button key={d} onClick={() => {setSimDim(d);resetSim();}}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${simDim===d ? 'text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
+                    style={simDim===d ? {backgroundColor: DIM_COLORS[d]} : {}}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <button onClick={resetSim} className="text-xs text-blue-600 hover:underline ml-auto">Resetar</button>
+            </div>
+
+            {simResult && (
+              <div className="mb-5 p-4 rounded-lg text-center" style={{backgroundColor:simResult.nivel.cor+'20', border:`2px solid ${simResult.nivel.cor}`}}>
+                <div className="text-3xl font-extrabold" style={{color:simResult.nivel.cor}}>{simResult.avg}</div>
+                <div className="text-sm font-bold mt-1" style={{color:simResult.nivel.cor}}>{simResult.nivel.nivel}</div>
+                <div className="text-xs text-gray-500 mt-1">{simResult.count} de {simResult.total} perguntas respondidas</div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {simQuestions.map(q => (
+                <div key={q.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700/50">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs font-mono font-bold text-gray-400 shrink-0">{q.id}</span>
+                    <span className="text-sm truncate">{q.texto}</span>
+                    {q.cluster && <Badge text="Cluster" color="#8B5CF6" small/>}
+                  </div>
+                  <div className="shrink-0 flex gap-1">
+                    {[1,2,3,4,5].map(o => (
+                      <button
+                        key={o}
+                        onClick={() => setSimAnswers(prev => ({...prev, [q.id]:o}))}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition ${simAnswers[q.id]===o ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                      >
+                        {o}
+                      </button>
+                    ))}
+                  </div>
+                  {simAnswers[q.id] !== undefined && (
+                    <div className="text-xs text-gray-500 shrink-0 w-16 text-right font-mono">
+                      = {PROGRESSIVE_SCALE.find(c=>c.r===simAnswers[q.id])?.s.toFixed(1) || '?'}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 6: CLUSTERS
+// ═══════════════════════════════════════════
+function ClustersView({ onOpenDrawer }) {
+  return (
+    <div className="fade-in space-y-6">
+      <h2 className="text-lg font-bold">Estrutura de Clusters</h2>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        <h3 className="font-semibold mb-4">Tronco Comum + Split por Cluster</h3>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-full max-w-lg rounded-xl p-4 text-center" style={{backgroundColor:'#3B82F620', border:'2px solid #3B82F640'}}>
+            <div className="font-bold text-blue-600 mb-1">Tronco Comum</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">16 perguntas shared respondidas por TODOS</div>
+            <div className="text-xs text-gray-400 mt-1">U1, U2, U3, U5, D1, D3, D4, G1, G3, I1, I3, I4, C1, C2, C3, C4</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 14l6 6 6-6" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/></svg>
+          <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
+            <div className="rounded-xl p-4 text-center" style={{backgroundColor:'#3B82F620', border:'2px solid #3B82F6'}}>
+              <div className="font-bold text-blue-600 mb-1">Cluster Execução</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Assistentes, Analistas, Especialistas, Coordenadores</div>
+              <div className="text-xs font-mono text-blue-500">U4, D2, G2, I2</div>
+              <div className="text-[10px] text-gray-400 mt-1">4 perguntas específicas</div>
+            </div>
+            <div className="rounded-xl p-4 text-center" style={{backgroundColor:'#8B5CF620', border:'2px solid #8B5CF6'}}>
+              <div className="font-bold text-purple-600 mb-1">Cluster Gestão</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Gerentes, Diretores</div>
+              <div className="text-xs font-mono text-purple-500">U4, D2, G2, G4, G5, I2, I5</div>
+              <div className="text-[10px] text-gray-400 mt-1">7 perguntas específicas</div>
+            </div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 14l6 6 6-6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg>
+          <div className="w-full max-w-lg rounded-xl p-4 text-center" style={{backgroundColor:'#10B98120', border:'2px solid #10B98140'}}>
+            <div className="font-bold text-emerald-600 dark:text-emerald-400 mb-1">Score de Maturidade</div>
+            <div className="text-xs text-gray-500">20 perguntas → 5 scores dimensionais → score geral</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 className="font-semibold">Comparação das perguntas cluster-specific</h3>
+      <div className="space-y-4">
+        {CLUSTER_QUESTIONS.map(qId => {
+          const execQ = PERGUNTAS.find(q => q.id === qId && q.cluster === 'Execucao');
+          const gestaoQ = PERGUNTAS.find(q => q.id === qId && q.cluster === 'Gestao');
+          if (!execQ && !gestaoQ) return null;
+          const refQ = execQ || gestaoQ;
+          const dimColor = DIM_COLORS[refQ.dimensao] || '#6B7280';
+          return (
+            <div key={qId} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 overflow-hidden" style={{borderLeftColor: dimColor}}>
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg font-mono font-extrabold" style={{color: dimColor}}>{qId}</span>
+                  <Badge text={refQ.dimensao} color={dimColor}/>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {execQ && (
+                    <div className="rounded-lg p-3 border-2" style={{borderColor:'#3B82F660', backgroundColor:'#3B82F608'}}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge text="Execução" color="#3B82F6"/>
+                      </div>
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{execQ.textoCompleto}</div>
+                      <div className="space-y-1">
+                        {execQ.opcoes.map((op,i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#3B82F6', fontSize:'9px'}}>{i+1}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{op}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {gestaoQ && (
+                    <div className="rounded-lg p-3 border-2" style={{borderColor:'#8B5CF660', backgroundColor:'#8B5CF608'}}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge text="Gestão" color="#8B5CF6"/>
+                      </div>
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{gestaoQ.textoCompleto}</div>
+                      <div className="space-y-1">
+                        {gestaoQ.opcoes.map((op,i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#8B5CF6', fontSize:'9px'}}>{i+1}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{op}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!execQ && (
+                    <div className="rounded-lg p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">Apenas Gestão</span>
+                    </div>
+                  )}
+                  {!gestaoQ && (
+                    <div className="rounded-lg p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">Apenas Execução</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 border border-pink-200 dark:border-pink-800">
+        <h4 className="font-bold text-pink-700 dark:text-pink-400 mb-1">Cultura: 100% Shared</h4>
+        <p className="text-sm text-pink-800 dark:text-pink-300">Na V5, todas as 4 perguntas de Cultura (C1-C4) são compartilhadas entre clusters. A dimensão Cultura mede comportamento organizacional que não varia por nível hierárquico — multiplicadores podem estar em qualquer nível.</p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// DRAWER CONTENT
+// ═══════════════════════════════════════════
+function DrawerContent({ type, id, onNavigate, onOpenDrawer }) {
+  if (type === 'pergunta') {
+    const q = PERGUNTAS.find(p => p.id === id);
+    if (!q) return <div>Pergunta não encontrada.</div>;
+    const conv = getConversion(q);
+    return (
+      <div className="space-y-4">
+        <Badge text={q.dimensao} color={DIM_COLORS[q.dimensao] || '#6B7280'}/>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-1">Texto</div>
+          <div className="text-sm">{q.textoCompleto || q.texto}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Fase</div>
+            <Badge text={`Fase ${q.fase}`} color="#6B7280"/>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Tipo</div>
+            <Badge text={q.tipo} color="#6B7280"/>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Scoring</div>
+            <Badge text={q.scoring} color={q.scoring==='Scored'?'#10B981':'#94A3B8'}/>
+          </div>
+          {q.cluster && (
+            <div>
+              <div className="text-xs font-semibold text-gray-500 mb-1">Cluster</div>
+              <Badge text={q.cluster} color={CLUSTER_COLORS[q.cluster]}/>
+            </div>
+          )}
+        </div>
+        {conv && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Tabela de conversão</div>
+            <div className="flex gap-2 text-xs">
+              {conv.map(c => (
+                <div key={c.r} className="text-center bg-gray-50 dark:bg-gray-700 rounded p-1.5 flex-1">
+                  <div className="text-gray-400">{c.r}</div>
+                  <div className="font-bold">{c.s.toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {q.hipoteses.length > 0 && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Hipóteses CSD</div>
+            <div className="flex flex-wrap gap-1">
+              {q.hipoteses.map(hid => (
+                <button key={hid} onClick={()=>onOpenDrawer('hipotese',hid)} className="text-xs px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition font-medium">
+                  {hid}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (type === 'hipotese') {
+    const all = [...SUPOSICOES, ...DUVIDAS, ...CERTEZAS];
+    const h = all.find(x => x.id === id);
+    if (!h) return <div>Hipótese não encontrada.</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-1.5">
+          {h.prioridade && <Badge text={h.prioridade} color={PRIO_COLORS[h.prioridade]}/>}
+          <Badge text={h.dimensao} color={DIM_COLORS[h.dimensao] || '#6B7280'}/>
+          {h.cluster && <Badge text={h.cluster} color={CLUSTER_COLORS[h.cluster]}/>}
+          {h.transicao && <Badge text={h.transicao} color="#6B7280"/>}
+          {h.fonte && <Badge text={h.fonte} color="#6B7280"/>}
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-1">Título</div>
+          <div className="text-sm font-medium">{h.titulo}</div>
+        </div>
+        {h.desc && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Descrição</div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">{h.desc}</div>
+          </div>
+        )}
+        {h.importa && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+            <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Por que é relevante</h4>
+            <p className="text-xs text-amber-800 dark:text-amber-300">{h.importa}</p>
+          </div>
+        )}
+        {h.desbloqueia && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">O que desbloqueia</h4>
+            <p className="text-xs text-blue-800 dark:text-blue-300">{h.desbloqueia}</p>
+          </div>
+        )}
+        {h.validacao && h.validacao.length > 0 && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">Perguntas que validam</div>
+            <div className="flex flex-wrap gap-1.5">
+              {h.validacao.map(qid => (
+                <button key={qid} onClick={()=>onOpenDrawer('pergunta',qid)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition font-medium">
+                  {qid}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════
+function App() {
+  const [dark, setDark] = useState(false);
+  const [tab, setTab] = useState('Visão Geral');
+  const [drawer, setDrawer] = useState(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  const openDrawer = useCallback((type, id) => {
+    setDrawer({ type, id });
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawer(null);
+  }, []);
+
+  function renderView() {
+    switch(tab) {
+      case 'Visão Geral': return <VisaoGeral onNavigate={setTab}/>;
+      case 'Matriz': return <MatrizView onOpenDrawer={openDrawer}/>;
+      case 'Hipóteses': return <HipotesesView onOpenDrawer={openDrawer}/>;
+      case 'Perguntas': return <PerguntasView onOpenDrawer={openDrawer}/>;
+      case 'Scoring': return <ScoringView/>;
+      case 'Clusters': return <ClustersView onOpenDrawer={openDrawer}/>;
+      default: return null;
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+      <Header dark={dark} toggleDark={() => setDark(!dark)}/>
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <TabNav active={tab} onChange={setTab}/>
+        <div className="mt-6 pb-12">
+          {renderView()}
+        </div>
+      </div>
+      <Drawer
+        open={!!drawer}
+        onClose={closeDrawer}
+        title={drawer ? `${drawer.id}` : ''}
+      >
+        {drawer && (
+          <DrawerContent
+            type={drawer.type}
+            id={drawer.id}
+            onNavigate={setTab}
+            onOpenDrawer={openDrawer}
+          />
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
