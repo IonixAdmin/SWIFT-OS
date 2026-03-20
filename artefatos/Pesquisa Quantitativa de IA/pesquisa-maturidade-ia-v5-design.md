@@ -148,8 +148,8 @@ A V5 aplica todas as mudancas definidas no plano de acao de revisao da V3:
 | ID | Pergunta | Obrigatoria |
 |----|----------|-------------|
 | A1 | Qual tarefa do seu trabalho voce mais gostaria de nunca mais ter que fazer manualmente? | Sim |
-| A2 | Se voce pudesse mudar UMA coisa na Swift amanha para facilitar o uso de IA, o que seria? | Nao |
-| A3 | Tem algo sobre IA no seu trabalho que ninguem perguntou mas voce gostaria de falar? | Nao |
+| A2 | Conta uma vez que voce tentou usar IA e nao deu certo — o que aconteceu? | Nao |
+| A3 | Compartilhe livremente: uma experiencia com IA (boa ou ruim), uma preocupacao, uma sugestao, ou qualquer coisa que gostaria de dizer. | Nao |
 
 ---
 

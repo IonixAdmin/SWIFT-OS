@@ -124,9 +124,10 @@ const SCORE_MAP = {
 const FASE_META = {
   '0':         { nome: 'Fase 0 — Identificação',             desc: '2 perguntas | CPF + Curso de IA',                          cor: '#94A3B8', icon: 'I' },
   '1':         { nome: 'Fase 1 — Maturidade (Tronco Comum)', desc: '16 perguntas | Compartilhadas por todos',                 cor: '#3B82F6', icon: 'T' },
-  '1-cluster': { nome: 'Fase 1C — Maturidade (Cluster)',     desc: 'Exec: 4 perguntas | Gestão: 7 perguntas',                 cor: '#8B5CF6', icon: 'C' }
+  '1-cluster': { nome: 'Fase 1C — Maturidade (Cluster)',     desc: 'Exec: 4 perguntas | Gestão: 7 perguntas',                 cor: '#8B5CF6', icon: 'C' },
+  '2':         { nome: 'Fase 2 — Perguntas Abertas',          desc: '3 perguntas | A1 obrigatória, A2-A3 opcionais',           cor: '#6366F1', icon: 'A' }
 };
-const FASE_ORDER = ['0','1','1-cluster'];
+const FASE_ORDER = ['0','1','1-cluster','2'];
 
 // ─── SUPOSIÇÕES ───
 const SUPOSICOES = [
@@ -421,6 +422,17 @@ const PERGUNTAS = [
     opcoes: ['Nenhum, não é meu tema','Observador — acompanho de longe','Participante — uso quando aparece oportunidade','Incentivador — recomendo e ajudo colegas','Multiplicador — atuo ativamente para disseminar o uso de IA na minha área'],
     hipoteses:['S11','S12'], importa:'Autoavaliação de papel na transformação. Identifica a curva de difusão de inovação dentro da Swift.' },
 
+  // ── Fase 2: Perguntas Abertas ──
+  { id:'A1', fase:'2', dimensao:'Impacto', tipo:'Aberta', scoring:'Nenhum', texto:'Tarefa que gostaria de automatizar',
+    textoCompleto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?',
+    opcoes: null, hipoteses:['DV2'], importa:'Alimenta backlog da esteira com oportunidades reais de automação identificadas pelos próprios colaboradores. Obrigatória.' },
+  { id:'A2', fase:'2', dimensao:'Utilizacao', tipo:'Aberta', scoring:'Nenhum', texto:'Experiência negativa com IA',
+    textoCompleto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?',
+    opcoes: null, hipoteses:['DV5','S13'], importa:'Identifica frustrações reais e barreiras práticas. Alimenta o design da capacitação com casos concretos de falha.' },
+  { id:'A3', fase:'2', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', texto:'Espaço livre sobre IA',
+    textoCompleto:'Compartilhe livremente: uma experiência com IA (boa ou ruim), uma preocupação, uma sugestão, ou qualquer coisa que gostaria de dizer.',
+    opcoes: null, hipoteses:[], importa:'Captura insights não estruturados, preocupações e sugestões que não foram cobertas pelas perguntas fechadas.' },
+
 ];
 
 // ─── HELPER: conversion for scoring ───
@@ -465,7 +477,7 @@ function Header({ dark, toggleDark }) {
   );
 }
 
-const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Clusters'];
+const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Clusters','Adoção'];
 
 function TabNav({ active, onChange }) {
   return (
@@ -1557,6 +1569,342 @@ function ClustersView({ onOpenDrawer }) {
 }
 
 // ═══════════════════════════════════════════
+// VIEW 7: ADOÇÃO (Curva de Rogers)
+// ═══════════════════════════════════════════
+
+const ROGERS_SEGMENTS = [
+  { id: 'innovators', nome: 'Inovadores', pctRef: 2.5, cor: '#8B5CF6',
+    desc: 'Aventureiros e experimentadores. Buscam tecnologia por conta própria, constroem prompts avançados, fazem cursos e ensinam colegas.',
+    perfil: 'Altamente proativos, tolerantes a risco, primeiros a testar qualquer ferramenta nova.',
+    criterios: 'U1=5 (uso essencial) + U3≥4 (prompt avançado) + Q2≥4 (curso formal) + C4="Multiplicador"',
+    perguntas: ['U1','U3','Q2','C3','C4'] },
+  { id: 'early_adopters', nome: 'Adotantes Iniciais', pctRef: 13.5, cor: '#3B82F6',
+    desc: 'Líderes de opinião. Usam IA regularmente, refinam resultados, incentivam pares e são referência na equipe.',
+    perfil: 'Respeitados pelos colegas, tomam decisões informadas, influenciam a adoção dos demais.',
+    criterios: 'U1≥4 (uso diário) + U2≥4 (avalia criticamente) + C1≥4 (compartilha em reunião/ajuda colega)',
+    perguntas: ['U1','U2','U3','C1','C2'] },
+  { id: 'early_majority', nome: 'Maioria Inicial', pctRef: 34, cor: '#10B981',
+    desc: 'Pragmáticos deliberados. Adotam quando veem evidência concreta de valor, mas precisam de tempo para decidir.',
+    perfil: 'Querem ter certeza antes de adotar. Seguem exemplos bem-sucedidos dos early adopters.',
+    criterios: 'U1=3 (uso semanal) + Score geral 2.5-3.5 + C2≥3 (participaria de capacitação)',
+    perguntas: ['U1','I4','C2','D1'] },
+  { id: 'late_majority', nome: 'Maioria Tardia', pctRef: 34, cor: '#F59E0B',
+    desc: 'Céticos cautelosos. Adotam por pressão social ou organizacional, não por convicção própria.',
+    perfil: 'Desconfiados, adotam só quando a maioria já usa. Precisam de suporte e evidências claras.',
+    criterios: 'U1=2 (experimentou mas não usa) + Score geral 1.5-2.5 + I4≤3',
+    perguntas: ['U1','U5','I4','G1'] },
+  { id: 'laggards', nome: 'Retardatários', pctRef: 16, cor: '#EF4444',
+    desc: 'Resistentes à mudança. Não veem valor na IA, preferem métodos tradicionais, adotam apenas quando obrigados.',
+    perfil: 'Orientados ao passado, desconfiados de inovação, último grupo a adotar — se adotarem.',
+    criterios: 'U1=1 (nunca usou) + I4≤2 (não vê relação) + C2≤2 (não participaria)',
+    perguntas: ['U1','I4','C2','U5'] }
+];
+
+// Simulated data for visualization (will be replaced with real data post-survey)
+const ROGERS_SIMULATED = {
+  innovators:      { pct: 5, n: 10, areas: ['TI','Dados','Marketing'], insight: 'Potenciais champions para a Germinare' },
+  early_adopters:  { pct: 15, n: 30, areas: ['TI','Comercial','Logística'], insight: 'Líderes de opinião — ativar como multiplicadores' },
+  early_majority:  { pct: 35, n: 69, areas: ['Todas'], insight: 'Maior grupo — precisam de evidência e trilha guiada' },
+  late_majority:   { pct: 30, n: 59, areas: ['Operações','Administrativo'], insight: 'Adotam se a liderança patrocinar e o processo for claro' },
+  laggards:        { pct: 15, n: 30, areas: ['Diversas'], insight: 'Não priorizar — focar energia nos 3 primeiros grupos' }
+};
+
+function AdocaoView() {
+  const [selectedSegment, setSelectedSegment] = useState(null);
+  const [showSimulated, setShowSimulated] = useState(true);
+
+  // Bell curve SVG points
+  const bellCurvePoints = (() => {
+    const width = 800;
+    const height = 280;
+    const points = [];
+    for (let x = 0; x <= width; x += 2) {
+      const t = (x / width) * 6 - 3;
+      const y = height - (Math.exp(-t * t / 2) / Math.sqrt(2 * Math.PI)) * height * 2.2 - 20;
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
+  })();
+
+  // Segment boundaries on the bell curve (cumulative percentages → x positions)
+  const segmentBounds = [
+    { start: 0, end: 2.5 },      // Innovators
+    { start: 2.5, end: 16 },     // Early Adopters
+    { start: 16, end: 50 },      // Early Majority
+    { start: 50, end: 84 },      // Late Majority
+    { start: 84, end: 100 }      // Laggards
+  ];
+
+  function pctToX(pct) { return (pct / 100) * 800; }
+
+  const totalN = Object.values(ROGERS_SIMULATED).reduce((a, s) => a + s.n, 0);
+
+  return (
+    <div className="fade-in space-y-8">
+      {/* Header */}
+      <section>
+        <h2 className="text-lg font-bold mb-2">Curva de Adoção de Rogers</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
+          Classificação dos colaboradores da Swift nos 5 segmentos da curva de difusão de inovação de Everett Rogers (1962).
+          Cada respondente é classificado com base na combinação de respostas sobre frequência de uso, profundidade, proatividade e engajamento com IA.
+        </p>
+      </section>
+
+      {/* Toggle simulated data */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowSimulated(!showSimulated)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            showSimulated
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+          }`}
+        >
+          {showSimulated ? '📊 Dados simulados ativos' : '📊 Mostrar dados simulados'}
+        </button>
+        <span className="text-xs text-gray-400">Simulação com base em ~198 colaboradores. Dados reais serão inseridos após a coleta.</span>
+      </div>
+
+      {/* Bell Curve Visualization */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 overflow-x-auto">
+        <h3 className="font-bold text-sm mb-4">Distribuição na Curva de Adoção</h3>
+        <div className="min-w-[800px]">
+          <svg viewBox="0 0 800 340" className="w-full">
+            {/* Background segments */}
+            {ROGERS_SEGMENTS.map((seg, i) => {
+              const b = segmentBounds[i];
+              const x1 = pctToX(b.start);
+              const x2 = pctToX(b.end);
+              const isSelected = selectedSegment === seg.id;
+              return (
+                <g key={seg.id}>
+                  <rect
+                    x={x1} y={20} width={x2 - x1} height={260}
+                    fill={seg.cor} opacity={isSelected ? 0.15 : 0.06}
+                    rx={0}
+                    className="cursor-pointer transition-all"
+                    onClick={() => setSelectedSegment(isSelected ? null : seg.id)}
+                  />
+                  {/* Vertical separator */}
+                  {i > 0 && <line x1={x1} y1={20} x2={x1} y2={280} stroke={seg.cor} strokeWidth="1" strokeDasharray="4,4" opacity="0.3"/>}
+                  {/* Label */}
+                  <text x={(x1 + x2) / 2} y={300} textAnchor="middle" className="text-[11px] font-semibold" fill={seg.cor}>
+                    {seg.nome}
+                  </text>
+                  <text x={(x1 + x2) / 2} y={316} textAnchor="middle" className="text-[10px]" fill="#94A3B8">
+                    {seg.pctRef}%
+                  </text>
+                  {/* Simulated percentage */}
+                  {showSimulated && (
+                    <text x={(x1 + x2) / 2} y={332} textAnchor="middle" className="text-[10px] font-bold" fill={seg.cor}>
+                      ({ROGERS_SIMULATED[seg.id].pct}% | n={ROGERS_SIMULATED[seg.id].n})
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+            {/* Bell curve line */}
+            <polyline points={bellCurvePoints} fill="none" stroke="#475569" strokeWidth="2.5" opacity="0.7"/>
+            {/* Colored curve segments */}
+            {ROGERS_SEGMENTS.map((seg, i) => {
+              const b = segmentBounds[i];
+              const x1 = pctToX(b.start);
+              const x2 = pctToX(b.end);
+              const segPoints = [];
+              for (let x = Math.floor(x1); x <= Math.ceil(x2); x += 2) {
+                const t = (x / 800) * 6 - 3;
+                const y = 280 - (Math.exp(-t * t / 2) / Math.sqrt(2 * Math.PI)) * 280 * 2.2 - 20;
+                segPoints.push(`${x},${y}`);
+              }
+              segPoints.push(`${Math.ceil(x2)},280`);
+              segPoints.push(`${Math.floor(x1)},280`);
+              return (
+                <polygon
+                  key={seg.id + '-fill'}
+                  points={segPoints.join(' ')}
+                  fill={seg.cor}
+                  opacity={selectedSegment === seg.id ? 0.35 : 0.12}
+                  className="cursor-pointer transition-all"
+                  onClick={() => setSelectedSegment(selectedSegment === seg.id ? null : seg.id)}
+                />
+              );
+            })}
+          </svg>
+        </div>
+      </section>
+
+      {/* Segment Cards */}
+      <section>
+        <h3 className="font-bold text-sm mb-4">Segmentos — Detalhe</h3>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {ROGERS_SEGMENTS.map(seg => {
+            const sim = ROGERS_SIMULATED[seg.id];
+            const isSelected = selectedSegment === seg.id;
+            return (
+              <button
+                key={seg.id}
+                onClick={() => setSelectedSegment(isSelected ? null : seg.id)}
+                className={`text-left rounded-xl p-4 border-2 transition-all ${
+                  isSelected
+                    ? 'shadow-lg scale-[1.02]'
+                    : 'shadow-sm hover:shadow-md'
+                } bg-white dark:bg-gray-800`}
+                style={{ borderColor: isSelected ? seg.cor : 'transparent' }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: seg.cor }}/>
+                  <span className="text-xs font-bold" style={{ color: seg.cor }}>{seg.nome}</span>
+                </div>
+                <div className="text-2xl font-extrabold" style={{ color: seg.cor }}>
+                  {showSimulated ? `${sim.pct}%` : `${seg.pctRef}%`}
+                </div>
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  {showSimulated ? `${sim.n} de ${totalN} pessoas` : `Referência Rogers`}
+                </div>
+                {showSimulated && (
+                  <div className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-2">
+                    {sim.insight}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Selected Segment Detail */}
+      {selectedSegment && (() => {
+        const seg = ROGERS_SEGMENTS.find(s => s.id === selectedSegment);
+        const sim = ROGERS_SIMULATED[selectedSegment];
+        return (
+          <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-2 p-6 fade-in" style={{ borderColor: seg.cor + '40' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: seg.cor }}>
+                {seg.nome.charAt(0)}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg" style={{ color: seg.cor }}>{seg.nome}</h3>
+                <p className="text-xs text-gray-500">{seg.pctRef}% referência Rogers {showSimulated ? `| ${sim.pct}% simulado Swift (n=${sim.n})` : ''}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Descrição</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{seg.desc}</p>
+                <h4 className="text-sm font-semibold mt-4 mb-2">Perfil</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{seg.perfil}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Critérios de Classificação (V5)</h4>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs font-mono text-gray-700 dark:text-gray-300">
+                  {seg.criterios}
+                </div>
+                <h4 className="text-sm font-semibold mt-4 mb-2">Perguntas-Chave</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {seg.perguntas.map(pId => (
+                    <span key={pId} className="px-2 py-1 rounded-md text-xs font-mono font-semibold" style={{ backgroundColor: seg.cor + '15', color: seg.cor }}>
+                      {pId}
+                    </span>
+                  ))}
+                </div>
+                {showSimulated && (
+                  <>
+                    <h4 className="text-sm font-semibold mt-4 mb-2">Áreas com maior concentração</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {sim.areas.map(a => (
+                        <span key={a} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs text-gray-600 dark:text-gray-300">{a}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Strategy Table */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 className="font-bold text-sm mb-4">Estratégia por Segmento</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Segmento</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">% Ref.</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Ação Recomendada</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Canal</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Prioridade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { seg: ROGERS_SEGMENTS[0], acao: 'Ativar como Champions e multiplicadores via Germinare', canal: 'Germinare + Pod Volante', prio: 'Imediata' },
+                { seg: ROGERS_SEGMENTS[1], acao: 'Capacitar em prompt avançado, dados e business case. Tornar referência por área', canal: 'Workshops + Mentoria', prio: 'Imediata' },
+                { seg: ROGERS_SEGMENTS[2], acao: 'Trilha guiada com curadoria, ferramentas aprovadas e casos de sucesso internos', canal: 'Trilha Online + Peer Learning', prio: 'Alta' },
+                { seg: ROGERS_SEGMENTS[3], acao: 'Demonstrar valor com quick wins da própria área. Sponsor da liderança essencial', canal: 'Liderança + Showcases', prio: 'Média' },
+                { seg: ROGERS_SEGMENTS[4], acao: 'Não forçar. Incluir naturalmente quando o ambiente já estiver maduro', canal: 'Exposição indireta', prio: 'Baixa' }
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.seg.cor }}/>
+                      <span className="font-semibold text-xs" style={{ color: row.seg.cor }}>{row.seg.nome}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-xs text-gray-500">{row.seg.pctRef}%</td>
+                  <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300">{row.acao}</td>
+                  <td className="py-3 px-3 text-xs text-gray-500">{row.canal}</td>
+                  <td className="py-3 px-3">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      row.prio === 'Imediata' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      row.prio === 'Alta' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                      row.prio === 'Média' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>{row.prio}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Methodology */}
+      <section className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
+        <h3 className="font-bold text-sm mb-3">Metodologia — Curva de Adoção de Rogers</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700 dark:text-gray-300">
+          <div>
+            <p className="mb-3">
+              A <strong>Teoria da Difusão de Inovações</strong> (Everett Rogers, 1962) descreve como novas tecnologias são adotadas ao longo do tempo em uma população.
+              A distribuição segue uma curva normal dividida em 5 segmentos baseados em desvios-padrão.
+            </p>
+            <p className="mb-3">
+              <strong>5 fatores</strong> influenciam a velocidade de adoção: <em>Vantagem Relativa</em> (a IA é melhor que o método atual?),
+              <em>Compatibilidade</em> (encaixa no fluxo existente?), <em>Complexidade</em> (é fácil de usar?),
+              <em>Testabilidade</em> (posso experimentar antes?) e <em>Observabilidade</em> (os benefícios são visíveis?).
+            </p>
+          </div>
+          <div>
+            <p className="mb-3">
+              <strong>Na Swift:</strong> Classificamos cada respondente combinando respostas de múltiplas dimensões:
+              frequência de uso (U1), profundidade de prompt (U3), capacitação autônoma (Q2),
+              compartilhamento com pares (C1/C3/C4) e visão de valor (I4).
+            </p>
+            <p>
+              <strong>Objetivo:</strong> Identificar os <strong>Inovadores + Adotantes Iniciais (~16%)</strong> como potenciais
+              <strong> Champions</strong> para a Germinare, e entender o tamanho da <strong>Maioria Tardia + Retardatários (~50%)</strong>
+              para calibrar o esforço de change management.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
 // DRAWER CONTENT
 // ═══════════════════════════════════════════
 function DrawerContent({ type, id, onNavigate, onOpenDrawer }) {
@@ -1702,6 +2050,7 @@ function App() {
       case 'Perguntas': return <PerguntasView onOpenDrawer={openDrawer}/>;
       case 'Scoring': return <ScoringView/>;
       case 'Clusters': return <ClustersView onOpenDrawer={openDrawer}/>;
+      case 'Adoção': return <AdocaoView/>;
       default: return null;
     }
   }
