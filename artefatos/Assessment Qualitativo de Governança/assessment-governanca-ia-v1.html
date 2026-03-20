@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Assessment Qualitativo de Governança de IA — Swift v1</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] }
+    }
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+.drawer-overlay { animation: overlayIn 0.2s ease; }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+.drawer-panel { animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media print {
+  .no-print { display: none !important; }
+  .print-break { page-break-before: always; }
+}
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+// ─── CORES POR DIMENSÃO ───
+const DIM_COLORS = {
+  'Estrutura Organizacional': '#3B82F6',
+  'Esteira de IA': '#10B981',
+  'Equipes de IA': '#8B5CF6',
+  'Processos': '#F59E0B',
+  'Priorização': '#EC4899',
+  'Papéis e Responsabilidades': '#EF4444'
+};
+
+const DIM_ICONS = {
+  'Estrutura Organizacional': '🏛️',
+  'Esteira de IA': '⚙️',
+  'Equipes de IA': '👥',
+  'Processos': '🔄',
+  'Priorização': '🎯',
+  'Papéis e Responsabilidades': '📋'
+};
+
+const MATURIDADE_LABELS = ['Inexistente', 'Inicial', 'Definido', 'Gerenciado', 'Otimizado'];
+const MATURIDADE_COLORS = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6'];
+
+const AUDIENCIA_LABELS = {
+  CIO: { nome: 'CIO / Sponsor Executivo', cor: '#3B82F6' },
+  Comite: { nome: 'Comitê de IA / Liderança', cor: '#8B5CF6' },
+  Gestores: { nome: 'Gestores de Área', cor: '#F59E0B' },
+  Operacional: { nome: 'Time Operacional / Squad', cor: '#10B981' }
+};
+
+// ─── PERGUNTAS DO ASSESSMENT ───
+const PERGUNTAS = [
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 1: ESTRUTURA ORGANIZACIONAL
+  // ══════════════════════════════════════════════
+  {
+    id: 'EO1', dimensao: 'Estrutura Organizacional', audiencia: 'CIO',
+    pergunta: 'Como a IA está posicionada hoje na estrutura organizacional da Swift? Existe um departamento, área ou pessoa responsável por IA?',
+    objetivo: 'Mapear se há ownership formal de IA na organização ou se está pulverizado/inexistente.',
+    oQueBuscar: [
+      'Se há um líder formal de IA (CDO, Head de IA, ou equivalente)',
+      'Se IA está sob TI, Inovação, ou não tem "dono"',
+      'Se há orçamento dedicado para iniciativas de IA',
+      'Nível de senioridade do responsável (se existir)'
+    ],
+    sinaisPositivos: ['Há um responsável definido com autonomia e orçamento', 'IA é tema de diretoria/C-level'],
+    sinaisAlerta: ['Ninguém é responsável formalmente', 'IA está "dentro de TI" sem destaque', 'Múltiplas áreas reclamam ownership'],
+    conexao: 'Se não há dono, o Comitê de IA proposto na Arquitetura precisa ser a primeira intervenção.'
+  },
+  {
+    id: 'EO2', dimensao: 'Estrutura Organizacional', audiencia: 'CIO',
+    pergunta: 'Existe um comitê, fórum ou grupo de trabalho que discute IA na Swift? Se sim, quem participa, com que frequência se reúne e qual o escopo de atuação?',
+    objetivo: 'Entender se já existe embrião de governança colegiada ou se decisões sobre IA são individuais e descentralizadas.',
+    oQueBuscar: [
+      'Composição do grupo (se existir)',
+      'Frequência e cadência de reuniões',
+      'Escopo: estratégico (priorização), tático (execução) ou só informativo',
+      'Se há ata, registro de decisões e acompanhamento'
+    ],
+    sinaisPositivos: ['Existe fórum com cadência regular e escopo definido', 'Decisões são registradas e acompanhadas'],
+    sinaisAlerta: ['Só reuniões ad-hoc sem cadência', 'Fórum existe mas "não funciona"', 'Nenhum fórum — decisões individuais'],
+    conexao: 'Informa diretamente o desenho do Comitê de IA (frequência, composição, rituais).'
+  },
+  {
+    id: 'EO3', dimensao: 'Estrutura Organizacional', audiencia: 'CIO',
+    pergunta: 'Qual é o nível de patrocínio executivo (sponsorship) para IA na Swift? Quem é o principal defensor e qual o seu nível de influência?',
+    objetivo: 'Avaliar se existe um champion executivo com poder real de viabilizar a transformação.',
+    oQueBuscar: [
+      'Quem é o sponsor (nome, cargo, influência)',
+      'Há orçamento aprovado ou é "goodwill"?',
+      'Sponsor tem poder de decisão sobre recursos e prioridades?',
+      'Há mais de um sponsor ou é concentrado?'
+    ],
+    sinaisPositivos: ['C-level engajado com poder orçamentário', 'Sponsor ativo que remove bloqueios'],
+    sinaisAlerta: ['Sponsor sem poder real de decisão', 'Interesse verbal sem comprometimento de recursos', 'Nenhum sponsor identificável'],
+    conexao: 'O CIO como sponsor é premissa da Arquitetura. Se o sponsor real é outro, ajustar a governança.'
+  },
+  {
+    id: 'EO4', dimensao: 'Estrutura Organizacional', audiencia: 'Comite',
+    pergunta: 'Como IA se conecta (ou deveria se conectar) com a estratégia de negócio da Swift? Existe alinhamento explícito entre metas de negócio e iniciativas de IA?',
+    objetivo: 'Mapear se IA é vista como alavanca estratégica ou como ferramenta operacional isolada.',
+    oQueBuscar: [
+      'Se IA aparece no planejamento estratégico',
+      'Se há OKRs, KPIs ou metas de negócio vinculadas a IA',
+      'Se liderança articula IA como diferencial competitivo',
+      'Se há visão de médio/longo prazo para IA na Swift'
+    ],
+    sinaisPositivos: ['IA no planejamento estratégico', 'Metas de negócio explicitamente vinculadas'],
+    sinaisAlerta: ['IA como "projeto de TI"', 'Sem conexão com metas de negócio', 'Visão puramente de redução de custo'],
+    conexao: 'Alimenta a narrativa do CIO para o board e define como o Comitê de IA prioriza hipóteses.'
+  },
+  {
+    id: 'EO5', dimensao: 'Estrutura Organizacional', audiencia: 'CIO',
+    pergunta: 'Qual é o nível de maturidade digital da Swift de forma geral? A infraestrutura de dados, sistemas e processos está preparada para suportar iniciativas de IA?',
+    objetivo: 'Entender o baseline tecnológico que a esteira de IA precisa operar.',
+    oQueBuscar: [
+      'Estado dos dados: centralizados, limpos, acessíveis?',
+      'Ferramentas de BI/analytics já em uso',
+      'Cloud vs on-premise',
+      'Nível de automação de processos existente (RPA, ETL)',
+      'Cultura de dados: decisões são data-driven?'
+    ],
+    sinaisPositivos: ['Dados centralizados e acessíveis', 'Cultura de dados já estabelecida', 'Cloud-first'],
+    sinaisAlerta: ['Dados em silos', 'Planilhas como fonte de verdade', 'Processos 100% manuais'],
+    conexao: 'Define o tipo de experimentação viável para o Pod Volante e o nível de letramento em dados necessário.'
+  },
+
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 2: ESTEIRA DE IA
+  // ══════════════════════════════════════════════
+  {
+    id: 'ET1', dimensao: 'Esteira de IA', audiencia: 'CIO',
+    pergunta: 'Hoje, como surgem as ideias de uso de IA na Swift? Existe algum processo para capturar oportunidades, ou as iniciativas aparecem de forma orgânica e desconexa?',
+    objetivo: 'Mapear o estado atual do intake — a entrada da esteira.',
+    oQueBuscar: [
+      'De onde vêm as ideias (bottom-up, top-down, externo)?',
+      'Há algum canal formal de sugestão?',
+      'Ideias são registradas em algum lugar?',
+      'Quem decide o que avança e o que não avança?'
+    ],
+    sinaisPositivos: ['Há algum canal de captura, mesmo que informal', 'Ideias surgem de múltiplas fontes'],
+    sinaisAlerta: ['Ideias se perdem em conversas de corredor', 'Só TI propõe iniciativas', 'Nenhum registro ou acompanhamento'],
+    conexao: 'Informa o desenho do Intake da esteira (Arquitetura §3.1).'
+  },
+  {
+    id: 'ET2', dimensao: 'Esteira de IA', audiencia: 'Comite',
+    pergunta: 'Já foram executados projetos, pilotos ou experimentos com IA na Swift? Se sim, quais, com que resultado, e o que aprenderam?',
+    objetivo: 'Identificar experiências anteriores — sucessos, fracassos e aprendizados acumulados.',
+    oQueBuscar: [
+      'Projetos realizados (escopo, área, resultado)',
+      'O que funcionou e o que não funcionou',
+      'Se há documentação das experiências',
+      'Se os aprendizados foram compartilhados ou ficaram silotados',
+      'Se algum projeto foi escalado para produção'
+    ],
+    sinaisPositivos: ['Já houve pilotos com documentação', 'Aprendizados foram incorporados'],
+    sinaisAlerta: ['Projetos abandonados sem registro', 'Fracassos geraram trauma organizacional', 'Nunca houve nenhuma tentativa'],
+    conexao: 'Define o ponto de partida da esteira. Se já houve pilotos, a esteira pode começar da fase de Validação, não do zero.'
+  },
+  {
+    id: 'ET3', dimensao: 'Esteira de IA', audiencia: 'Gestores',
+    pergunta: 'Se você tivesse que listar os 3 maiores problemas ou ineficiências da sua área que a IA poderia resolver, quais seriam? Como você sabe que são problemas reais (dados, evidências)?',
+    objetivo: 'Testar a capacidade de formulação de hipóteses de negócio e gerar backlog inicial para a esteira.',
+    oQueBuscar: [
+      'Qualidade da formulação: problema → hipótese → resultado esperado',
+      'Se usam dados ou evidências para justificar',
+      'Se pensam em impacto ou só em eficiência operacional',
+      'Se os problemas são específicos ou genéricos ("melhorar o atendimento")'
+    ],
+    sinaisPositivos: ['Problemas específicos com dados de suporte', 'Pensam em impacto além de eficiência'],
+    sinaisAlerta: ['Respostas genéricas: "automatizar tudo"', 'Não sabem articular problemas concretos', 'Focam só em custo'],
+    conexao: 'Valida diretamente S6 (gestores não formulam hipóteses) e alimenta o backlog do Pod Volante.'
+  },
+  {
+    id: 'ET4', dimensao: 'Esteira de IA', audiencia: 'Comite',
+    pergunta: 'Existe hoje algum critério para decidir quais iniciativas de IA valem a pena investir? Como se decide entre uma ideia e outra?',
+    objetivo: 'Mapear se há priorização estruturada ou se decisões são políticas/intuitivas.',
+    oQueBuscar: [
+      'Existem critérios formais (ROI, impacto, viabilidade)?',
+      'Quem decide e com que informação?',
+      'As decisões são documentadas?',
+      'Há conflito de prioridade entre áreas?'
+    ],
+    sinaisPositivos: ['Critérios definidos, mesmo que simples', 'Decisões transparentes e documentadas'],
+    sinaisAlerta: ['Decisão por "quem grita mais alto"', 'Sem critérios — HiPPO (Highest Paid Person\'s Opinion)', 'Projetos aprovados sem análise de viabilidade'],
+    conexao: 'Define o nível de maturidade da fase de Priorização da esteira e o trabalho necessário para implantar a matriz de priorização.'
+  },
+  {
+    id: 'ET5', dimensao: 'Esteira de IA', audiencia: 'Comite',
+    pergunta: 'Como funciona hoje o ciclo de vida de um projeto de tecnologia/inovação na Swift — da ideia à produção? Quais são as etapas, gates e aprovações?',
+    objetivo: 'Entender o processo existente para identificar pontos de integração com a esteira de IA.',
+    oQueBuscar: [
+      'Fases do ciclo de vida existente',
+      'Gates de aprovação (quem, quando, critérios)',
+      'Tempo médio da ideia à produção',
+      'Onde projetos travam com mais frequência',
+      'Se há diferença de processo para projetos pequenos vs grandes'
+    ],
+    sinaisPositivos: ['Processo definido com gates claros', 'Diferenciação por tamanho/risco'],
+    sinaisAlerta: ['Processo burocrático que trava inovação', 'Sem processo — cada projeto segue seu caminho', 'Gates excessivos que inibem experimentação'],
+    conexao: 'A esteira de IA precisa se acoplar (ou substituir) o processo existente. Incompatibilidade aqui é risco alto.'
+  },
+  {
+    id: 'ET6', dimensao: 'Esteira de IA', audiencia: 'Gestores',
+    pergunta: 'Quando um piloto ou experimento dá certo na sua área, o que acontece depois? Existe um caminho para escalar, ou o resultado fica restrito ao time que fez?',
+    objetivo: 'Mapear a capacidade de escalação — o último estágio da esteira.',
+    oQueBuscar: [
+      'Há processo de escalação definido?',
+      'Quem decide escalar?',
+      'Como acontece a transferência de conhecimento?',
+      'Pilotos bem-sucedidos ficam parados por falta de processo?'
+    ],
+    sinaisPositivos: ['Há caminho de escalação, mesmo que informal', 'Exemplos de pilotos que foram para produção'],
+    sinaisAlerta: ['Pilotos morrem no piloto', 'Não há dono da escalação', 'Conhecimento fica restrito a quem fez'],
+    conexao: 'Define o gap entre Validação e Escalação na esteira (Arquitetura §3.5).'
+  },
+
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 3: EQUIPES DE IA
+  // ══════════════════════════════════════════════
+  {
+    id: 'EQ1', dimensao: 'Equipes de IA', audiencia: 'CIO',
+    pergunta: 'Existem pessoas na Swift hoje com competências técnicas em IA, ciência de dados ou machine learning? Se sim, quantas, onde estão e qual seu nível de senioridade?',
+    objetivo: 'Mapear o capital humano técnico disponível para IA.',
+    oQueBuscar: [
+      'Número e perfil de profissionais técnicos de IA/dados',
+      'Onde estão alocados (centralizado vs distribuído)',
+      'Nível de senioridade e experiência',
+      'Se há cientistas de dados, engenheiros de ML, ou analistas avançados',
+      'Se há vagas abertas ou planos de contratação'
+    ],
+    sinaisPositivos: ['Há profissionais técnicos identificáveis', 'Planos de contratação alinhados com a estratégia'],
+    sinaisAlerta: ['Nenhum profissional técnico de IA', 'Competências concentradas em 1-2 pessoas', 'Turnover alto nesse perfil'],
+    conexao: 'Define o ponto de partida da Squad Interna e a dependência do AI Lab (Artefact) nos primeiros meses.'
+  },
+  {
+    id: 'EQ2', dimensao: 'Equipes de IA', audiencia: 'CIO',
+    pergunta: 'Como está organizado o time de dados/analytics da Swift hoje? Há um time centralizado, times distribuídos por área, ou não há time formal?',
+    objetivo: 'Entender a estrutura de dados existente — a Squad de IA vai operar sobre essa base.',
+    oQueBuscar: [
+      'Modelo organizacional: centralizado, federado, hub-and-spoke?',
+      'Ferramentas de dados em uso (BI, ETL, data warehouse)',
+      'Maturidade do time em analytics vs IA',
+      'Relação entre time de dados e áreas de negócio'
+    ],
+    sinaisPositivos: ['Time de dados organizado com ferramentas definidas', 'Boa relação com áreas de negócio'],
+    sinaisAlerta: ['Não há time de dados formal', 'Time sobrecarregado com demandas operacionais', 'Desconexão entre dados e negócio'],
+    conexao: 'O time de dados existente é parceiro natural da Squad Interna. O modelo organizacional define como a Squad se integra.'
+  },
+  {
+    id: 'EQ3', dimensao: 'Equipes de IA', audiencia: 'Operacional',
+    pergunta: 'Como vocês avaliam a capacitação atual do time em IA? Quais são os maiores gaps de conhecimento? O que o time precisaria aprender primeiro?',
+    objetivo: 'Mapear gaps de competência a partir da perspectiva do próprio time.',
+    oQueBuscar: [
+      'Autopercepção de competência vs necessidade',
+      'Gaps específicos: técnicos, de negócio, de governança',
+      'O que gostariam de aprender primeiro',
+      'Barreiras para aprendizado (tempo, acesso, relevância)'
+    ],
+    sinaisPositivos: ['Consciência clara dos gaps', 'Motivação para aprender', 'Conseguem articular necessidades específicas'],
+    sinaisAlerta: ['Superestimam competência (Dunning-Kruger)', 'Não sabem o que não sabem', 'Desmotivação para aprender'],
+    conexao: 'Alimenta diretamente o design das trilhas de capacitação (Operacional, Product Thinking, Estratégica).'
+  },
+  {
+    id: 'EQ4', dimensao: 'Equipes de IA', audiencia: 'CIO',
+    pergunta: 'A Swift já trabalha com parceiros externos para IA (consultorias, fornecedores, startups)? Se sim, como é essa relação e qual o nível de dependência?',
+    objetivo: 'Mapear o ecossistema externo e o nível de dependência vs autonomia.',
+    oQueBuscar: [
+      'Parceiros atuais e escopo de atuação',
+      'Nível de dependência (tudo terceirizado vs complementar)',
+      'Qualidade da transferência de conhecimento',
+      'Modelo contratual (body shop, projeto, retainer)',
+      'Se há gestão ativa da relação ou é "entregar e esquecer"'
+    ],
+    sinaisPositivos: ['Parceiros como complemento, não substituto', 'Transferência de conhecimento ativa'],
+    sinaisAlerta: ['100% terceirizado sem transferência', 'Dependência de um único fornecedor', 'Sem gestão da relação'],
+    conexao: 'Define como posicionar Artefact (AI Lab) e Ecossistema (provedor externo) na governança.'
+  },
+  {
+    id: 'EQ5', dimensao: 'Equipes de IA', audiencia: 'Comite',
+    pergunta: 'A Germinare (escola interna) já aborda temas de IA, dados ou transformação digital? Se sim, quais conteúdos, formatos e qual a adesão?',
+    objetivo: 'Avaliar o canal de escala já existente para capacitação.',
+    oQueBuscar: [
+      'Conteúdos existentes sobre IA/dados',
+      'Formatos (presencial, online, mentoria)',
+      'Taxa de adesão e satisfação',
+      'Se o modelo train-the-trainer já funciona para outros temas',
+      'Capacidade de absorver novos conteúdos de IA'
+    ],
+    sinaisPositivos: ['Germinare já tem conteúdo de dados/digital', 'Modelo train-the-trainer validado em outros temas'],
+    sinaisAlerta: ['Germinare não aborda tecnologia', 'Baixa adesão em capacitações existentes', 'Modelo train-the-trainer não funciona bem'],
+    conexao: 'Germinare é canal estratégico de escala. Se não funciona, precisa de alternativa.'
+  },
+
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 4: PROCESSOS
+  // ══════════════════════════════════════════════
+  {
+    id: 'PR1', dimensao: 'Processos', audiencia: 'Comite',
+    pergunta: 'Existe alguma política, diretriz ou guideline formal para o uso de IA na Swift? Se não, como os colaboradores sabem o que podem ou não fazer?',
+    objetivo: 'Mapear o estado da governança de uso de IA — a base de qualquer política.',
+    oQueBuscar: [
+      'Políticas formais existentes (se houver)',
+      'Diretrizes informais ou "entendimentos"',
+      'Se há restrições de uso conhecidas',
+      'Se há orientação sobre dados sensíveis e IA',
+      'Se RH, Jurídico e Compliance estão envolvidos'
+    ],
+    sinaisPositivos: ['Há diretriz formal, mesmo que básica', 'Jurídico e Compliance envolvidos'],
+    sinaisAlerta: ['Nenhuma política — "terra de ninguém"', 'Política proibitiva que trava inovação', 'Colaboradores usando IA com dados sensíveis sem orientação'],
+    conexao: 'Valida S17 (percepção de vazio de governança). Primeiro entregável pode ser política básica de uso.'
+  },
+  {
+    id: 'PR2', dimensao: 'Processos', audiencia: 'Comite',
+    pergunta: 'Como a Swift trata questões de privacidade de dados (LGPD), ética em IA e viés algorítmico? Existe algum processo de avaliação de risco para iniciativas de IA?',
+    objetivo: 'Avaliar a maturidade em compliance e ética de IA.',
+    oQueBuscar: [
+      'Processo de avaliação de impacto de IA (AI Impact Assessment)',
+      'Envolvimento do DPO ou área de privacidade',
+      'Conhecimento sobre viés algorítmico e riscos éticos',
+      'Se há checklist ou framework de avaliação de risco',
+      'Incidentes passados relacionados a dados/privacidade'
+    ],
+    sinaisPositivos: ['DPO envolvido em iniciativas de dados/IA', 'Framework de avaliação de risco existente'],
+    sinaisAlerta: ['LGPD vista como "coisa do jurídico"', 'Nenhuma avaliação de risco para IA', 'Viés algorítmico é tema desconhecido'],
+    conexao: 'Valida S10 (governança muito baixa) e S16 (viés/LGPD). Define urgência do módulo de governança na capacitação.'
+  },
+  {
+    id: 'PR3', dimensao: 'Processos', audiencia: 'Gestores',
+    pergunta: 'Como funciona o processo de aprovação para uso de novas ferramentas ou tecnologias na sua área? Quanto tempo leva da solicitação à aprovação?',
+    objetivo: 'Entender o atrito para adoção de novas ferramentas de IA.',
+    oQueBuscar: [
+      'Processo formal de aprovação (existe? quem aprova?)',
+      'Tempo médio de aprovação',
+      'Se ferramentas de IA (ChatGPT, Copilot) estão aprovadas ou bloqueadas',
+      'Se há shadow IT (uso não autorizado)',
+      'Nível de burocracia vs agilidade'
+    ],
+    sinaisPositivos: ['Processo ágil de aprovação', 'Ferramentas de IA já aprovadas para uso'],
+    sinaisAlerta: ['Processo lento que inviabiliza experimentação', 'Ferramentas de IA bloqueadas', 'Shadow IT generalizado'],
+    conexao: 'Se o processo de aprovação é lento, a esteira trava no primeiro ciclo. Precisa de fast-track para experimentação.'
+  },
+  {
+    id: 'PR4', dimensao: 'Processos', audiencia: 'Operacional',
+    pergunta: 'Como vocês documentam o trabalho hoje? Existe algum padrão para registro de decisões, experimentos ou aprendizados?',
+    objetivo: 'Avaliar a cultura de documentação — base para o repositório de conhecimento da esteira.',
+    oQueBuscar: [
+      'Ferramentas de documentação em uso',
+      'Se há padrão ou template',
+      'Nível de adesão à documentação',
+      'Se aprendizados são compartilhados ou ficam com quem fez'
+    ],
+    sinaisPositivos: ['Cultura de documentação estabelecida', 'Ferramentas padronizadas', 'Compartilhamento ativo'],
+    sinaisAlerta: ['Não documentam', 'Cada área usa ferramenta diferente', 'Documentação vista como burocracia'],
+    conexao: 'A esteira depende de documentação (templates de hipótese, experimento, resultado). Se a cultura não existe, precisa ser construída.'
+  },
+  {
+    id: 'PR5', dimensao: 'Processos', audiencia: 'Comite',
+    pergunta: 'Existem métricas ou KPIs definidos para avaliar o sucesso de iniciativas de tecnologia/inovação? Se sim, quais e como são acompanhados?',
+    objetivo: 'Mapear a cultura de mensuração — base para os KPIs da esteira de IA.',
+    oQueBuscar: [
+      'Métricas em uso para projetos de tecnologia',
+      'Quem define, quem acompanha',
+      'Frequência de revisão',
+      'Se há dashboard ou relatório recorrente',
+      'Se métricas influenciam decisões ou são decorativas'
+    ],
+    sinaisPositivos: ['Métricas definidas que influenciam decisões', 'Dashboard com acompanhamento regular'],
+    sinaisAlerta: ['Sem métricas formais', 'Métricas "de vaidade" que não influenciam nada', 'Acompanhamento esporádico'],
+    conexao: 'Define o baseline para os KPIs da esteira (velocidade, taxa de sucesso, valor gerado, aprendizado capturado).'
+  },
+
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 5: PRIORIZAÇÃO
+  // ══════════════════════════════════════════════
+  {
+    id: 'PZ1', dimensao: 'Priorização', audiencia: 'CIO',
+    pergunta: 'Quais são as 3-5 prioridades estratégicas da Swift para os próximos 12 meses? Como IA se encaixa (ou deveria se encaixar) nessas prioridades?',
+    objetivo: 'Conectar IA às prioridades reais do negócio — não ao que IA "pode" fazer, mas ao que o negócio precisa.',
+    oQueBuscar: [
+      'Prioridades estratégicas explícitas',
+      'Se IA aparece como habilitador de alguma prioridade',
+      'Se há conflito entre prioridades e investimento em IA',
+      'Visão do CIO sobre onde IA gera mais valor'
+    ],
+    sinaisPositivos: ['IA explicitamente vinculada a prioridades de negócio', 'CIO articula conexão clara'],
+    sinaisAlerta: ['IA desconectada das prioridades', 'Prioridades não estão claras', 'Conflito entre IA e outras iniciativas'],
+    conexao: 'Define o filtro de priorização da esteira: só sobem hipóteses alinhadas com as prioridades do negócio.'
+  },
+  {
+    id: 'PZ2', dimensao: 'Priorização', audiencia: 'Comite',
+    pergunta: 'Como a Swift decide hoje onde alocar recursos entre projetos concorrentes? Existe algum framework de priorização ou é caso a caso?',
+    objetivo: 'Entender a cultura de priorização existente para definir como a matriz da esteira se integra.',
+    oQueBuscar: [
+      'Framework ou método de priorização (RICE, ICE, MoSCoW, etc.)',
+      'Quem participa da decisão',
+      'Se há critérios objetivos ou é político',
+      'Se há portfolio management ou gestão de portfólio'
+    ],
+    sinaisPositivos: ['Framework existente com critérios objetivos', 'Decisão colegiada e transparente'],
+    sinaisAlerta: ['Decisão do HiPPO', 'Sem critérios — quem chegou primeiro', 'Politicagem define prioridades'],
+    conexao: 'A matriz de priorização da esteira precisa ser compatível com a cultura existente ou vai ser rejeitada.'
+  },
+  {
+    id: 'PZ3', dimensao: 'Priorização', audiencia: 'Gestores',
+    pergunta: 'Se você tivesse autonomia e recursos, qual seria a primeira coisa que faria com IA na sua área? Por que essa e não outra?',
+    objetivo: 'Capturar a visão dos gestores sobre oportunidades de IA — testar pensamento estratégico e priorização.',
+    oQueBuscar: [
+      'Qualidade da oportunidade identificada',
+      'Justificativa: impacto no negócio vs "parece legal"',
+      'Se pensam em viabilidade e recursos',
+      'Se a resposta revela entendimento ou mito sobre IA'
+    ],
+    sinaisPositivos: ['Oportunidade específica com justificativa de impacto', 'Pensam em viabilidade e recursos'],
+    sinaisAlerta: ['Respostas genéricas: "usar IA para tudo"', 'Mitos: "IA vai resolver sozinha"', 'Não conseguem priorizar — "tudo é importante"'],
+    conexao: 'Alimenta backlog do Pod Volante e valida S6 (gestores não formulam hipóteses) e S8 (não diferenciam cosmético de impacto).'
+  },
+  {
+    id: 'PZ4', dimensao: 'Priorização', audiencia: 'Comite',
+    pergunta: 'Quais áreas de negócio da Swift têm maior potencial para IA no curto prazo? E no médio/longo prazo? Por quê?',
+    objetivo: 'Mapear a visão da liderança sobre onde começar — informa a sequência de atuação do Pod Volante.',
+    oQueBuscar: [
+      'Áreas identificadas e justificativa',
+      'Se a análise é baseada em dados ou intuição',
+      'Se consideram viabilidade técnica e organizacional',
+      'Se há consenso ou divergência entre os líderes'
+    ],
+    sinaisPositivos: ['Análise baseada em dados com critérios claros', 'Consenso entre liderança'],
+    sinaisAlerta: ['Pura intuição sem dados', 'Cada líder puxa para sua área', 'Não conseguem identificar áreas prioritárias'],
+    conexao: 'Define o roadmap de atuação do Pod Volante e a sequência de onboarding na esteira.'
+  },
+  {
+    id: 'PZ5', dimensao: 'Priorização', audiencia: 'CIO',
+    pergunta: 'Qual é o apetite de risco da Swift para experimentação com IA? A organização tolera falhas controladas em busca de inovação?',
+    objetivo: 'Avaliar a cultura de experimentação — premissa fundamental da esteira.',
+    oQueBuscar: [
+      'Tolerância a falha (zero tolerance vs fail fast)',
+      'Exemplos de iniciativas que falharam e como foram tratadas',
+      'Se há diferença entre "experimentação" e "projeto"',
+      'Se o time sente segurança psicológica para experimentar'
+    ],
+    sinaisPositivos: ['Cultura de experimentação com falhas aceitas', 'Diferenciação clara entre piloto e produção'],
+    sinaisAlerta: ['Zero tolerance a falha', 'Falha = punição', 'Não há distinção entre experimentação e projeto'],
+    conexao: 'A esteira depende de ciclos rápidos de experimentação. Se a cultura pune falha, a esteira nasce travada.'
+  },
+
+  // ══════════════════════════════════════════════
+  // DIMENSÃO 6: PAPÉIS E RESPONSABILIDADES
+  // ══════════════════════════════════════════════
+  {
+    id: 'PP1', dimensao: 'Papéis e Responsabilidades', audiencia: 'CIO',
+    pergunta: 'Quem hoje toma as decisões sobre IA na Swift? É uma pessoa, um grupo, ou "ninguém formalmente"? Como essa responsabilidade deveria ser organizada na sua visão?',
+    objetivo: 'Mapear o estado atual vs desejado da tomada de decisão em IA.',
+    oQueBuscar: [
+      'Quem decide hoje (formal vs informal)',
+      'Se há conflito ou vácuo de decisão',
+      'Visão do CIO sobre o modelo ideal',
+      'Se há disposição para criar novos papéis ou fóruns'
+    ],
+    sinaisPositivos: ['Clareza sobre quem decide', 'Disposição para formalizar governança'],
+    sinaisAlerta: ['Vácuo de decisão', 'Conflito entre áreas sobre ownership', 'Resistência a criar novos papéis'],
+    conexao: 'Define diretamente a composição e mandato do Comitê de IA.'
+  },
+  {
+    id: 'PP2', dimensao: 'Papéis e Responsabilidades', audiencia: 'Comite',
+    pergunta: 'Qual é o papel esperado dos gestores de área em relação à IA? Eles são responsáveis por identificar oportunidades, por viabilizar, ou por ambos?',
+    objetivo: 'Definir expectativa de accountability dos gestores — informa o design da trilha Estratégica.',
+    oQueBuscar: [
+      'Expectativa formal vs prática real',
+      'Se gestores se veem como donos ou delegam para TI',
+      'Se há incentivo (OKRs, metas) para adoção de IA',
+      'Se a expectativa está alinhada entre CIO e gestores'
+    ],
+    sinaisPositivos: ['Gestores se veem como donos de oportunidades de IA', 'Há incentivo formal para adoção'],
+    sinaisAlerta: ['Gestores delegam tudo para TI', 'Sem incentivo — "não é minha responsabilidade"', 'Desalinhamento entre expectativa do CIO e realidade'],
+    conexao: 'Valida S7 (IA como coisa de TI). Define o conteúdo da trilha Estratégica (mindset antes de método).'
+  },
+  {
+    id: 'PP3', dimensao: 'Papéis e Responsabilidades', audiencia: 'Gestores',
+    pergunta: 'Se a Swift criar uma esteira formal de IA com squads dedicadas, qual papel você gostaria de desempenhar? O que precisaria para assumir esse papel com confiança?',
+    objetivo: 'Mapear disposição e gaps dos gestores para participar ativamente da governança.',
+    oQueBuscar: [
+      'Nível de interesse e engajamento',
+      'Autopercepção de competência',
+      'Gaps declarados: técnico, de negócio, de processo',
+      'Expectativas sobre suporte e capacitação',
+      'Se veem como protagonistas ou coadjuvantes'
+    ],
+    sinaisPositivos: ['Interesse genuíno em participar', 'Consciência dos gaps e disposição para aprender'],
+    sinaisAlerta: ['Desinteresse ou resistência', 'Expectativa de que "alguém resolva"', 'Não se veem como parte do processo'],
+    conexao: 'Informa o onboarding de gestores na esteira e o design dos rituais de governança.'
+  },
+  {
+    id: 'PP4', dimensao: 'Papéis e Responsabilidades', audiencia: 'Operacional',
+    pergunta: 'Quem na equipe hoje já tem interesse ou experiência com IA, automação ou análise de dados? Existem "champions" naturais que as pessoas procuram quando têm dúvidas?',
+    objetivo: 'Identificar early adopters e multiplicadores naturais para a Germinare.',
+    oQueBuscar: [
+      'Champions naturais (nomes, áreas, perfil)',
+      'Se são reconhecidos pelos colegas',
+      'Se já ajudam informalmente',
+      'Nível de experiência e confiança',
+      'Se gostariam de papel formal de multiplicador'
+    ],
+    sinaisPositivos: ['Champions identificáveis e reconhecidos', 'Já ajudam informalmente', 'Interesse em papel formal'],
+    sinaisAlerta: ['Nenhum champion identificável', 'Champions sobrecarregados', 'Conhecimento concentrado em poucas pessoas'],
+    conexao: 'Valida S11 (15-20% early adopters). Esses são os primeiros candidatos à Germinare como embaixadores de IA.'
+  },
+  {
+    id: 'PP5', dimensao: 'Papéis e Responsabilidades', audiencia: 'CIO',
+    pergunta: 'Como a Swift enxerga a relação entre equipes internas e parceiros externos (como IONIX e Artefact) no contexto de IA? Qual é a expectativa de autonomia ao longo do tempo?',
+    objetivo: 'Alinhar expectativas de autonomia crescente — premissa central do modelo.',
+    oQueBuscar: [
+      'Expectativa de prazo para autonomia',
+      'Modelo mental: dependência eterna vs autonomia progressiva',
+      'Disposição para investir em capacitação interna',
+      'Como veem o papel da consultoria no longo prazo',
+      'Se há experiência anterior com transferência de conhecimento'
+    ],
+    sinaisPositivos: ['Visão clara de autonomia progressiva', 'Disposição para investir em capacitação', 'Expectativas realistas de prazo'],
+    sinaisAlerta: ['Expectativa de autonomia imediata sem investimento', 'Preferência por terceirização permanente', 'Falta de clareza sobre expectativas'],
+    conexao: 'Valida e calibra o modelo de autonomia crescente (20% → 95% em 12 meses).'
+  },
+  {
+    id: 'PP6', dimensao: 'Papéis e Responsabilidades', audiencia: 'Comite',
+    pergunta: 'Como funciona a comunicação entre áreas na Swift? Existem silos que poderiam impactar iniciativas transversais de IA?',
+    objetivo: 'Mapear riscos organizacionais para iniciativas cross-functional.',
+    oQueBuscar: [
+      'Nível de colaboração entre áreas',
+      'Se há silos conhecidos',
+      'Ferramentas de comunicação em uso',
+      'Se há experiência com projetos cross-functional',
+      'Como conflitos entre áreas são resolvidos'
+    ],
+    sinaisPositivos: ['Boa colaboração entre áreas', 'Experiência com projetos cross-functional'],
+    sinaisAlerta: ['Silos fortes', 'Competição entre áreas', 'Comunicação deficiente', 'Conflitos não resolvidos'],
+    conexao: 'O Pod Volante é por definição cross-functional. Silos podem travar a mobilidade do Pod.'
+  }
+];
+
+const DIMENSOES = [...new Set(PERGUNTAS.map(p => p.dimensao))];
+
+// ─── COMPONENTES ───
+
+function DarkModeToggle({ dark, setDark }) {
+  return (
+    <button onClick={() => { setDark(!dark); document.documentElement.classList.toggle('dark'); }}
+      className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition no-print">
+      {dark ? '☀️' : '🌙'}
+    </button>
+  );
+}
+
+function Badge({ text, color }) {
+  return (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+      style={{ backgroundColor: color + '20', color: color, border: `1px solid ${color}40` }}>
+      {text}
+    </span>
+  );
+}
+
+function StatCard({ label, value, sub, color }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+      <div className="text-2xl font-bold mt-1" style={{ color }}>{value}</div>
+      {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function ProgressBar({ value, max, color, label }) {
+  const pct = Math.round((value / max) * 100);
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 w-20 truncate">{label}</div>
+      <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <div className="text-xs font-semibold w-8 text-right" style={{ color }}>{value}</div>
+    </div>
+  );
+}
+
+// ─── DRAWER DE PERGUNTA ───
+function PerguntaDrawer({ pergunta, onClose }) {
+  if (!pergunta) return null;
+  const p = pergunta;
+  const dimColor = DIM_COLORS[p.dimensao];
+  const audInfo = AUDIENCIA_LABELS[p.audiencia];
+
+  return (
+    <div className="drawer-overlay fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/40" />
+      <div className="drawer-panel relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{DIM_ICONS[p.dimensao]}</span>
+            <div>
+              <div className="text-xs font-medium text-gray-400">{p.id}</div>
+              <div className="font-semibold text-lg">{p.dimensao}</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-xl">✕</button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Pergunta */}
+          <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-850 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Pergunta</div>
+            <div className="text-lg font-medium leading-relaxed">{p.pergunta}</div>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            <Badge text={p.dimensao} color={dimColor} />
+            <Badge text={audInfo.nome} color={audInfo.cor} />
+          </div>
+
+          {/* Objetivo */}
+          <div>
+            <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">🎯 Objetivo</div>
+            <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{p.objetivo}</div>
+          </div>
+
+          {/* O que buscar */}
+          <div>
+            <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">🔍 O que buscar nas respostas</div>
+            <ul className="space-y-1.5">
+              {p.oQueBuscar.map((item, i) => (
+                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                  <span className="text-gray-400 mt-0.5">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Sinais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+              <div className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">✅ Sinais positivos</div>
+              <ul className="space-y-1.5">
+                {p.sinaisPositivos.map((s, i) => (
+                  <li key={i} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                    <span className="mt-0.5">•</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+              <div className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">⚠️ Sinais de alerta</div>
+              <ul className="space-y-1.5">
+                {p.sinaisAlerta.map((s, i) => (
+                  <li key={i} className="text-sm text-red-700 dark:text-red-300 flex items-start gap-2">
+                    <span className="mt-0.5">•</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Conexão com o projeto */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+            <div className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-2">🔗 Conexão com o projeto</div>
+            <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">{p.conexao}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CARD DE PERGUNTA ───
+function PerguntaCard({ pergunta, idx, onClick, notas, onNotaChange }) {
+  const dimColor = DIM_COLORS[pergunta.dimensao];
+  const audInfo = AUDIENCIA_LABELS[pergunta.audiencia];
+
+  return (
+    <div className="fade-in bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ backgroundColor: dimColor + '15', color: dimColor }}>
+              {pergunta.id}
+            </span>
+            <Badge text={audInfo.nome} color={audInfo.cor} />
+          </div>
+          <button onClick={() => onClick(pergunta)}
+            className="text-xs text-blue-500 hover:text-blue-700 font-medium whitespace-nowrap flex items-center gap-1 no-print">
+            Ver detalhes →
+          </button>
+        </div>
+
+        <div className="text-sm font-medium leading-relaxed mb-3">{pergunta.pergunta}</div>
+
+        <div className="text-xs text-gray-500 dark:text-gray-400 italic mb-3">
+          🎯 {pergunta.objetivo}
+        </div>
+
+        {/* Notas do entrevistador */}
+        <div className="no-print">
+          <textarea
+            value={notas || ''}
+            onChange={e => onNotaChange(pergunta.id, e.target.value)}
+            placeholder="Notas da entrevista..."
+            className="w-full text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 resize-y min-h-[60px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            rows={2}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AVALIAÇÃO DE MATURIDADE POR DIMENSÃO ───
+function MaturidadeSlider({ dimensao, valor, onChange }) {
+  const dimColor = DIM_COLORS[dimensao];
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{DIM_ICONS[dimensao]}</span>
+        <span className="text-sm font-semibold">{dimensao}</span>
+      </div>
+      <div className="flex gap-1 mb-2">
+        {MATURIDADE_LABELS.map((label, i) => (
+          <button
+            key={i}
+            onClick={() => onChange(dimensao, i)}
+            className={`flex-1 py-2 px-1 rounded-lg text-xs font-medium transition-all duration-200 ${
+              valor === i
+                ? 'text-white shadow-md scale-105'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+            style={valor === i ? { backgroundColor: MATURIDADE_COLORS[i] } : {}}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="text-xs text-center text-gray-400">
+        {valor !== null ? MATURIDADE_LABELS[valor] : 'Não avaliado'}
+      </div>
+    </div>
+  );
+}
+
+// ─── RADAR VISUAL ───
+function RadarChart({ scores }) {
+  const size = 300;
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxR = 120;
+  const levels = 5;
+
+  const dims = DIMENSOES;
+  const n = dims.length;
+
+  function polar(i, r) {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  }
+
+  const gridLevels = Array.from({ length: levels }, (_, l) => {
+    const r = (maxR / levels) * (l + 1);
+    return dims.map((_, i) => polar(i, r)).map(p => `${p.x},${p.y}`).join(' ');
+  });
+
+  const dataPoints = dims.map((d, i) => {
+    const val = scores[d] !== null && scores[d] !== undefined ? scores[d] : 0;
+    const r = (maxR / (levels - 1)) * val;
+    return polar(i, r);
+  });
+  const dataPath = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
+
+  const labelPoints = dims.map((d, i) => {
+    const p = polar(i, maxR + 25);
+    return { ...p, label: d };
+  });
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[300px] mx-auto">
+      {/* Grid */}
+      {gridLevels.map((pts, l) => (
+        <polygon key={l} points={pts} fill="none" stroke="#e2e8f0" strokeWidth="1" opacity={0.5} />
+      ))}
+      {/* Axes */}
+      {dims.map((_, i) => {
+        const p = polar(i, maxR);
+        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e2e8f0" strokeWidth="1" opacity={0.3} />;
+      })}
+      {/* Data */}
+      <polygon points={dataPath} fill="#3B82F6" fillOpacity="0.2" stroke="#3B82F6" strokeWidth="2" />
+      {dataPoints.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="4" fill={DIM_COLORS[dims[i]]} />
+      ))}
+      {/* Labels */}
+      {labelPoints.map((p, i) => (
+        <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
+          className="text-[8px] font-medium fill-gray-500 dark:fill-gray-400">
+          {DIM_ICONS[p.label]}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+// ─── GUIA DE ENTREVISTA (EXPORTÁVEL) ───
+function GuiaEntrevista({ audiencia, perguntas }) {
+  const filtradas = audiencia === 'Todas'
+    ? perguntas
+    : perguntas.filter(p => p.audiencia === audiencia);
+
+  const porDimensao = DIMENSOES.reduce((acc, d) => {
+    acc[d] = filtradas.filter(p => p.dimensao === d);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-8">
+      {DIMENSOES.map(dim => {
+        const ps = porDimensao[dim];
+        if (ps.length === 0) return null;
+        return (
+          <div key={dim}>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <span>{DIM_ICONS[dim]}</span>
+              <span>{dim}</span>
+              <span className="text-sm font-normal text-gray-400">({ps.length} perguntas)</span>
+            </h3>
+            <div className="space-y-4 ml-2 border-l-2 pl-4" style={{ borderColor: DIM_COLORS[dim] + '40' }}>
+              {ps.map((p, i) => (
+                <div key={p.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ backgroundColor: DIM_COLORS[dim] + '15', color: DIM_COLORS[dim] }}>
+                      {p.id}
+                    </span>
+                    <Badge text={AUDIENCIA_LABELS[p.audiencia].nome} color={AUDIENCIA_LABELS[p.audiencia].cor} />
+                  </div>
+                  <div className="font-medium text-sm mb-2">{p.pergunta}</div>
+                  <div className="text-xs text-gray-500 italic">🎯 {p.objetivo}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── COMPONENTE PRINCIPAL ───
+function App() {
+  const [dark, setDark] = useState(false);
+  const [activeTab, setActiveTab] = useState('visao-geral');
+  const [selectedDim, setSelectedDim] = useState(null);
+  const [selectedAud, setSelectedAud] = useState('Todas');
+  const [drawerPergunta, setDrawerPergunta] = useState(null);
+  const [notas, setNotas] = useState({});
+  const [maturidade, setMaturidade] = useState(
+    DIMENSOES.reduce((acc, d) => ({ ...acc, [d]: null }), {})
+  );
+  const [notasGerais, setNotasGerais] = useState('');
+
+  const handleNotaChange = useCallback((id, val) => {
+    setNotas(prev => ({ ...prev, [id]: val }));
+  }, []);
+
+  const handleMaturidadeChange = useCallback((dim, val) => {
+    setMaturidade(prev => ({ ...prev, [dim]: val }));
+  }, []);
+
+  // Filtros
+  const perguntasFiltradas = useMemo(() => {
+    let result = PERGUNTAS;
+    if (selectedDim) result = result.filter(p => p.dimensao === selectedDim);
+    if (selectedAud !== 'Todas') result = result.filter(p => p.audiencia === selectedAud);
+    return result;
+  }, [selectedDim, selectedAud]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const preenchidas = Object.values(notas).filter(n => n && n.trim().length > 0).length;
+    const avaliadas = Object.values(maturidade).filter(v => v !== null).length;
+    const mediaMaturidade = avaliadas > 0
+      ? Object.values(maturidade).filter(v => v !== null).reduce((a, b) => a + b, 0) / avaliadas
+      : null;
+    return { total: PERGUNTAS.length, preenchidas, avaliadas, mediaMaturidade };
+  }, [notas, maturidade]);
+
+  // LocalStorage persistence
+  const LS_KEY = 'assessment-governanca-ia-swift';
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.notas) setNotas(data.notas);
+        if (data.maturidade) setMaturidade(data.maturidade);
+        if (data.notasGerais) setNotasGerais(data.notasGerais);
+      }
+    } catch (e) { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ notas, maturidade, notasGerais }));
+    } catch (e) { /* ignore */ }
+  }, [notas, maturidade, notasGerais]);
+
+  // Export
+  const exportarJSON = useCallback(() => {
+    const data = {
+      dataExport: new Date().toISOString(),
+      versao: 'v1',
+      notas,
+      maturidade,
+      notasGerais,
+      stats
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assessment-governanca-ia-swift-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [notas, maturidade, notasGerais, stats]);
+
+  // Import
+  const fileInputRef = useRef(null);
+  const importarJSON = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+  const handleFileImport = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (data.notas) setNotas(data.notas);
+        if (data.maturidade) setMaturidade(data.maturidade);
+        if (data.notasGerais) setNotasGerais(data.notasGerais);
+      } catch (err) {
+        alert('Erro ao importar arquivo. Verifique se é um JSON válido exportado por este assessment.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, []);
+
+  const tabs = [
+    { id: 'visao-geral', label: 'Visão Geral', icon: '📊' },
+    { id: 'perguntas', label: 'Perguntas', icon: '❓' },
+    { id: 'maturidade', label: 'Maturidade', icon: '📈' },
+    { id: 'guia', label: 'Guia de Entrevista', icon: '📝' },
+    { id: 'sintese', label: 'Síntese', icon: '📋' }
+  ];
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-bold">Assessment Qualitativo de Governança de IA</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Swift — Projeto de Transformação em IA Escalável · IONIX</p>
+            </div>
+            <div className="flex items-center gap-3 no-print">
+              <input type="file" ref={fileInputRef} accept=".json" onChange={handleFileImport} className="hidden" />
+              <button onClick={importarJSON}
+                className="px-3 py-2 text-sm font-medium bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                ⬆️ Importar JSON
+              </button>
+              <button onClick={exportarJSON}
+                className="px-3 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2">
+                ⬇️ Exportar JSON
+              </button>
+              <button onClick={() => window.print()}
+                className="px-3 py-2 text-sm font-medium bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                🖨️ Imprimir
+              </button>
+              <DarkModeToggle dark={dark} setDark={setDark} />
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 overflow-x-auto no-print">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition whitespace-nowrap ${
+                  activeTab === t.id
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* ── VISÃO GERAL ── */}
+        {activeTab === 'visao-geral' && (
+          <div className="fade-in space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="Total de Perguntas" value={stats.total} color="#3B82F6" />
+              <StatCard label="Notas Preenchidas" value={stats.preenchidas} sub={`de ${stats.total}`} color="#10B981" />
+              <StatCard label="Dimensões Avaliadas" value={stats.avaliadas} sub={`de ${DIMENSOES.length}`} color="#8B5CF6" />
+              <StatCard label="Maturidade Média" value={stats.mediaMaturidade !== null ? stats.mediaMaturidade.toFixed(1) : '—'} sub={stats.mediaMaturidade !== null ? MATURIDADE_LABELS[Math.round(stats.mediaMaturidade)] : 'Não avaliada'} color="#F59E0B" />
+            </div>
+
+            {/* Sobre o Assessment */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Sobre este Assessment</h2>
+              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-3">
+                <p>
+                  Este assessment qualitativo foi desenhado para mapear o <strong>estado atual da governança de IA na Swift</strong>,
+                  identificando gaps, oportunidades e o nível de maturidade em cada dimensão crítica para o estabelecimento
+                  de uma governança estruturada.
+                </p>
+                <p>
+                  O assessment complementa a <strong>Pesquisa Quantitativa de Maturidade em IA (v5)</strong>, que mede o
+                  nível individual dos colaboradores. Aqui, o foco é <strong>organizacional</strong>: estrutura, processos, equipes e decisões.
+                </p>
+              </div>
+            </div>
+
+            {/* Dimensões */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">6 Dimensões do Assessment</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {DIMENSOES.map(dim => {
+                  const count = PERGUNTAS.filter(p => p.dimensao === dim).length;
+                  const preenchidas = PERGUNTAS.filter(p => p.dimensao === dim && notas[p.id]?.trim()).length;
+                  return (
+                    <div key={dim} className="rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition cursor-pointer"
+                      onClick={() => { setSelectedDim(dim); setActiveTab('perguntas'); }}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-2xl">{DIM_ICONS[dim]}</span>
+                        <div>
+                          <div className="font-semibold text-sm">{dim}</div>
+                          <div className="text-xs text-gray-400">{count} perguntas · {preenchidas} respondidas</div>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-2">
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${(preenchidas / count) * 100}%`, backgroundColor: DIM_COLORS[dim] }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Audiências */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Audiências-Alvo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(AUDIENCIA_LABELS).map(([key, info]) => {
+                  const count = PERGUNTAS.filter(p => p.audiencia === key).length;
+                  return (
+                    <div key={key} className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition cursor-pointer"
+                      onClick={() => { setSelectedAud(key); setActiveTab('perguntas'); }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                        style={{ backgroundColor: info.cor }}>
+                        {key[0]}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm">{info.nome}</div>
+                        <div className="text-xs text-gray-400">{count} perguntas</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Metodologia */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Metodologia de Aplicação</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="font-semibold text-sm text-blue-700 dark:text-blue-400 mb-2">1. Preparação</div>
+                  <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                    <li>• Selecionar entrevistados por audiência</li>
+                    <li>• Agendar sessões de 45-60min</li>
+                    <li>• Compartilhar contexto prévio</li>
+                    <li>• Definir ordem das dimensões</li>
+                  </ul>
+                </div>
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                  <div className="font-semibold text-sm text-green-700 dark:text-green-400 mb-2">2. Entrevista</div>
+                  <ul className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                    <li>• Usar guia de entrevista por audiência</li>
+                    <li>• Registrar notas em tempo real</li>
+                    <li>• Observar sinais positivos e de alerta</li>
+                    <li>• Aprofundar temas emergentes</li>
+                  </ul>
+                </div>
+                <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                  <div className="font-semibold text-sm text-purple-700 dark:text-purple-400 mb-2">3. Síntese</div>
+                  <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1">
+                    <li>• Avaliar maturidade por dimensão</li>
+                    <li>• Consolidar achados e evidências</li>
+                    <li>• Identificar gaps críticos</li>
+                    <li>• Gerar recomendações para governança</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PERGUNTAS ── */}
+        {activeTab === 'perguntas' && (
+          <div className="fade-in space-y-6">
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-3 no-print">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Dimensão</label>
+                <select value={selectedDim || ''}
+                  onChange={e => setSelectedDim(e.target.value || null)}
+                  className="text-sm p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <option value="">Todas as dimensões</option>
+                  {DIMENSOES.map(d => <option key={d} value={d}>{DIM_ICONS[d]} {d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Audiência</label>
+                <select value={selectedAud}
+                  onChange={e => setSelectedAud(e.target.value)}
+                  className="text-sm p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <option value="Todas">Todas as audiências</option>
+                  {Object.entries(AUDIENCIA_LABELS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <span className="text-sm text-gray-400">{perguntasFiltradas.length} perguntas</span>
+              </div>
+            </div>
+
+            {/* Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {perguntasFiltradas.map((p, i) => (
+                <PerguntaCard key={p.id} pergunta={p} idx={i}
+                  onClick={setDrawerPergunta}
+                  notas={notas[p.id]}
+                  onNotaChange={handleNotaChange} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── MATURIDADE ── */}
+        {activeTab === 'maturidade' && (
+          <div className="fade-in space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-2">Avaliação de Maturidade por Dimensão</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Com base nas respostas coletadas, avalie o nível de maturidade da Swift em cada dimensão.
+                A escala vai de <strong>Inexistente</strong> (0) a <strong>Otimizado</strong> (4).
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {DIMENSOES.map(dim => (
+                  <MaturidadeSlider key={dim} dimensao={dim} valor={maturidade[dim]} onChange={handleMaturidadeChange} />
+                ))}
+              </div>
+
+              {/* Radar */}
+              {stats.avaliadas > 0 && (
+                <div className="flex flex-col items-center">
+                  <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4">Radar de Maturidade</h3>
+                  <RadarChart scores={maturidade} />
+                  <div className="flex flex-wrap justify-center gap-3 mt-4">
+                    {DIMENSOES.map(dim => (
+                      <div key={dim} className="flex items-center gap-1.5 text-xs">
+                        <span>{DIM_ICONS[dim]}</span>
+                        <span className="text-gray-500">{dim.split(' ')[0]}</span>
+                        <span className="font-semibold" style={{ color: maturidade[dim] !== null ? MATURIDADE_COLORS[maturidade[dim]] : '#94a3b8' }}>
+                          {maturidade[dim] !== null ? MATURIDADE_LABELS[maturidade[dim]] : '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Escala de referência */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Escala de Maturidade — Referência</h2>
+              <div className="space-y-3">
+                {[
+                  { nivel: 0, nome: 'Inexistente', desc: 'Não há prática, processo ou estrutura relacionada à dimensão. A organização não reconhece a necessidade.', cor: '#EF4444' },
+                  { nivel: 1, nome: 'Inicial', desc: 'Práticas ad-hoc e reativas. Algumas iniciativas isoladas existem, mas sem coordenação, documentação ou repetibilidade.', cor: '#F97316' },
+                  { nivel: 2, nome: 'Definido', desc: 'Processos documentados e padronizados. Há estrutura formal, mas a execução ainda é inconsistente ou parcial.', cor: '#EAB308' },
+                  { nivel: 3, nome: 'Gerenciado', desc: 'Processos executados de forma consistente, medidos e controlados. Há governança ativa com métricas e rituais.', cor: '#22C55E' },
+                  { nivel: 4, nome: 'Otimizado', desc: 'Melhoria contínua sistemática. Processos são revisados e otimizados regularmente com base em dados e aprendizados.', cor: '#3B82F6' }
+                ].map(item => (
+                  <div key={item.nivel} className="flex items-start gap-4 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                      style={{ backgroundColor: item.cor }}>
+                      {item.nivel}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm" style={{ color: item.cor }}>{item.nome}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── GUIA DE ENTREVISTA ── */}
+        {activeTab === 'guia' && (
+          <div className="fade-in space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold">Guia de Entrevista</h2>
+                <div className="no-print">
+                  <select value={selectedAud}
+                    onChange={e => setSelectedAud(e.target.value)}
+                    className="text-sm p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <option value="Todas">Todas as audiências</option>
+                    {Object.entries(AUDIENCIA_LABELS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Use este guia durante as entrevistas. Filtre por audiência para gerar roteiros específicos por tipo de entrevistado.
+              </p>
+              <GuiaEntrevista audiencia={selectedAud} perguntas={PERGUNTAS} />
+            </div>
+          </div>
+        )}
+
+        {/* ── SÍNTESE ── */}
+        {activeTab === 'sintese' && (
+          <div className="fade-in space-y-6">
+            {/* Resumo por dimensão */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Síntese por Dimensão</h2>
+              <div className="space-y-4">
+                {DIMENSOES.map(dim => {
+                  const ps = PERGUNTAS.filter(p => p.dimensao === dim);
+                  const preenchidas = ps.filter(p => notas[p.id]?.trim()).length;
+                  const mat = maturidade[dim];
+                  return (
+                    <div key={dim} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{DIM_ICONS[dim]}</span>
+                          <span className="font-semibold text-sm">{dim}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">{preenchidas}/{ps.length} notas</span>
+                          {mat !== null && (
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
+                              style={{ backgroundColor: MATURIDADE_COLORS[mat] }}>
+                              {MATURIDADE_LABELS[mat]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Notas registradas */}
+                      {ps.filter(p => notas[p.id]?.trim()).length > 0 ? (
+                        <div className="space-y-2 ml-2 border-l-2 pl-3" style={{ borderColor: DIM_COLORS[dim] + '40' }}>
+                          {ps.filter(p => notas[p.id]?.trim()).map(p => (
+                            <div key={p.id} className="text-xs">
+                              <span className="font-semibold" style={{ color: DIM_COLORS[dim] }}>{p.id}:</span>{' '}
+                              <span className="text-gray-600 dark:text-gray-400">{notas[p.id]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">Nenhuma nota registrada</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Notas gerais */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm no-print">
+              <h2 className="text-lg font-bold mb-4">Notas Gerais e Observações</h2>
+              <textarea
+                value={notasGerais}
+                onChange={e => setNotasGerais(e.target.value)}
+                placeholder="Registre observações gerais, padrões identificados, riscos, recomendações..."
+                className="w-full text-sm p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 resize-y min-h-[150px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                rows={6}
+              />
+            </div>
+
+            {/* Progresso geral */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="text-lg font-bold mb-4">Progresso do Assessment</h2>
+              <div className="space-y-3">
+                {DIMENSOES.map(dim => {
+                  const ps = PERGUNTAS.filter(p => p.dimensao === dim);
+                  const preenchidas = ps.filter(p => notas[p.id]?.trim()).length;
+                  return (
+                    <ProgressBar key={dim} label={dim.split(' ')[0]} value={preenchidas} max={ps.length} color={DIM_COLORS[dim]} />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Drawer */}
+      {drawerPergunta && <PerguntaDrawer pergunta={drawerPergunta} onClose={() => setDrawerPergunta(null)} />}
+
+      {/* Footer */}
+      <div className="border-t border-gray-200 dark:border-gray-800 mt-12 py-6 text-center text-xs text-gray-400">
+        Assessment Qualitativo de Governança de IA · Swift × IONIX · v1.0 · Março 2026
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
