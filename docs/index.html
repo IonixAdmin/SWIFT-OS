@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWIFT OS — Dashboard de Projetos</title>
+<style>
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f5f7;
+  --bg-card: #ffffff;
+  --bg-hover: #f0f1f3;
+  --bg-input: #ffffff;
+  --text-primary: #172b4d;
+  --text-secondary: #5e6c84;
+  --text-muted: #97a0af;
+  --border: #dfe1e6;
+  --border-light: #ebecf0;
+  --accent: #0052cc;
+  --accent-light: #deebff;
+  --accent-hover: #0065ff;
+  --success: #00875a;
+  --success-light: #e3fcef;
+  --success-bg: #00875a15;
+  --warning: #ff991f;
+  --warning-light: #fffae6;
+  --warning-bg: #ff991f15;
+  --danger: #de350b;
+  --danger-light: #ffebe6;
+  --danger-bg: #de350b15;
+  --blocked: #6554c0;
+  --blocked-light: #eae6ff;
+  --blocked-bg: #6554c015;
+  --shadow-sm: 0 1px 2px rgba(9,30,66,.08);
+  --shadow-md: 0 4px 8px rgba(9,30,66,.08), 0 0 1px rgba(9,30,66,.16);
+  --shadow-lg: 0 8px 16px rgba(9,30,66,.08), 0 0 1px rgba(9,30,66,.16);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+[data-theme="dark"] {
+  --bg-primary: #1b2638;
+  --bg-secondary: #0d1b2a;
+  --bg-card: #1e2d40;
+  --bg-hover: #253547;
+  --bg-input: #253547;
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #718096;
+  --border: #2d3748;
+  --border-light: #2a3a50;
+  --accent: #4c9aff;
+  --accent-light: #0052cc30;
+  --accent-hover: #6db3ff;
+  --success: #57d9a3;
+  --success-light: #00875a20;
+  --success-bg: #00875a20;
+  --warning: #ffc400;
+  --warning-light: #ff991f20;
+  --warning-bg: #ff991f20;
+  --danger: #ff7452;
+  --danger-light: #de350b20;
+  --danger-bg: #de350b20;
+  --blocked: #b8acff;
+  --blocked-light: #6554c020;
+  --blocked-bg: #6554c020;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.3);
+  --shadow-lg: 0 8px 16px rgba(0,0,0,.3);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+
+/* HEADER */
+.header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--text-muted); font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-ghost { color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: 0.9; }
+.btn-outline { border: 1px solid var(--border); color: var(--text-secondary); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* CONNECTION STATUS */
+.conn-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.conn-online { background: var(--success-light); color: var(--success); }
+.conn-offline { background: var(--danger-light); color: var(--danger); }
+.conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.conn-online .conn-dot { background: var(--success); animation: pulse 2s infinite; }
+.conn-offline .conn-dot { background: var(--danger); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.users-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+}
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: -6px;
+  border: 2px solid var(--bg-primary);
+}
+.user-avatar:first-child { margin-left: 0; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* MAIN LAYOUT */
+.main { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
+
+/* PROGRESS CARDS */
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.progress-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.progress-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent); }
+.progress-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.progress-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.progress-card-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.progress-card-number span { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+.progress-bar-bg {
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.progress-card-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.stat-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+/* FILTER BAR */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-bar select, .filter-bar input[type="text"] {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  min-width: 150px;
+}
+.filter-bar select:focus, .filter-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.filter-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* TABLE */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: var(--bg-secondary);
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+thead th:hover { color: var(--text-primary); }
+.group-header td {
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+}
+.group-header td:hover { opacity: 0.8; }
+tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.1s;
+}
+tbody tr:hover { background: var(--bg-hover); }
+tbody td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+td.id-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+td.atividade-cell { min-width: 250px; max-width: 400px; }
+td.date-cell { white-space: nowrap; font-family: var(--mono); font-size: 12px; }
+td.dep-cell { font-family: var(--mono); font-size: 12px; }
+td.resp-cell { white-space: nowrap; }
+td.notas-cell { min-width: 150px; max-width: 250px; }
+
+/* STATUS BADGE */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.status-badge:hover { filter: brightness(0.95); }
+.status-nao_iniciado { background: var(--bg-secondary); color: var(--text-muted); }
+.status-em_andamento { background: var(--accent-light); color: var(--accent); }
+.status-concluido { background: var(--success-light); color: var(--success); }
+.status-bloqueado { background: var(--blocked-light); color: var(--blocked); }
+.status-atrasado { background: var(--danger-light); color: var(--danger); }
+
+/* RESPONSIBLE TAG */
+.resp-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 1px 2px;
+}
+.resp-ionix { background: #0052cc18; color: var(--accent); }
+.resp-swift { background: #00875a18; color: var(--success); }
+.resp-artefact { background: #6554c018; color: var(--blocked); }
+
+/* DEP LINK */
+.dep-link { color: var(--accent); text-decoration: none; cursor: pointer; }
+.dep-link:hover { text-decoration: underline; }
+
+/* INLINE EDIT */
+.edit-select, .edit-input, .edit-date {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  resize: vertical;
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.notas-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-height: 20px;
+}
+.notas-text:empty::after {
+  content: 'Clique para adicionar nota...';
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* HIGHLIGHT ROW */
+.row-highlight { animation: rowFlash 1.5s ease; }
+@keyframes rowFlash {
+  0%, 100% { background: transparent; }
+  30% { background: var(--accent-light); }
+}
+
+/* OVERDUE */
+.overdue-indicator {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--danger);
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* TIMELINE VIEW */
+.timeline-container { padding: 20px 0; }
+.timeline-item { display: flex; gap: 16px; margin-bottom: 0; position: relative; }
+.timeline-date {
+  width: 100px; flex-shrink: 0; text-align: right;
+  font-family: var(--mono); font-size: 12px; color: var(--text-muted); padding-top: 12px;
+}
+.timeline-dot-line { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; }
+.timeline-dot {
+  width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--bg-card); flex-shrink: 0; margin-top: 14px; z-index: 1;
+}
+.timeline-dot.done { background: var(--success); border-color: var(--success); }
+.timeline-dot.active { background: var(--accent); border-color: var(--accent); }
+.timeline-dot.today-marker { background: var(--warning); border-color: var(--warning); }
+.timeline-line { width: 2px; flex-grow: 1; background: var(--border-light); }
+.timeline-content {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 12px;
+}
+.timeline-content h4 { font-size: 14px; margin-bottom: 4px; }
+.frente-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-size: 10px; font-weight: 600; background: var(--accent-light); color: var(--accent); margin-right: 4px;
+}
+
+/* RISK TABLE */
+.risk-card {
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+}
+.risk-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.risk-title { font-weight: 600; font-size: 14px; }
+.risk-status-select {
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-input); color: var(--text-primary); font-size: 12px;
+}
+.risk-details { font-size: 13px; color: var(--text-secondary); }
+.risk-details dt { font-weight: 600; color: var(--text-primary); margin-top: 8px; }
+.risk-details dd { margin-left: 0; }
+
+/* SETUP SCREEN */
+.setup-screen {
+  max-width: 560px; margin: 80px auto; padding: 40px;
+  background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.setup-screen h1 { font-size: 24px; margin-bottom: 8px; color: var(--accent); }
+.setup-screen p { color: var(--text-secondary); margin-bottom: 24px; }
+.setup-screen .name-input {
+  width: 100%; padding: 12px 16px; font-size: 16px; border: 2px solid var(--border);
+  border-radius: var(--radius); text-align: center; background: var(--bg-input); color: var(--text-primary);
+}
+.setup-screen .name-input:focus { outline: none; border-color: var(--accent); }
+.setup-screen .btn-primary { margin-top: 16px; padding: 12px 32px; font-size: 15px; }
+
+/* LOADING */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 60vh; flex-direction: column; gap: 16px; color: var(--text-muted);
+}
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* LAST EDIT INDICATOR */
+.last-edit {
+  font-size: 10px; color: var(--text-muted); font-style: italic; margin-top: 2px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .header { padding: 0 12px; }
+  .main { padding: 12px; }
+  .progress-grid { grid-template-columns: repeat(2, 1fr); }
+  .filter-bar { flex-direction: column; }
+  .filter-bar select, .filter-bar input[type="text"] { min-width: 100%; }
+  .filter-count { margin-left: 0; }
+  table { font-size: 12px; }
+  td.atividade-cell { min-width: 180px; }
+  .timeline-date { width: 70px; font-size: 10px; }
+  .tabs { overflow-x: auto; }
+  .users-online { display: none; }
+}
+@media (max-width: 480px) {
+  .progress-grid { grid-template-columns: 1fr; }
+  .logo span { display: none; }
+}
+@media print {
+  .header, .tabs, .filter-bar, .header-right { display: none !important; }
+  .main { padding: 0; }
+  .table-wrap { box-shadow: none; border: 1px solid #ddd; }
+}
+.hidden { display: none !important; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text-secondary); }
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--text-primary); color: var(--bg-primary);
+  padding: 10px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 2000; animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="app"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+// INSTRUCOES: Substitua o objeto abaixo pela config do seu projeto Firebase.
+// 1. Acesse https://console.firebase.google.com
+// 2. Crie um projeto (ou use existente)
+// 3. Va em Project Settings > General > Your apps > Add web app
+// 4. Copie o firebaseConfig e cole aqui
+// 5. Va em Realtime Database > Create Database > Start in test mode
+// 6. Altere as rules para: { "rules": { ".read": true, ".write": true } }
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBKqhd7w-1z-yKjIOf1BXts0JvthEwcSg4",
+  authDomain: "swift-os-dashboard.firebaseapp.com",
+  databaseURL: "https://swift-os-dashboard-default-rtdb.firebaseio.com",
+  projectId: "swift-os-dashboard",
+  storageBucket: "swift-os-dashboard.firebasestorage.app",
+  messagingSenderId: "934973471585",
+  appId: "1:934973471585:web:b96f65ad887fab638c2320"
+};
+
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey !== "COLE_AQUI";
+
+let db = null;
+if (FIREBASE_CONFIGURED) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+}
+
+// ============================================================
+// DATA SEED
+// ============================================================
+const RESPONSAVEIS = {
+  VIN: { nome: "Vinicius (Lead Consultant)", org: "IONIX" },
+  OLI: { nome: "Oliver Cunningham", org: "IONIX" },
+  DBA: { nome: "DBA Pod Volante", org: "IONIX" },
+  CIO: { nome: "CIO Swift", org: "Swift" },
+  COM: { nome: "Comite de IA", org: "Swift" },
+  SQD: { nome: "Squad Interna Swift", org: "Swift" },
+  GER: { nome: "Germinare (Escola Interna)", org: "Swift" },
+  ART: { nome: "Artefact (AI Lab)", org: "Artefact" },
+  ROT: { nome: "Colaborador Rotativo Pod", org: "Swift" }
+};
+const FRENTES = {
+  1: { nome: "Esteira de Producao de IA", cor: "#0052cc" },
+  2: { nome: "Squad Interna", cor: "#00875a" },
+  3: { nome: "Pod Volante", cor: "#ff991f" },
+  4: { nome: "Pesquisa e Diagnostico", cor: "#6554c0" },
+  5: { nome: "Capacitacao e Vibe Coding", cor: "#de350b" },
+  6: { nome: "Governanca Estrategica", cor: "#00b8d9" }
+};
+const STATUS_MAP = {
+  nao_iniciado: { label: "Nao iniciado", icon: "\u25CB" },
+  em_andamento: { label: "Em andamento", icon: "\u25D1" },
+  concluido:    { label: "Concluido", icon: "\u25CF" },
+  bloqueado:    { label: "Bloqueado", icon: "\u2298" },
+  atrasado:     { label: "Atrasado", icon: "\u25B2" }
+};
+
+const ACTIVITIES_SEED = [
+  {id:"F1-A01",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Definir framework de intake (formulario de hipoteses)",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-07",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F1-A02",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Criar matriz de priorizacao (impacto x viabilidade x urgencia)",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-07",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F1-A03",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Configurar ferramenta de gestao do pipeline (board kanban)",status:"nao_iniciado",inicio:"2026-04-08",prazo:"2026-04-18",responsaveis:["VIN","SQD"],dependencias:["F1-A01"],notas:""},
+  {id:"F1-A04",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Definir templates de documentacao por etapa",status:"nao_iniciado",inicio:"2026-04-08",prazo:"2026-04-18",responsaveis:["VIN"],dependencias:["F1-A01"],notas:""},
+  {id:"F1-A05",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Estabelecer criterios de go/no-go entre etapas",status:"nao_iniciado",inicio:"2026-04-14",prazo:"2026-04-25",responsaveis:["VIN","CIO"],dependencias:["F1-A02"],notas:""},
+  {id:"F1-A06",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Primeiro ciclo de intake (coletar hipoteses das areas)",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-02",responsaveis:["SQD","VIN"],dependencias:["F1-A03"],notas:""},
+  {id:"F1-A07",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Primeira reuniao de priorizacao com Comite",status:"nao_iniciado",inicio:"2026-05-05",prazo:"2026-05-05",responsaveis:["COM","VIN"],dependencias:["F1-A06"],notas:""},
+  {id:"F1-A08",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Iniciar experimentacao das 3 primeiras hipoteses",status:"nao_iniciado",inicio:"2026-05-06",prazo:"2026-05-30",responsaveis:["SQD","DBA"],dependencias:["F1-A07"],notas:""},
+  {id:"F1-A09",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Construir dashboard de acompanhamento em tempo real",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-09",responsaveis:["VIN"],dependencias:["F1-A03"],notas:""},
+  {id:"F1-A10",frente:1,fase:"Fase 1 — Setup (90 dias)",atividade:"Validacao do MVP da esteira (retrospectiva do 1o ciclo)",status:"nao_iniciado",inicio:"2026-06-01",prazo:"2026-06-13",responsaveis:["VIN","CIO","COM"],dependencias:["F1-A08"],notas:""},
+  {id:"F1-A11",frente:1,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Refinar processo com base na retrospectiva",status:"nao_iniciado",inicio:"2026-06-16",prazo:"2026-06-27",responsaveis:["VIN","SQD"],dependencias:["F1-A10"],notas:""},
+  {id:"F1-A12",frente:1,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Integrar pipeline com Artefact Lab (handoff de hipoteses complexas)",status:"nao_iniciado",inicio:"2026-06-16",prazo:"2026-07-10",responsaveis:["VIN","ART"],dependencias:["F1-A10"],notas:""},
+  {id:"F1-A13",frente:1,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Automatizar notificacoes e status updates",status:"nao_iniciado",inicio:"2026-07-01",prazo:"2026-07-18",responsaveis:["SQD"],dependencias:["F1-A09"],notas:""},
+  {id:"F1-A14",frente:1,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"2o ciclo completo da esteira (5+ hipoteses)",status:"nao_iniciado",inicio:"2026-07-01",prazo:"2026-08-15",responsaveis:["SQD","DBA"],dependencias:["F1-A11"],notas:""},
+  {id:"F1-A15",frente:1,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Criar repositorio de conhecimento (casos, aprendizados)",status:"nao_iniciado",inicio:"2026-07-14",prazo:"2026-08-01",responsaveis:["SQD","VIN"],dependencias:["F1-A14"],notas:""},
+  {id:"F1-A16",frente:1,fase:"Fase 2B — Escala (meses 7-9)",atividade:"Squad assume gestao autonoma do pipeline",status:"nao_iniciado",inicio:"2026-09-01",prazo:"2026-09-15",responsaveis:["SQD"],dependencias:["F1-A14"],notas:""},
+  {id:"F1-A17",frente:1,fase:"Fase 2B — Escala (meses 7-9)",atividade:"IONIX em papel de mentoria (reducao para 50% presenca)",status:"nao_iniciado",inicio:"2026-09-15",prazo:"2026-11-30",responsaveis:["VIN"],dependencias:["F1-A16"],notas:""},
+  {id:"F1-A18",frente:1,fase:"Fase 2B — Escala (meses 7-9)",atividade:"3o ciclo — 10+ hipoteses com autonomia da squad",status:"nao_iniciado",inicio:"2026-09-15",prazo:"2026-11-15",responsaveis:["SQD"],dependencias:["F1-A16"],notas:""},
+  {id:"F1-A19",frente:1,fase:"Fase 2B — Escala (meses 7-9)",atividade:"Showcase trimestral para Board",status:"nao_iniciado",inicio:"2026-11-20",prazo:"2026-11-20",responsaveis:["SQD","CIO"],dependencias:["F1-A18"],notas:""},
+  {id:"F1-A20",frente:1,fase:"Fase 2C — Autonomia (meses 10-12)",atividade:"Squad opera com 95% autonomia",status:"nao_iniciado",inicio:"2026-12-01",prazo:"2027-02-28",responsaveis:["SQD"],dependencias:["F1-A18"],notas:""},
+  {id:"F1-A21",frente:1,fase:"Fase 2C — Autonomia (meses 10-12)",atividade:"IONIX apenas advisory mensal",status:"nao_iniciado",inicio:"2026-12-01",prazo:"2027-02-28",responsaveis:["VIN"],dependencias:["F1-A20"],notas:""},
+  {id:"F1-A22",frente:1,fase:"Fase 2C — Autonomia (meses 10-12)",atividade:"Retrospectiva anual e planejamento ano 2",status:"nao_iniciado",inicio:"2027-02-15",prazo:"2027-02-28",responsaveis:["VIN","CIO","COM"],dependencias:["F1-A20"],notas:""},
+  {id:"F2-A01",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Definir papeis e responsabilidades da squad",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["VIN","CIO"],dependencias:[],notas:""},
+  {id:"F2-A02",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Selecionar membros iniciais (perfis internos)",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-18",responsaveis:["CIO","VIN"],dependencias:["F2-A01"],notas:""},
+  {id:"F2-A03",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Definir modelo de reporte e alcadas de decisao",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-14",responsaveis:["VIN","CIO"],dependencias:["F2-A01"],notas:""},
+  {id:"F2-A04",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Onboarding da squad (contexto, ferramentas, processos)",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-02",responsaveis:["VIN"],dependencias:["F2-A02"],notas:""},
+  {id:"F2-A05",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Diagnostico de maturidade individual (via pesquisa quanti)",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-09",responsaveis:["VIN"],dependencias:["F2-A02","F4-A06"],notas:""},
+  {id:"F2-A06",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Definir trilha de desenvolvimento personalizada por membro",status:"nao_iniciado",inicio:"2026-05-12",prazo:"2026-05-23",responsaveis:["VIN"],dependencias:["F2-A05"],notas:""},
+  {id:"F2-A07",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Estabelecer rituais da squad (daily, weekly, retro)",status:"nao_iniciado",inicio:"2026-05-05",prazo:"2026-05-09",responsaveis:["VIN","SQD"],dependencias:["F2-A04"],notas:""},
+  {id:"F2-A08",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Squad participa do 1o ciclo da esteira como aprendiz",status:"nao_iniciado",inicio:"2026-05-06",prazo:"2026-05-30",responsaveis:["SQD","VIN"],dependencias:["F2-A04","F1-A08"],notas:""},
+  {id:"F2-A09",frente:2,fase:"Fase 1 — Formacao (90 dias)",atividade:"Avaliacao de desempenho Fase 1 (competencias adquiridas)",status:"nao_iniciado",inicio:"2026-06-09",prazo:"2026-06-20",responsaveis:["VIN"],dependencias:["F2-A08"],notas:""},
+  {id:"F2-A10",frente:2,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Squad lidera experimentacoes com supervisao IONIX",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-08-15",responsaveis:["SQD","VIN"],dependencias:["F2-A09"],notas:""},
+  {id:"F2-A11",frente:2,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Mentoria tecnica semanal (code review + pair programming)",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-08-29",responsaveis:["VIN","DBA"],dependencias:["F2-A09"],notas:""},
+  {id:"F2-A12",frente:2,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Integrar squad com Germinare (preparar para train-the-trainer)",status:"nao_iniciado",inicio:"2026-07-01",prazo:"2026-07-25",responsaveis:["VIN","GER"],dependencias:["F2-A09"],notas:""},
+  {id:"F2-A13",frente:2,fase:"Fase 2A — Consolidacao (meses 4-6)",atividade:"Avaliacao intermediaria — squad a 50% autonomia",status:"nao_iniciado",inicio:"2026-08-25",prazo:"2026-08-29",responsaveis:["VIN","CIO"],dependencias:["F2-A10"],notas:""},
+  {id:"F2-A14",frente:2,fase:"Fase 2B — Escala (meses 7-9)",atividade:"Squad opera pipeline com autonomia (IONIX como backup)",status:"nao_iniciado",inicio:"2026-09-01",prazo:"2026-11-28",responsaveis:["SQD"],dependencias:["F2-A13"],notas:""},
+  {id:"F2-A15",frente:2,fase:"Fase 2B — Escala (meses 7-9)",atividade:"Squad forma 1a turma Germinare como instrutores",status:"nao_iniciado",inicio:"2026-09-15",prazo:"2026-10-31",responsaveis:["SQD","GER"],dependencias:["F2-A12"],notas:""},
+  {id:"F2-A16",frente:2,fase:"Fase 2B — Escala (meses 7-9)",atividade:"Avaliacao — squad a 80% autonomia",status:"nao_iniciado",inicio:"2026-11-24",prazo:"2026-11-28",responsaveis:["VIN","CIO"],dependencias:["F2-A14"],notas:""},
+  {id:"F2-A17",frente:2,fase:"Fase 2C — Autonomia (meses 10-12)",atividade:"Squad assume gestao total, IONIX advisory",status:"nao_iniciado",inicio:"2026-12-01",prazo:"2027-02-28",responsaveis:["SQD"],dependencias:["F2-A16"],notas:""},
+  {id:"F2-A18",frente:2,fase:"Fase 2C — Autonomia (meses 10-12)",atividade:"Plano de evolucao da squad para ano 2",status:"nao_iniciado",inicio:"2027-02-01",prazo:"2027-02-28",responsaveis:["SQD","VIN"],dependencias:["F2-A17"],notas:""},
+  {id:"F3-A01",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Definir modelo operacional do Pod (rituais, SLAs, entregaveis)",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["VIN","DBA"],dependencias:[],notas:""},
+  {id:"F3-A02",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Selecionar 1o colaborador rotativo Swift",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-14",responsaveis:["CIO","VIN"],dependencias:["F3-A01"],notas:""},
+  {id:"F3-A03",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Mapear quick wins candidatos (entrevistas com areas)",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-18",responsaveis:["DBA","VIN"],dependencias:["F3-A01"],notas:""},
+  {id:"F3-A04",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Priorizar 3 hipoteses para experimentacao",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-04-25",responsaveis:["VIN","COM"],dependencias:["F3-A03","F1-A02"],notas:""},
+  {id:"F3-A05",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Sprint 1 — Hipotese #1 (prototipo funcional)",status:"nao_iniciado",inicio:"2026-04-28",prazo:"2026-05-16",responsaveis:["DBA","ROT"],dependencias:["F3-A04"],notas:""},
+  {id:"F3-A06",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Sprint 2 — Hipotese #2 (prototipo funcional)",status:"nao_iniciado",inicio:"2026-05-19",prazo:"2026-06-06",responsaveis:["DBA","ROT"],dependencias:["F3-A05"],notas:""},
+  {id:"F3-A07",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Sprint 3 — Hipotese #3 (prototipo funcional)",status:"nao_iniciado",inicio:"2026-06-09",prazo:"2026-06-27",responsaveis:["DBA","ROT"],dependencias:["F3-A06"],notas:""},
+  {id:"F3-A08",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Validacao com usuarios finais das 3 hipoteses",status:"nao_iniciado",inicio:"2026-05-18",prazo:"2026-06-30",responsaveis:["DBA","ROT","SQD"],dependencias:["F3-A05"],notas:""},
+  {id:"F3-A09",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Documentar aprendizados e alimentar repositorio",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-06-30",responsaveis:["DBA"],dependencias:["F3-A08"],notas:""},
+  {id:"F3-A10",frente:3,fase:"Fase 1 — Ativacao (90 dias)",atividade:"Showcase Fase 1 — apresentar quick wins ao Comite",status:"nao_iniciado",inicio:"2026-07-01",prazo:"2026-07-01",responsaveis:["DBA","VIN"],dependencias:["F3-A09"],notas:""},
+  {id:"F3-A11",frente:3,fase:"Fase 2A — Expansao (meses 4-6)",atividade:"Rotacionar 2o colaborador Swift",status:"nao_iniciado",inicio:"2026-07-07",prazo:"2026-07-11",responsaveis:["CIO"],dependencias:["F3-A10"],notas:""},
+  {id:"F3-A12",frente:3,fase:"Fase 2A — Expansao (meses 4-6)",atividade:"Definir proximo backlog de hipoteses (5+)",status:"nao_iniciado",inicio:"2026-07-07",prazo:"2026-07-18",responsaveis:["VIN","COM"],dependencias:["F3-A10"],notas:""},
+  {id:"F3-A13",frente:3,fase:"Fase 2A — Expansao (meses 4-6)",atividade:"Sprints 4-6 com squad apoiando execucao",status:"nao_iniciado",inicio:"2026-07-21",prazo:"2026-09-12",responsaveis:["DBA","ROT","SQD"],dependencias:["F3-A12"],notas:""},
+  {id:"F3-A14",frente:3,fase:"Fase 2A — Expansao (meses 4-6)",atividade:"Escalar 1-2 quick wins validados para producao",status:"nao_iniciado",inicio:"2026-08-01",prazo:"2026-09-15",responsaveis:["SQD","ART"],dependencias:["F3-A08"],notas:""},
+  {id:"F3-A15",frente:3,fase:"Fase 2A — Expansao (meses 4-6)",atividade:"Showcase trimestral — resultados e ROI",status:"nao_iniciado",inicio:"2026-09-15",prazo:"2026-09-15",responsaveis:["DBA","VIN"],dependencias:["F3-A13"],notas:""},
+  {id:"F3-A16",frente:3,fase:"Fase 2B-C — Transferencia (meses 7-12)",atividade:"Squad interna assume lideranca das experimentacoes",status:"nao_iniciado",inicio:"2026-10-01",prazo:"2026-10-15",responsaveis:["SQD"],dependencias:["F2-A14","F3-A13"],notas:""},
+  {id:"F3-A17",frente:3,fase:"Fase 2B-C — Transferencia (meses 7-12)",atividade:"Pod Volante migra para papel de suporte tecnico",status:"nao_iniciado",inicio:"2026-10-15",prazo:"2026-12-31",responsaveis:["DBA"],dependencias:["F3-A16"],notas:""},
+  {id:"F3-A18",frente:3,fase:"Fase 2B-C — Transferencia (meses 7-12)",atividade:"Rotacionar 3o e 4o colaboradores (ampliar disseminacao)",status:"nao_iniciado",inicio:"2026-10-01",prazo:"2027-01-31",responsaveis:["CIO"],dependencias:["F3-A16"],notas:""},
+  {id:"F3-A19",frente:3,fase:"Fase 2B-C — Transferencia (meses 7-12)",atividade:"Balanco anual — hipoteses testadas, escaladas, ROI total",status:"nao_iniciado",inicio:"2027-02-15",prazo:"2027-02-28",responsaveis:["VIN","DBA"],dependencias:["F3-A18"],notas:""},
+  {id:"F4-A01",frente:4,fase:"Pesquisa Quantitativa",atividade:"Finalizar instrumento de pesquisa (57 perguntas, 5 dimensoes)",status:"concluido",inicio:"2026-03-01",prazo:"2026-03-20",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F4-A02",frente:4,fase:"Pesquisa Quantitativa",atividade:"Validar formulario com stakeholders (CIO + RH)",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-03-28",responsaveis:["VIN","CIO"],dependencias:["F4-A01"],notas:""},
+  {id:"F4-A03",frente:4,fase:"Pesquisa Quantitativa",atividade:"Configurar plataforma de coleta (auto-roteamento por perfil)",status:"nao_iniciado",inicio:"2026-03-31",prazo:"2026-04-04",responsaveis:["VIN"],dependencias:["F4-A02"],notas:""},
+  {id:"F4-A04",frente:4,fase:"Pesquisa Quantitativa",atividade:"Comunicacao interna — engajamento para participacao",status:"nao_iniciado",inicio:"2026-04-01",prazo:"2026-04-04",responsaveis:["CIO","GER"],dependencias:["F4-A02"],notas:""},
+  {id:"F4-A05",frente:4,fase:"Pesquisa Quantitativa",atividade:"Periodo de coleta (meta: >70% resposta dos 198 colab.)",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-25",responsaveis:["VIN"],dependencias:["F4-A03","F4-A04"],notas:""},
+  {id:"F4-A06",frente:4,fase:"Pesquisa Quantitativa",atividade:"Analise de dados e scoring (algoritmo 5 dimensoes)",status:"nao_iniciado",inicio:"2026-04-28",prazo:"2026-05-09",responsaveis:["VIN"],dependencias:["F4-A05"],notas:""},
+  {id:"F4-A07",frente:4,fase:"Pesquisa Quantitativa",atividade:"Relatorio executivo (heatmaps, gaps, recomendacoes)",status:"nao_iniciado",inicio:"2026-05-12",prazo:"2026-05-23",responsaveis:["VIN"],dependencias:["F4-A06"],notas:""},
+  {id:"F4-A08",frente:4,fase:"Pesquisa Quantitativa",atividade:"Relatorio operacional (planos por cluster/area)",status:"nao_iniciado",inicio:"2026-05-12",prazo:"2026-05-23",responsaveis:["VIN"],dependencias:["F4-A06"],notas:""},
+  {id:"F4-A09",frente:4,fase:"Pesquisa Quantitativa",atividade:"Lista de multiplicadores candidatos (Germinare)",status:"nao_iniciado",inicio:"2026-05-19",prazo:"2026-05-23",responsaveis:["VIN"],dependencias:["F4-A06"],notas:""},
+  {id:"F4-A10",frente:4,fase:"Pesquisa Quantitativa",atividade:"Apresentacao de resultados ao Comite",status:"nao_iniciado",inicio:"2026-05-26",prazo:"2026-05-26",responsaveis:["VIN"],dependencias:["F4-A07","F4-A08"],notas:""},
+  {id:"F4-A11",frente:4,fase:"Pesquisa Qualitativa",atividade:"Roteiro GF01 — Governanca AS-IS",status:"concluido",inicio:"2026-03-01",prazo:"2026-03-20",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F4-A12",frente:4,fase:"Pesquisa Qualitativa",atividade:"Realizar GF01 — Governanca AS-IS",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["VIN"],dependencias:["F4-A11"],notas:""},
+  {id:"F4-A13",frente:4,fase:"Pesquisa Qualitativa",atividade:"Roteiro GF02 — Cultura e Barreiras",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F4-A14",frente:4,fase:"Pesquisa Qualitativa",atividade:"Realizar GF02 — Cultura e Barreiras",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-18",responsaveis:["VIN"],dependencias:["F4-A13"],notas:""},
+  {id:"F4-A15",frente:4,fase:"Pesquisa Qualitativa",atividade:"Roteiro GF03 — Capacitacao e Preferencias de Aprendizado",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-14",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F4-A16",frente:4,fase:"Pesquisa Qualitativa",atividade:"Realizar GF03 — Capacitacao e Preferencias",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-02",responsaveis:["VIN"],dependencias:["F4-A15"],notas:""},
+  {id:"F4-A17",frente:4,fase:"Pesquisa Qualitativa",atividade:"Assessment Qualitativo de Governanca de IA (26 perguntas)",status:"em_andamento",inicio:"2026-03-20",prazo:"2026-04-11",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F4-A18",frente:4,fase:"Pesquisa Qualitativa",atividade:"Entrevistas qualitativas com areas (RH, Marketing, etc.)",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-05-02",responsaveis:["VIN"],dependencias:["F4-A12"],notas:""},
+  {id:"F4-A19",frente:4,fase:"Integracao e Sintese",atividade:"Joint Display Table (integracao quanti + quali por hipotese CSD)",status:"nao_iniciado",inicio:"2026-05-26",prazo:"2026-06-06",responsaveis:["VIN"],dependencias:["F4-A06","F4-A16"],notas:""},
+  {id:"F4-A20",frente:4,fase:"Integracao e Sintese",atividade:"Relatorio integrado de diagnostico",status:"nao_iniciado",inicio:"2026-06-09",prazo:"2026-06-20",responsaveis:["VIN"],dependencias:["F4-A19"],notas:""},
+  {id:"F4-A21",frente:4,fase:"Integracao e Sintese",atividade:"Calibrar intervencoes com base no diagnostico",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-06-30",responsaveis:["VIN","CIO"],dependencias:["F4-A20"],notas:""},
+  {id:"F4-A22",frente:4,fase:"Integracao e Sintese",atividade:"Reaplicacao da pesquisa quanti (pos-intervencao, mes 9)",status:"nao_iniciado",inicio:"2026-11-01",prazo:"2026-11-30",responsaveis:["VIN"],dependencias:["F4-A21"],notas:""},
+  {id:"F5-A01",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Selecionar 8-12 multiplicadores (Germinare + IT + squad + Pod)",status:"nao_iniciado",inicio:"2026-04-14",prazo:"2026-04-25",responsaveis:["VIN","GER","CIO"],dependencias:["F2-A02","F4-A09"],notas:""},
+  {id:"F5-A02",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Preparar conteudo do workshop (16h, 2 dias)",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-09",responsaveis:["VIN"],dependencias:["F5-A01"],notas:""},
+  {id:"F5-A03",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Configurar ambientes e licencas (Lovable, N8N, etc.)",status:"nao_iniciado",inicio:"2026-05-05",prazo:"2026-05-16",responsaveis:["VIN","DBA"],dependencias:[],notas:""},
+  {id:"F5-A04",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Realizar Workshop Intensivo — Dia 1 (fundamentos + ferramentas)",status:"nao_iniciado",inicio:"2026-05-19",prazo:"2026-05-19",responsaveis:["VIN"],dependencias:["F5-A02","F5-A03"],notas:""},
+  {id:"F5-A05",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Realizar Workshop Intensivo — Dia 2 (casos praticos Swift)",status:"nao_iniciado",inicio:"2026-05-20",prazo:"2026-05-20",responsaveis:["VIN"],dependencias:["F5-A04"],notas:""},
+  {id:"F5-A06",frente:5,fase:"Workshop Intensivo para Multiplicadores",atividade:"Avaliacao pos-workshop e certificacao",status:"nao_iniciado",inicio:"2026-05-21",prazo:"2026-05-23",responsaveis:["VIN"],dependencias:["F5-A05"],notas:""},
+  {id:"F5-A07",frente:5,fase:"Disseminacao via Germinare",atividade:"Co-desenhar grade curricular com Germinare",status:"nao_iniciado",inicio:"2026-05-26",prazo:"2026-06-06",responsaveis:["VIN","GER"],dependencias:["F5-A06"],notas:""},
+  {id:"F5-A08",frente:5,fase:"Disseminacao via Germinare",atividade:"Turma 1 Germinare (6-8 participantes)",status:"nao_iniciado",inicio:"2026-06-16",prazo:"2026-07-11",responsaveis:["GER","SQD"],dependencias:["F5-A07"],notas:""},
+  {id:"F5-A09",frente:5,fase:"Disseminacao via Germinare",atividade:"Turma 2 Germinare",status:"nao_iniciado",inicio:"2026-08-18",prazo:"2026-09-12",responsaveis:["GER","SQD"],dependencias:["F5-A08"],notas:""},
+  {id:"F5-A10",frente:5,fase:"Disseminacao via Germinare",atividade:"Turma 3 Germinare",status:"nao_iniciado",inicio:"2026-10-19",prazo:"2026-11-13",responsaveis:["GER","SQD"],dependencias:["F5-A09"],notas:""},
+  {id:"F5-A11",frente:5,fase:"Disseminacao via Germinare",atividade:"Turma 4 Germinare",status:"nao_iniciado",inicio:"2026-12-14",prazo:"2027-01-08",responsaveis:["GER","SQD"],dependencias:["F5-A10"],notas:""},
+  {id:"F5-A12",frente:5,fase:"Mentoria Hands-on",atividade:"Iniciar sessoes diarias de mentoria (30-60 min)",status:"nao_iniciado",inicio:"2026-05-06",prazo:"2026-05-06",responsaveis:["VIN","DBA"],dependencias:["F2-A04"],notas:""},
+  {id:"F5-A13",frente:5,fase:"Mentoria Hands-on",atividade:"Code review semanal",status:"nao_iniciado",inicio:"2026-05-12",prazo:null,responsaveis:["VIN"],dependencias:["F5-A12"],notas:"Recorrente"},
+  {id:"F5-A14",frente:5,fase:"Mentoria Hands-on",atividade:"Monthly showcase de projetos (toda 1a sexta do mes)",status:"nao_iniciado",inicio:"2026-06-05",prazo:null,responsaveis:["SQD"],dependencias:["F5-A12"],notas:"Recorrente"},
+  {id:"F5-A15",frente:5,fase:"Office Hours Mensais",atividade:"Office Hours #1 (2h — troubleshooting + best practices)",status:"nao_iniciado",inicio:"2026-06-15",prazo:"2026-06-15",responsaveis:["VIN"],dependencias:["F5-A06"],notas:""},
+  {id:"F5-A16",frente:5,fase:"Office Hours Mensais",atividade:"Office Hours #2",status:"nao_iniciado",inicio:"2026-07-13",prazo:"2026-07-13",responsaveis:["VIN"],dependencias:["F5-A15"],notas:""},
+  {id:"F5-A17",frente:5,fase:"Office Hours Mensais",atividade:"Office Hours #3",status:"nao_iniciado",inicio:"2026-08-10",prazo:"2026-08-10",responsaveis:["VIN"],dependencias:["F5-A16"],notas:""},
+  {id:"F5-A18",frente:5,fase:"Office Hours Mensais",atividade:"Office Hours mensais recorrentes (ate fim do contrato)",status:"nao_iniciado",inicio:"2026-09-14",prazo:"2027-02-28",responsaveis:["VIN"],dependencias:["F5-A17"],notas:""},
+  {id:"F6-A01",frente:6,fase:"Setup de Governanca",atividade:"Definir composicao do Comite de IA",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["CIO","VIN"],dependencias:[],notas:""},
+  {id:"F6-A02",frente:6,fase:"Setup de Governanca",atividade:"Elaborar charter do Comite (proposito, alcadas, frequencia)",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-11",responsaveis:["VIN"],dependencias:["F6-A01"],notas:""},
+  {id:"F6-A03",frente:6,fase:"Setup de Governanca",atividade:"Definir papel do Advisor Senior (IONIX) e limites de atuacao",status:"nao_iniciado",inicio:"2026-03-24",prazo:"2026-04-04",responsaveis:["VIN","OLI"],dependencias:[],notas:""},
+  {id:"F6-A04",frente:6,fase:"Setup de Governanca",atividade:"Criar templates para rituais de governanca",status:"nao_iniciado",inicio:"2026-04-07",prazo:"2026-04-18",responsaveis:["VIN"],dependencias:["F6-A02"],notas:""},
+  {id:"F6-A05",frente:6,fase:"Setup de Governanca",atividade:"Primeira reuniao formal do Comite de IA",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-04-21",responsaveis:["COM","CIO","VIN"],dependencias:["F6-A02","F6-A04"],notas:""},
+  {id:"F6-A06",frente:6,fase:"Rituais Recorrentes",atividade:"Review semanal (blockers, ajustes)",status:"nao_iniciado",inicio:"2026-04-28",prazo:null,responsaveis:["VIN","SQD"],dependencias:["F6-A05"],notas:"Semanal"},
+  {id:"F6-A07",frente:6,fase:"Rituais Recorrentes",atividade:"Priorizacao quinzenal (pipeline de hipoteses)",status:"nao_iniciado",inicio:"2026-05-05",prazo:null,responsaveis:["COM","VIN"],dependencias:["F6-A05","F1-A06"],notas:"Quinzenal"},
+  {id:"F6-A08",frente:6,fase:"Rituais Recorrentes",atividade:"Showcase mensal (resultados + aprendizados)",status:"nao_iniciado",inicio:"2026-06-01",prazo:null,responsaveis:["SQD","DBA","VIN"],dependencias:["F6-A05"],notas:"Mensal"},
+  {id:"F6-A09",frente:6,fase:"Rituais Recorrentes",atividade:"Retrospectiva trimestral (meta-governanca)",status:"nao_iniciado",inicio:"2026-07-01",prazo:null,responsaveis:["COM","CIO","VIN"],dependencias:["F6-A05"],notas:"Trimestral"},
+  {id:"F6-A10",frente:6,fase:"Governanca com Parceiros",atividade:"Definir modelo de integracao com Artefact Lab",status:"nao_iniciado",inicio:"2026-04-14",prazo:"2026-05-02",responsaveis:["VIN","ART"],dependencias:["F6-A02"],notas:""},
+  {id:"F6-A11",frente:6,fase:"Governanca com Parceiros",atividade:"Definir criterios de engajamento com Provedores Ecossistema",status:"nao_iniciado",inicio:"2026-04-21",prazo:"2026-05-09",responsaveis:["VIN","COM"],dependencias:["F6-A02"],notas:""},
+  {id:"F6-A12",frente:6,fase:"Governanca com Parceiros",atividade:"Contato com players de IA (Anthropic, Lovable, etc.)",status:"em_andamento",inicio:"2026-03-20",prazo:"2026-04-30",responsaveis:["VIN"],dependencias:[],notas:""},
+  {id:"F6-A13",frente:6,fase:"Governanca com Parceiros",atividade:"Primeiro steering committee com Artefact",status:"nao_iniciado",inicio:"2026-05-15",prazo:"2026-05-15",responsaveis:["VIN","ART","CIO"],dependencias:["F6-A10"],notas:""},
+  {id:"F6-A14",frente:6,fase:"Preparacao para Board",atividade:"Preparar material de suporte estrategico para Board (Fase 1)",status:"nao_iniciado",inicio:"2026-06-09",prazo:"2026-06-20",responsaveis:["VIN","CIO"],dependencias:["F1-A10","F4-A07"],notas:""},
+  {id:"F6-A15",frente:6,fase:"Preparacao para Board",atividade:"Apresentacao ao Board — resultados 90 dias",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-06-23",responsaveis:["CIO","VIN"],dependencias:["F6-A14"],notas:""},
+  {id:"F6-A16",frente:6,fase:"Preparacao para Board",atividade:"Preparar business case para escala (Fase 2)",status:"nao_iniciado",inicio:"2026-06-23",prazo:"2026-07-04",responsaveis:["VIN"],dependencias:["F6-A15"],notas:""},
+  {id:"F6-A17",frente:6,fase:"Preparacao para Board",atividade:"Apresentacao ao Board — resultados semestrais",status:"nao_iniciado",inicio:"2026-09-22",prazo:"2026-09-22",responsaveis:["CIO","VIN"],dependencias:["F6-A09"],notas:""},
+  {id:"F6-A18",frente:6,fase:"Preparacao para Board",atividade:"Apresentacao ao Board — balanco anual e plano ano 2",status:"nao_iniciado",inicio:"2027-02-22",prazo:"2027-02-22",responsaveis:["CIO","VIN"],dependencias:["F1-A22"],notas:""}
+];
+
+const MILESTONES_SEED = [
+  {id:"M01",data:"2026-04-04",marco:"Charter do Comite de IA definido",frentes:["F6"],status:"nao_iniciado",ref:"F6-A02"},
+  {id:"M02",data:"2026-04-07",marco:"Framework de intake e priorizacao prontos",frentes:["F1"],status:"nao_iniciado",ref:"F1-A01"},
+  {id:"M03",data:"2026-04-18",marco:"Selecao de membros da squad concluida",frentes:["F2"],status:"nao_iniciado",ref:"F2-A02"},
+  {id:"M04",data:"2026-04-25",marco:"Periodo de coleta quanti encerrado",frentes:["F4"],status:"nao_iniciado",ref:"F4-A05"},
+  {id:"M05",data:"2026-05-05",marco:"Primeira priorizacao com Comite",frentes:["F1","F6"],status:"nao_iniciado",ref:"F1-A07"},
+  {id:"M06",data:"2026-05-20",marco:"Workshop Intensivo de Vibe Coding realizado",frentes:["F5"],status:"nao_iniciado",ref:"F5-A05"},
+  {id:"M07",data:"2026-05-26",marco:"Resultados pesquisa quanti apresentados ao Comite",frentes:["F4"],status:"nao_iniciado",ref:"F4-A10"},
+  {id:"M08",data:"2026-06-13",marco:"MVP da esteira validado (retrospectiva 1o ciclo)",frentes:["F1"],status:"nao_iniciado",ref:"F1-A10"},
+  {id:"M09",data:"2026-06-20",marco:"Relatorio integrado de diagnostico entregue",frentes:["F4"],status:"nao_iniciado",ref:"F4-A20"},
+  {id:"M10",data:"2026-06-23",marco:"Apresentacao ao Board — 90 dias",frentes:["F6"],status:"nao_iniciado",ref:"F6-A15"},
+  {id:"M11",data:"2026-07-01",marco:"Showcase quick wins Pod Volante",frentes:["F3"],status:"nao_iniciado",ref:"F3-A10"},
+  {id:"M12",data:"2026-09-22",marco:"Apresentacao ao Board — semestral",frentes:["F6"],status:"nao_iniciado",ref:"F6-A17"},
+  {id:"M13",data:"2027-02-22",marco:"Apresentacao ao Board — balanco anual",frentes:["F6"],status:"nao_iniciado",ref:"F6-A18"}
+];
+
+const RISKS_SEED = [
+  {id:"R01",risco:"Baixa adesao a pesquisa quanti (<70%)",impacto:"Diagnostico incompleto, decisoes sem base",mitigacao:"Engajamento via CIO + Germinare, comunicacao interna",frentes:["F4"],severidade:"alta",status:"aberto"},
+  {id:"R02",risco:"Atraso na formacao do Comite",impacto:"Bloqueia priorizacao e governanca",mitigacao:"Escalar com CIO, simplificar charter inicial",frentes:["F6"],severidade:"alta",status:"aberto"},
+  {id:"R03",risco:"Dificuldade em selecionar membros da squad",impacto:"Atrasa toda Frente 2",mitigacao:"Pool maior de candidatos, perfil minimo flexivel",frentes:["F2"],severidade:"media",status:"aberto"},
+  {id:"R04",risco:"Falsa maturidade digital (81% Gen Y+Z)",impacto:"Expectativas desalinhadas",mitigacao:"Diagnostico real via pesquisa, trilhas diferenciadas",frentes:["F4","F5"],severidade:"media",status:"aberto"},
+  {id:"R05",risco:"Turnover de analistas (media 5 anos)",impacto:"Perda de conhecimento",mitigacao:"Documentacao rigorosa, processo > pessoa",frentes:["F1","F2"],severidade:"media",status:"aberto"}
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const TODAY = new Date().toISOString().slice(0, 10);
+let state = {
+  activities: JSON.parse(JSON.stringify(ACTIVITIES_SEED)),
+  milestones: JSON.parse(JSON.stringify(MILESTONES_SEED)),
+  risks: JSON.parse(JSON.stringify(RISKS_SEED)),
+  filters: { frente: 'all', status: 'all', responsavel: 'all', search: '' },
+  view: 'atividades',
+  theme: localStorage.getItem('swift-theme') || 'light',
+  collapsedGroups: {},
+  userName: localStorage.getItem('swift-user') || '',
+  isConnected: false,
+  onlineUsers: {}
+};
+
+let userId = localStorage.getItem('swift-uid') || ('u_' + Math.random().toString(36).slice(2, 10));
+localStorage.setItem('swift-uid', userId);
+
+// ============================================================
+// FIREBASE SYNC
+// ============================================================
+function initFirebase() {
+  if (!FIREBASE_CONFIGURED) { render(); return; }
+
+  // Connection status
+  db.ref('.info/connected').on('value', snap => {
+    state.isConnected = snap.val() === true;
+    if (state.isConnected && state.userName) {
+      const userRef = db.ref('presence/' + userId);
+      userRef.set({ name: state.userName, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+      userRef.onDisconnect().remove();
+    }
+    renderHeaderOnly();
+  });
+
+  // Presence
+  db.ref('presence').on('value', snap => {
+    state.onlineUsers = snap.val() || {};
+    renderHeaderOnly();
+  });
+
+  // Listen for data — initial load + real-time updates
+  db.ref('activities').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      // Merge: Firebase overrides seed
+      state.activities = ACTIVITIES_SEED.map(seed => {
+        const override = data[seed.id];
+        return override ? { ...seed, ...override } : JSON.parse(JSON.stringify(seed));
+      });
+      // Include custom activities
+      Object.values(data).filter(a => a._custom).forEach(a => {
+        if (!state.activities.find(x => x.id === a.id)) state.activities.push(a);
+      });
+    }
+    renderContent();
+  });
+
+  db.ref('milestones').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      state.milestones = MILESTONES_SEED.map(seed => {
+        const override = data[seed.id];
+        return override ? { ...seed, ...override } : JSON.parse(JSON.stringify(seed));
+      });
+    }
+    renderContent();
+  });
+
+  db.ref('risks').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      state.risks = Object.values(data);
+    }
+    renderContent();
+  });
+}
+
+function fbUpdateActivity(id, fields) {
+  if (!FIREBASE_CONFIGURED) return;
+  fields._editedBy = state.userName;
+  fields._editedAt = new Date().toISOString();
+  db.ref('activities/' + id).update(fields);
+}
+
+function fbUpdateMilestone(id, fields) {
+  if (!FIREBASE_CONFIGURED) return;
+  db.ref('milestones/' + id).update(fields);
+}
+
+function fbUpdateRisk(id, fields) {
+  if (!FIREBASE_CONFIGURED) return;
+  db.ref('risks/' + id).update(fields);
+}
+
+function fbSetRisk(risk) {
+  if (!FIREBASE_CONFIGURED) return;
+  db.ref('risks/' + risk.id).set(risk);
+}
+
+function fbSeedDatabase() {
+  if (!FIREBASE_CONFIGURED) return;
+  // Only seed if database is empty
+  db.ref('activities').once('value', snap => {
+    if (!snap.val()) {
+      const batch = {};
+      ACTIVITIES_SEED.forEach(a => batch[a.id] = a);
+      db.ref('activities').set(batch);
+    }
+  });
+  db.ref('milestones').once('value', snap => {
+    if (!snap.val()) {
+      const batch = {};
+      MILESTONES_SEED.forEach(m => batch[m.id] = m);
+      db.ref('milestones').set(batch);
+    }
+  });
+  db.ref('risks').once('value', snap => {
+    if (!snap.val()) {
+      const batch = {};
+      RISKS_SEED.forEach(r => batch[r.id] = r);
+      db.ref('risks').set(batch);
+    }
+  });
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function isOverdue(a) { return a.prazo && a.prazo < TODAY && a.status !== 'concluido'; }
+function respOrgClass(sigla) {
+  const r = RESPONSAVEIS[sigla];
+  if (!r) return 'resp-swift';
+  if (r.org === 'IONIX') return 'resp-ionix';
+  if (r.org === 'Artefact') return 'resp-artefact';
+  return 'resp-swift';
+}
+function getStats(activities) {
+  const t = activities.length, c = activities.filter(a => a.status === 'concluido').length;
+  const a = activities.filter(a => a.status === 'em_andamento').length;
+  const b = activities.filter(a => a.status === 'bloqueado').length;
+  const o = activities.filter(a => a.status === 'atrasado' || isOverdue(a)).length;
+  return { total: t, concluidas: c, andamento: a, bloqueadas: b, atrasadas: o, pct: t ? Math.round((c / t) * 100) : 0 };
+}
+function filteredActivities() {
+  return state.activities.filter(a => {
+    if (state.filters.frente !== 'all' && a.frente !== parseInt(state.filters.frente)) return false;
+    if (state.filters.status !== 'all') {
+      if (state.filters.status === 'atrasado') { if (a.status !== 'atrasado' && !isOverdue(a)) return false; }
+      else if (a.status !== state.filters.status) return false;
+    }
+    if (state.filters.responsavel !== 'all' && !(a.responsaveis||[]).includes(state.filters.responsavel)) return false;
+    if (state.filters.search) {
+      const s = state.filters.search.toLowerCase();
+      if (!a.atividade.toLowerCase().includes(s) && !a.id.toLowerCase().includes(s) && !(a.notas||'').toLowerCase().includes(s)) return false;
+    }
+    return true;
+  });
+}
+function showToast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+}
+function groupBy(arr, key) {
+  const map = new Map();
+  arr.forEach(item => { const k = typeof key === 'function' ? key(item) : item[key]; if (!map.has(k)) map.set(k, []); map.get(k).push(item); });
+  return map;
+}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const app = document.getElementById('app');
+
+  // Show setup screen if no username
+  if (!state.userName) {
+    app.innerHTML = renderSetupScreen();
+    attachSetupEvents();
+    return;
+  }
+
+  // Show config needed screen
+  if (!FIREBASE_CONFIGURED) {
+    app.innerHTML = renderConfigNeeded();
+    return;
+  }
+
+  app.innerHTML = renderHeader() + renderTabs() + '<div class="main" id="main-content">' + renderProgressCards() + renderView() + '</div>';
+  attachEvents();
+}
+
+function renderContent() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const main = document.getElementById('main-content');
+  if (main) {
+    main.innerHTML = renderProgressCards() + renderView();
+    attachContentEvents();
+  }
+}
+
+function renderHeaderOnly() {
+  const el = document.getElementById('conn-status');
+  if (el) {
+    el.outerHTML = renderConnStatus();
+  }
+  const ul = document.getElementById('users-online');
+  if (ul) {
+    ul.outerHTML = renderUsersOnline();
+  }
+}
+
+function renderSetupScreen() {
+  return `<div class="setup-screen">
+    <h1>SWIFT OS</h1>
+    <p>Dashboard Colaborativo de Projetos</p>
+    <div style="margin-bottom:24px">
+      <input type="text" class="name-input" id="user-name-input" placeholder="Seu nome (ex: Vinicius)" maxlength="30" autofocus>
+    </div>
+    <button class="btn btn-primary" id="enter-btn">Entrar no Dashboard</button>
+  </div>`;
+}
+
+function renderConfigNeeded() {
+  return `<div class="setup-screen" style="max-width:640px;text-align:left">
+    <h1 style="text-align:center">Firebase nao configurado</h1>
+    <p style="text-align:center">Para ativar a colaboracao em tempo real, configure o Firebase:</p>
+    <ol style="color:var(--text-secondary);font-size:13px;line-height:2;padding-left:20px">
+      <li>Acesse <strong>console.firebase.google.com</strong></li>
+      <li>Crie um projeto (ou use existente)</li>
+      <li>Va em <strong>Realtime Database > Create Database > Start in test mode</strong></li>
+      <li>Va em <strong>Project Settings > General > Your apps > Add web app</strong></li>
+      <li>Copie o <code>firebaseConfig</code> e cole no arquivo <code>docs/index.html</code></li>
+      <li>Substitua os campos <code>"COLE_AQUI"</code> pela sua configuracao</li>
+    </ol>
+    <p style="margin-top:16px;font-size:12px;color:var(--text-muted)">Arquivo: docs/index.html, linhas ~do firebaseConfig</p>
+  </div>`;
+}
+
+function renderConnStatus() {
+  if (!FIREBASE_CONFIGURED) return '';
+  const cls = state.isConnected ? 'conn-online' : 'conn-offline';
+  const label = state.isConnected ? 'Sincronizado' : 'Offline';
+  return `<span class="conn-status ${cls}" id="conn-status"><span class="conn-dot"></span>${label}</span>`;
+}
+
+function renderUsersOnline() {
+  const users = Object.entries(state.onlineUsers).filter(([k]) => k !== userId);
+  const count = users.length + 1;
+  let html = `<span class="users-online" id="users-online">`;
+  html += `<span class="user-avatar" title="${esc(state.userName)}">${state.userName.charAt(0).toUpperCase()}</span>`;
+  users.slice(0, 4).forEach(([, u]) => {
+    html += `<span class="user-avatar" title="${esc(u.name)}" style="background:var(--success)">${(u.name||'?').charAt(0).toUpperCase()}</span>`;
+  });
+  html += ` ${count} online</span>`;
+  return html;
+}
+
+function renderHeader() {
+  return `<header class="header">
+    <div class="header-left">
+      <div class="logo">SWIFT OS <span>Dashboard</span></div>
+      ${renderConnStatus()}
+      ${renderUsersOnline()}
+    </div>
+    <div class="header-right">
+      <span style="font-size:12px;color:var(--text-muted)">${esc(state.userName)}</span>
+      <button class="btn btn-ghost" id="change-user" title="Trocar usuario">&#x270E;</button>
+      <button class="btn btn-ghost" id="theme-toggle" title="Alternar tema">${state.theme === 'light' ? '\u263D' : '\u2600'}</button>
+    </div>
+  </header>`;
+}
+
+function renderTabs() {
+  const tabs = [{id:'atividades',label:'Atividades'},{id:'timeline',label:'Timeline'},{id:'riscos',label:'Riscos'}];
+  return `<nav class="tabs">${tabs.map(t => `<button class="tab ${state.view===t.id?'active':''}" data-view="${t.id}">${t.label}</button>`).join('')}</nav>`;
+}
+
+function renderProgressCards() {
+  const all = getStats(state.activities);
+  let html = '<div class="progress-grid">';
+  html += `<div class="progress-card ${state.filters.frente==='all'?'active':''}" data-frente="all">
+    <div class="progress-card-title">Todas as Frentes</div>
+    <div class="progress-card-number">${all.pct}% <span>(${all.concluidas}/${all.total})</span></div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${all.pct}%;background:var(--accent)"></div></div>
+    <div class="progress-card-stats">
+      <span><span class="stat-dot" style="background:var(--success)"></span>${all.concluidas}</span>
+      <span><span class="stat-dot" style="background:var(--accent)"></span>${all.andamento}</span>
+      <span><span class="stat-dot" style="background:var(--danger)"></span>${all.atrasadas}</span>
+      <span><span class="stat-dot" style="background:var(--blocked)"></span>${all.bloqueadas}</span>
+    </div>
+  </div>`;
+  for (const [fNum, fInfo] of Object.entries(FRENTES)) {
+    const s = getStats(state.activities.filter(a => a.frente === parseInt(fNum)));
+    html += `<div class="progress-card ${state.filters.frente===fNum?'active':''}" data-frente="${fNum}">
+      <div class="progress-card-title">F${fNum} — ${fInfo.nome}</div>
+      <div class="progress-card-number">${s.pct}% <span>(${s.concluidas}/${s.total})</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${s.pct}%;background:${fInfo.cor}"></div></div>
+      <div class="progress-card-stats">
+        <span><span class="stat-dot" style="background:var(--success)"></span>${s.concluidas}</span>
+        <span><span class="stat-dot" style="background:var(--accent)"></span>${s.andamento}</span>
+        <span><span class="stat-dot" style="background:var(--danger)"></span>${s.atrasadas}</span>
+      </div>
+    </div>`;
+  }
+  return html + '</div>';
+}
+
+function renderView() {
+  if (state.view === 'timeline') return renderTimeline();
+  if (state.view === 'riscos') return renderRisks();
+  return renderActivitiesView();
+}
+
+function renderActivitiesView() {
+  const filtered = filteredActivities();
+  let html = renderFilterBar(filtered.length);
+  if (!filtered.length) return html + '<div class="empty-state"><h3>Nenhuma atividade encontrada</h3><p>Tente ajustar os filtros</p></div>';
+  const byFrente = groupBy(filtered, 'frente');
+  html += '<div class="table-wrap"><div class="table-scroll"><table><thead><tr>';
+  html += '<th>ID</th><th>Atividade</th><th>Status</th><th>Inicio</th><th>Prazo</th><th>Responsaveis</th><th>Dependencias</th><th>Notas</th>';
+  html += '</tr></thead><tbody>';
+  for (const [frente, items] of byFrente) {
+    const byFase = groupBy(items, 'fase');
+    for (const [fase, faseItems] of byFase) {
+      const gk = `${frente}-${fase}`;
+      const collapsed = state.collapsedGroups[gk];
+      html += `<tr class="group-header" data-group="${gk}"><td colspan="8">${collapsed?'\u25B6':'\u25BC'} F${frente} — ${FRENTES[frente].nome} \u203A ${fase} (${faseItems.length})</td></tr>`;
+      if (!collapsed) {
+        faseItems.forEach(a => {
+          const overdue = isOverdue(a);
+          const effStatus = overdue && a.status === 'nao_iniciado' ? 'atrasado' : a.status;
+          const editInfo = a._editedBy ? `<div class="last-edit">${esc(a._editedBy)}</div>` : '';
+          html += `<tr id="row-${a.id}">`;
+          html += `<td class="id-cell">${a.id}</td>`;
+          html += `<td class="atividade-cell">${esc(a.atividade)}${editInfo}</td>`;
+          html += `<td><span class="status-badge status-${effStatus}" data-id="${a.id}" data-field="status">${STATUS_MAP[effStatus]?.icon||'\u25CB'} ${STATUS_MAP[effStatus]?.label||a.status}</span></td>`;
+          html += `<td class="date-cell" data-id="${a.id}" data-field="inicio">${a.inicio||'\u2014'}</td>`;
+          html += `<td class="date-cell" data-id="${a.id}" data-field="prazo">${a.prazo||'Recorrente'}${overdue?'<span class="overdue-indicator" title="Atrasado"></span>':''}</td>`;
+          html += `<td class="resp-cell">${(a.responsaveis||[]).map(r=>`<span class="resp-tag ${respOrgClass(r)}" title="${RESPONSAVEIS[r]?.nome||r}">${r}</span>`).join('')}</td>`;
+          html += `<td class="dep-cell">${(a.dependencias||[]).length?(a.dependencias||[]).map(d=>`<a class="dep-link" data-dep="${d}">${d}</a>`).join(' '):'\u2014'}</td>`;
+          html += `<td class="notas-cell"><div class="notas-text" data-id="${a.id}" data-field="notas">${esc(a.notas||'')}</div></td>`;
+          html += '</tr>';
+        });
+      }
+    }
+  }
+  return html + '</tbody></table></div></div>';
+}
+
+function renderFilterBar(count) {
+  return `<div class="filter-bar">
+    <select id="filter-frente"><option value="all" ${state.filters.frente==='all'?'selected':''}>Todas as Frentes</option>
+      ${Object.entries(FRENTES).map(([k,v])=>`<option value="${k}" ${state.filters.frente===k?'selected':''}>F${k} — ${v.nome}</option>`).join('')}</select>
+    <select id="filter-status"><option value="all" ${state.filters.status==='all'?'selected':''}>Todos os Status</option>
+      ${Object.entries(STATUS_MAP).map(([k,v])=>`<option value="${k}" ${state.filters.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}</select>
+    <select id="filter-resp"><option value="all" ${state.filters.responsavel==='all'?'selected':''}>Todos os Responsaveis</option>
+      ${Object.keys(RESPONSAVEIS).map(k=>`<option value="${k}" ${state.filters.responsavel===k?'selected':''}>${k} — ${RESPONSAVEIS[k].nome}</option>`).join('')}</select>
+    <input type="text" id="filter-search" placeholder="Buscar atividade..." value="${esc(state.filters.search)}">
+    ${state.filters.frente!=='all'||state.filters.status!=='all'||state.filters.responsavel!=='all'||state.filters.search?'<button class="btn btn-ghost" id="clear-filters">Limpar filtros</button>':''}
+    <span class="filter-count">${count} atividade${count!==1?'s':''}</span>
+  </div>`;
+}
+
+function renderTimeline() {
+  const milestones = [...state.milestones].sort((a,b) => a.data.localeCompare(b.data));
+  let html = '<div class="timeline-container">', todayInserted = false;
+  milestones.forEach((m, i) => {
+    if (!todayInserted && m.data > TODAY) {
+      html += `<div class="timeline-item"><div class="timeline-date" style="color:var(--warning);font-weight:700">HOJE</div>
+        <div class="timeline-dot-line"><div class="timeline-dot today-marker"></div><div class="timeline-line"></div></div>
+        <div class="timeline-content" style="border-color:var(--warning);background:var(--warning-bg)"><h4 style="color:var(--warning)">${TODAY}</h4></div></div>`;
+      todayInserted = true;
+    }
+    const isDone = m.status === 'concluido';
+    html += `<div class="timeline-item"><div class="timeline-date">${m.data}</div>
+      <div class="timeline-dot-line"><div class="timeline-dot ${isDone?'done':m.data<TODAY?'active':''}"></div>${i<milestones.length-1?'<div class="timeline-line"></div>':''}</div>
+      <div class="timeline-content"><h4>${esc(m.marco)}</h4>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          <span class="status-badge status-${m.status}" data-milestone="${m.id}">${STATUS_MAP[m.status]?.icon} ${STATUS_MAP[m.status]?.label}</span></div>
+        <div class="frente-tags" style="margin-top:6px">${m.frentes.map(f=>`<span class="frente-tag">${f}</span>`).join('')}</div>
+      </div></div>`;
+  });
+  return html + '</div>';
+}
+
+function renderRisks() {
+  let html = '<div class="mt-16">';
+  state.risks.forEach(r => {
+    html += `<div class="risk-card"><div class="risk-header"><div class="risk-title">${esc(r.risco)}</div>
+      <select class="risk-status-select" data-risk="${r.id}" data-field="severidade">
+        <option value="alta" ${r.severidade==='alta'?'selected':''}>Alta</option><option value="media" ${r.severidade==='media'?'selected':''}>Media</option><option value="baixa" ${r.severidade==='baixa'?'selected':''}>Baixa</option></select></div>
+      <dl class="risk-details"><dt>Impacto</dt><dd>${esc(r.impacto)}</dd><dt>Mitigacao</dt><dd>${esc(r.mitigacao)}</dd>
+        <dt>Frentes</dt><dd>${(r.frentes||[]).map(f=>`<span class="frente-tag">${f}</span>`).join(' ')}</dd>
+        <dt>Status</dt><dd><select class="risk-status-select" data-risk="${r.id}" data-field="status">
+          <option value="aberto" ${r.status==='aberto'?'selected':''}>Aberto</option><option value="mitigado" ${r.status==='mitigado'?'selected':''}>Mitigado</option><option value="fechado" ${r.status==='fechado'?'selected':''}>Fechado</option></select></dd></dl></div>`;
+  });
+  html += '<button class="btn btn-outline mt-8" id="add-risk">+ Adicionar Risco</button></div>';
+  return html;
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+function attachSetupEvents() {
+  const input = document.getElementById('user-name-input');
+  const btn = document.getElementById('enter-btn');
+  const go = () => {
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    state.userName = name;
+    localStorage.setItem('swift-user', name);
+    if (FIREBASE_CONFIGURED) {
+      const userRef = db.ref('presence/' + userId);
+      userRef.set({ name, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+      userRef.onDisconnect().remove();
+      fbSeedDatabase();
+    }
+    render();
+    initFirebase();
+  };
+  btn.addEventListener('click', go);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
+function attachEvents() {
+  // Theme
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('swift-theme', state.theme);
+    render();
+  });
+  // Change user
+  document.getElementById('change-user')?.addEventListener('click', () => {
+    if (FIREBASE_CONFIGURED) db.ref('presence/' + userId).remove();
+    state.userName = '';
+    localStorage.removeItem('swift-user');
+    render();
+  });
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { state.view = tab.dataset.view; render(); }));
+  // Progress cards
+  document.querySelectorAll('.progress-card').forEach(card => card.addEventListener('click', () => { state.filters.frente = card.dataset.frente; renderContent(); }));
+  attachContentEvents();
+}
+
+function attachContentEvents() {
+  // Filters
+  document.getElementById('filter-frente')?.addEventListener('change', e => { state.filters.frente = e.target.value; renderContent(); });
+  document.getElementById('filter-status')?.addEventListener('change', e => { state.filters.status = e.target.value; renderContent(); });
+  document.getElementById('filter-resp')?.addEventListener('change', e => { state.filters.responsavel = e.target.value; renderContent(); });
+  let st; document.getElementById('filter-search')?.addEventListener('input', e => { clearTimeout(st); st = setTimeout(() => { state.filters.search = e.target.value; renderContent(); }, 200); });
+  document.getElementById('clear-filters')?.addEventListener('click', () => { state.filters = { frente:'all', status:'all', responsavel:'all', search:'' }; renderContent(); });
+
+  // Group collapse
+  document.querySelectorAll('.group-header').forEach(row => row.addEventListener('click', () => { state.collapsedGroups[row.dataset.group] = !state.collapsedGroups[row.dataset.group]; renderContent(); }));
+
+  // Status badge → dropdown
+  document.querySelectorAll('.status-badge[data-id]').forEach(badge => {
+    badge.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = badge.dataset.id, a = state.activities.find(x => x.id === id);
+      if (!a) return;
+      const sel = document.createElement('select'); sel.className = 'edit-select';
+      Object.entries(STATUS_MAP).forEach(([k,v]) => { const o = document.createElement('option'); o.value = k; o.textContent = `${v.icon} ${v.label}`; if (a.status === k) o.selected = true; sel.appendChild(o); });
+      badge.replaceWith(sel); sel.focus();
+      const fin = () => { a.status = sel.value; fbUpdateActivity(id, { status: sel.value }); renderContent(); showToast(`${id} → ${STATUS_MAP[sel.value]?.label}`); };
+      sel.addEventListener('change', fin); sel.addEventListener('blur', fin);
+    });
+  });
+
+  // Milestone status
+  document.querySelectorAll('.status-badge[data-milestone]').forEach(badge => {
+    badge.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = badge.dataset.milestone, m = state.milestones.find(x => x.id === id);
+      if (!m) return;
+      const sel = document.createElement('select'); sel.className = 'edit-select';
+      Object.entries(STATUS_MAP).forEach(([k,v]) => { const o = document.createElement('option'); o.value = k; o.textContent = `${v.icon} ${v.label}`; if (m.status === k) o.selected = true; sel.appendChild(o); });
+      badge.replaceWith(sel); sel.focus();
+      const fin = () => { m.status = sel.value; fbUpdateMilestone(id, { status: sel.value }); renderContent(); };
+      sel.addEventListener('change', fin); sel.addEventListener('blur', fin);
+    });
+  });
+
+  // Date cells
+  document.querySelectorAll('.date-cell[data-id]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const id = cell.dataset.id, field = cell.dataset.field, a = state.activities.find(x => x.id === id);
+      if (!a) return;
+      const inp = document.createElement('input'); inp.type = 'date'; inp.className = 'edit-date'; inp.value = a[field] || '';
+      cell.innerHTML = ''; cell.appendChild(inp); inp.focus();
+      const fin = () => { a[field] = inp.value || null; fbUpdateActivity(id, { [field]: inp.value || null }); renderContent(); };
+      inp.addEventListener('change', fin); inp.addEventListener('blur', fin);
+      inp.addEventListener('keydown', e => { if (e.key === 'Escape') renderContent(); });
+    });
+  });
+
+  // Notes
+  document.querySelectorAll('.notas-text[data-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id, a = state.activities.find(x => x.id === id);
+      if (!a) return;
+      const ta = document.createElement('textarea'); ta.className = 'edit-textarea'; ta.value = a.notas || ''; ta.placeholder = 'Adicionar nota...';
+      el.replaceWith(ta); ta.focus();
+      ta.addEventListener('blur', () => { a.notas = ta.value; fbUpdateActivity(id, { notas: ta.value }); renderContent(); });
+      ta.addEventListener('keydown', e => { if (e.key === 'Escape') renderContent(); if (e.key === 'Enter' && e.ctrlKey) { a.notas = ta.value; fbUpdateActivity(id, { notas: ta.value }); renderContent(); } });
+    });
+  });
+
+  // Dep links
+  document.querySelectorAll('.dep-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const depId = link.dataset.dep, row = document.getElementById('row-' + depId);
+      if (row) { row.scrollIntoView({ behavior:'smooth', block:'center' }); row.classList.add('row-highlight'); setTimeout(() => row.classList.remove('row-highlight'), 2000); }
+      else { state.filters = { frente:'all', status:'all', responsavel:'all', search:'' }; state.collapsedGroups = {}; renderContent(); setTimeout(() => { const r = document.getElementById('row-' + depId); if (r) { r.scrollIntoView({ behavior:'smooth', block:'center' }); r.classList.add('row-highlight'); } }, 100); }
+    });
+  });
+
+  // Progress cards in content
+  document.querySelectorAll('.progress-card').forEach(card => card.addEventListener('click', () => { state.filters.frente = card.dataset.frente; renderContent(); }));
+
+  // Risk selects
+  document.querySelectorAll('.risk-status-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const risk = state.risks.find(r => r.id === sel.dataset.risk);
+      if (risk) { risk[sel.dataset.field] = sel.value; fbUpdateRisk(risk.id, { [sel.dataset.field]: sel.value }); renderContent(); }
+    });
+  });
+
+  // Add risk
+  document.getElementById('add-risk')?.addEventListener('click', () => {
+    const risco = prompt('Descricao do risco:'); if (!risco) return;
+    const impacto = prompt('Impacto:') || '', mitigacao = prompt('Mitigacao:') || '';
+    const nr = { id: 'R' + String(state.risks.length + 1).padStart(2, '0'), risco, impacto, mitigacao, frentes: [], severidade: 'media', status: 'aberto' };
+    state.risks.push(nr); fbSetRisk(nr); renderContent();
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+if (state.userName && FIREBASE_CONFIGURED) {
+  fbSeedDatabase();
+  initFirebase();
+}
+</script>
+</body>
+</html>
