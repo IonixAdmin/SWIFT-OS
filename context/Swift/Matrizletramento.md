@@ -1,6 +1,6 @@
 # Matriz de Letramento em IA — Swift
 
-> Ferramenta de diagnóstico e evolução para mapear a maturidade dos profissionais da Swift no uso de Inteligência Artificial. A matriz avalia cinco dimensões complementares em quatro níveis progressivos de proficiência.
+> Ferramenta de diagnóstico e evolução para mapear a maturidade dos profissionais da Swift no uso de Inteligência Artificial. A matriz avalia cinco dimensões complementares em cinco níveis progressivos de proficiência.
 
 ---
 
@@ -84,15 +84,29 @@ Profissionais com alto nível de maturidade no uso de IA, capazes de identificar
 
 ---
 
+### 🔴 Nível 5 — Expert
+
+Profissionais no mais alto nível de maturidade em IA dentro da organização. Usam IA como parte essencial e insubstituível do seu fluxo de trabalho, dominam aspectos técnicos e estratégicos, definem práticas de uso responsável para suas equipes e atuam como multiplicadores ativos da transformação em IA na Swift.
+
+| Dimensão | Descrição |
+|---|---|
+| **Utilização** | Utiliza IA como parte essencial do fluxo de trabalho. Constrói prompts complexos, itera até resultados de alta qualidade e ensina colegas a fazer o mesmo. |
+| **Dados** | Avalia quando um resultado da IA pode estar enviesado por limitações nos dados e propõe melhorias na coleta e organização de dados da área. |
+| **Governança** | Verifica política interna e avalia riscos de privacidade antes de qualquer uso. Consegue explicar resultados com rastreabilidade completa e aponta limitações. Orienta colegas sobre o tema. |
+| **Impacto no Negócio** | Estrutura business cases com métricas de impacto e enxerga IA como vantagem competitiva estratégica para a Swift. |
+| **Cultura** | Multiplicador ativo — atua para disseminar o uso de IA na área, ajuda colegas em tarefas concretas e lidera a transformação organizacional. |
+
+---
+
 ## Visão consolidada
 
-| Dimensão | Iniciante | Básico | Intermediário | Avançado |
-|---|---|---|---|---|
-| **Utilização** | Não usa IA | Uso pontual e operacional | Uso regular com prompts eficientes | Uso estratégico para decisões complexas |
-| **Dados** | Desconhece a relação dados ↔ IA | Sabe que dados são importantes | Compreende qualidade e organização | Domina preparação e aplicação em modelos |
-| **Governança** | Sem conhecimento | Noções básicas de uso responsável | Entende princípios e boas práticas | Aplica governança, ética e compliance |
-| **Impacto** | Não identifica oportunidades | Identifica casos simples | Sugere melhorias em processos | Estrutura business cases |
-| **Cultura** | Curiosidade inicial | Interesse ativo em aprender | Incentivador na equipe | Agente de transformação |
+| Dimensão | Iniciante | Básico | Intermediário | Avançado | Expert |
+|---|---|---|---|---|---|
+| **Utilização** | Não usa IA | Uso pontual e operacional | Uso regular com prompts eficientes | Uso estratégico para decisões complexas | IA como fluxo essencial — constrói, itera e ensina |
+| **Dados** | Desconhece a relação dados ↔ IA | Sabe que dados são importantes | Compreende qualidade e organização | Domina preparação e aplicação em modelos | Avalia viés e melhora infraestrutura de dados da área |
+| **Governança** | Sem conhecimento | Noções básicas de uso responsável | Entende princípios e boas práticas | Aplica governança, ética e compliance | Define políticas, garante rastreabilidade e orienta a equipe |
+| **Impacto** | Não identifica oportunidades | Identifica casos simples | Sugere melhorias em processos | Estrutura business cases | Visão estratégica — IA como vantagem competitiva |
+| **Cultura** | Curiosidade inicial | Interesse ativo em aprender | Incentivador na equipe | Agente de transformação | Multiplicador ativo da transformação em IA |
 
 ---
 

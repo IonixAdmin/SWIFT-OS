@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Pesquisa de Maturidade em IA — Swift v4</title>
+<title>Pesquisa de Maturidade em IA — Swift Final</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -28,9 +28,11 @@ body { font-family: 'Inter', sans-serif; margin: 0; }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 .drawer-panel { animation: slideIn 0.3s ease; }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
 </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -113,24 +115,25 @@ function getNivel(score) {
 }
 
 // ─── CLUSTER QUESTIONS ───
-const CLUSTER_QUESTIONS = ['U4','D2','G4','I2'];
+const CLUSTER_QUESTIONS = ['U4','D2','G2','G4','G5','I2','I5'];
 
 // ─── SCORE MAP ───
 const SCORE_MAP = {
   Utilizacao: ['U1','U2','U3','U4'],
   Dados: ['D1','D2','D3','D4'],
-  Governanca: ['G1','G2','G3','G4'],
+  Governanca: ['G1','G2','G3','G4','G5'],
   Impacto: ['I1','I2','I3','I4'],
   Cultura: ['C1','C2','C3','C4']
 };
 
 // ─── FASE META ───
 const FASE_META = {
-  '0':         { nome: 'Fase 0 — Identificação',             desc: '1 pergunta | CPF para cruzamento com RH',                 cor: '#94A3B8', icon: 'I' },
+  '0':         { nome: 'Fase 0 — Identificação',             desc: '2 perguntas | CPF + Curso de IA',                          cor: '#94A3B8', icon: 'I' },
   '1':         { nome: 'Fase 1 — Maturidade (Tronco Comum)', desc: '16 perguntas | Compartilhadas por todos',                 cor: '#3B82F6', icon: 'T' },
-  '1-cluster': { nome: 'Fase 1C — Maturidade (Cluster)',     desc: '4 perguntas | Versões específicas por cluster',            cor: '#8B5CF6', icon: 'C' }
+  '1-cluster': { nome: 'Fase 1C — Maturidade (Cluster)',     desc: 'Exec: 4 perguntas | Gestão: 7 perguntas',                 cor: '#8B5CF6', icon: 'C' },
+  '2':         { nome: 'Fase 2 — Perguntas Abertas',          desc: '3 perguntas | A1 obrigatória, A2-A3 opcionais',           cor: '#6366F1', icon: 'A' }
 };
-const FASE_ORDER = ['0','1','1-cluster'];
+const FASE_ORDER = ['0','1','1-cluster','2'];
 
 // ─── SUPOSIÇÕES ───
 const SUPOSICOES = [
@@ -271,12 +274,17 @@ const CERTEZAS = [
     importa:'Saber quem já conhece essas ferramentas ajuda a calibrar o ponto de partida das trilhas práticas.' }
 ];
 
-// ─── PERGUNTAS V4 ───
+// ─── PERGUNTAS V5 ───
 const PERGUNTAS = [
   // ── Fase 0: Identificação ──
   { id:'Q1', fase:'0', dimensao:'infra', tipo:'Texto', scoring:'Nenhum', texto:'CPF',
     textoCompleto:'CPF',
     opcoes: null, hipoteses:[], importa:null },
+
+  { id:'Q2', fase:'0', dimensao:'infra', tipo:'Likert', scoring:'Nenhum', texto:'Curso ou capacitação sobre IA',
+    textoCompleto:'Você está fazendo ou já fez algum curso ou capacitação sobre Inteligência Artificial?',
+    opcoes: ['Não, nunca fiz','Estou aprendendo por conta própria (vídeos, artigos, tutoriais)','Sim, fiz um curso online (ex: Coursera, Udemy, Alura)','Sim, fiz um curso formal presencial ou da empresa','Sim, já fiz mais de um curso e continuo me atualizando'],
+    hipoteses:['S11','S12'], importa:'Identifica champions e segmenta respondentes por nível de investimento em aprendizado.' },
 
   // ── Fase 1: Maturidade (Tronco Comum) — Utilização ──
   { id:'U1', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Frequência de uso de IA no trabalho',
@@ -287,9 +295,9 @@ const PERGUNTAS = [
     textoCompleto:'Quando você usa IA para gerar um texto, análise ou resposta, como você lida com o resultado?',
     opcoes: ['Não uso IA para isso','Aceito o resultado como está','Leio e faço pequenos ajustes','Avalio criticamente e reformulo o que for necessário','Itero com novos prompts até chegar num resultado de alta qualidade'],
     hipoteses:['S4','S13','DV4'], importa:'Avalia pensamento crítico e profundidade de uso. Distingue aceitação cega de iteração consciente.' },
-  { id:'U3', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Capacidade de escrever bons prompts',
-    textoCompleto:'Como você avalia sua capacidade de escrever bons prompts (instruções para a IA)?',
-    opcoes: ['Não sei o que é um prompt','Escrevo instruções simples e curtas','Consigo dar contexto e especificar o formato da resposta','Uso técnicas como exemplos, persona e restrições para refinar resultados','Construo prompts complexos com cadeia de raciocínio e consigo resultados consistentes'],
+  { id:'U3', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Scored', texto:'Familiaridade com o conceito de prompt',
+    textoCompleto:'O quão familiarizado você está com o conceito de prompt e as práticas envolvidas?',
+    opcoes: ['Não sei o que é um prompt','Sei o que é, mas só escrevo instruções simples','Consigo dar contexto, especificar formato e usar exemplos','Uso técnicas como persona, restrições e cadeia de raciocínio','Construo prompts complexos e ensino colegas a fazer o mesmo'],
     hipoteses:['S4','S13'], importa:'Mede a habilidade técnica central da utilização de IA. Prompt engineering é o skill mais transferível entre ferramentas.' },
 
   // ── Fase 1-cluster: U4 (Execução) ──
@@ -304,6 +312,12 @@ const PERGUNTAS = [
     opcoes: ['Menos de 10%','10-25%','25-50%','50-75%','Mais de 75%'],
     hipoteses:['S1'], importa:'Mede percepção da adoção no time do gestor. Indica nível de liderança e incentivo à adoção.' },
 
+  // ── Fase 1: Utilização — U5 (barreira, não scored) ──
+  { id:'U5', fase:'1', dimensao:'Utilizacao', tipo:'Likert', scoring:'Nenhum', texto:'Maior barreira para usar mais IA',
+    textoCompleto:'Qual é a sua maior barreira para usar mais IA no trabalho?',
+    opcoes: ['Não vejo aplicação no que faço','Não sei por onde começar','Não sei se posso usar (dúvida sobre permissão/política)','Falta de ferramentas aprovadas pela empresa','Medo de errar ou gerar problemas','Falta de tempo','Já uso bastante, não tenho barreiras'],
+    hipoteses:['S5','S12'], importa:'Nova na V5. Inclui opção "Não sei se posso". Análise qualitativa, não entra no score.' },
+
   // ── Fase 1: Maturidade (Tronco Comum) — Dados ──
   { id:'D1', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Entendimento de como a IA funciona',
     textoCompleto:'Qual afirmação melhor descreve seu entendimento sobre como a IA funciona?',
@@ -313,9 +327,9 @@ const PERGUNTAS = [
     textoCompleto:'Você consegue identificar problemas de qualidade nos dados que sua área gera ou utiliza?',
     opcoes: ['Nunca pensei sobre isso','Sei que dados podem ter problemas, mas não sei identificá-los','Identifico problemas óbvios como campos vazios ou duplicados','Consigo avaliar consistência, atualização e confiabilidade dos dados','Proponho melhorias na coleta e organização de dados da minha área'],
     hipoteses:['S14'], importa:'Mede capacidade prática de avaliar qualidade de dados. Essencial para uso responsável de IA com dados reais.' },
-  { id:'D4', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Atribuição quando IA erra',
-    textoCompleto:'Quando uma ferramenta de IA dá uma resposta errada ou estranha, a que você atribui o problema?',
-    opcoes: ['Não sei explicar','Acho que a IA "errou"','Desconfio que minha instrução não foi boa o suficiente','Considero que pode ser limitação dos dados ou do modelo','Avalio se é problema do prompt, dos dados, do modelo ou do contexto antes de tentar de novo'],
+  { id:'D4', fase:'1', dimensao:'Dados', tipo:'Likert', scoring:'Scored', texto:'Como você interpreta um resultado inesperado da IA',
+    textoCompleto:'Quando uma ferramenta de IA gera um resultado diferente do que você esperava, qual costuma ser sua primeira reação?',
+    opcoes: ['Não costumo pensar sobre isso','Geralmente acho que a ferramenta não funcionou bem','Penso se eu poderia ter dado uma instrução mais clara','Considero que pode ter relação com os dados ou limitações do modelo','Analiso o que pode ter influenciado — minha instrução, os dados, o modelo ou o contexto — antes de tentar de novo'],
     hipoteses:['S13'], importa:'Mede sofisticação na atribuição de causa. Distingue "IA errou" de análise multicausal.' },
 
   // ── Fase 1-cluster: D2 (Execução) ──
@@ -335,26 +349,34 @@ const PERGUNTAS = [
     textoCompleto:'Se você precisasse usar IA para analisar dados de clientes da Swift, qual seria sua primeira preocupação?',
     opcoes: ['Não saberia por onde começar','Se a IA daria a resposta certa','Se os dados poderiam ser expostos ou usados para treinar o modelo','Se existe uma política interna aprovada para esse tipo de uso','Verificaria a política interna E avaliaria o risco de privacidade antes de prosseguir'],
     hipoteses:['S10'], importa:'Mede consciência de governança e privacidade em contexto prático. Diferencia preocupação com acurácia de preocupação com compliance.' },
-  { id:'G2', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', texto:'Conhecimento sobre dados que não devem ir para IA',
+  { id:'G3', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', texto:'Explicabilidade dos resultados da IA',
+    textoCompleto:'Se alguém te pedisse para explicar como a IA chegou em determinado resultado, você conseguiria?',
+    opcoes: ['Não, não saberia explicar','Diria apenas que "a IA gerou"','Explicaria de forma geral o que pedi e o que recebi','Explicaria o processo: qual dado usei, que prompt fiz e por que confio no resultado','Explicaria com rastreabilidade completa e saberia apontar limitações do resultado'],
+    hipoteses:['S10','S16'], importa:'Mede capacidade de explicar e rastrear o raciocínio da IA. Nova pergunta V5 sobre explicabilidade.' },
+
+  // ── Fase 1-cluster: G2 (Execução) — Verificação entrada/saída ──
+  { id:'G2', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Verificação de dados e resultados no uso de IA',
+    textoCompleto:'Quando você usa IA no trabalho, como você lida com a verificação dos dados e resultados?',
+    opcoes: ['Não verifico — confio no que a IA entrega','Dou uma olhada rápida, mas não confiro com profundidade','Verifico o resultado final antes de usar, mas não os dados de entrada','Verifico tanto os dados que envio quanto o resultado que recebo','Verifico entrada e saída, cruzo com outras fontes e documento o processo'],
+    hipoteses:['S10','S13'], importa:'Merge Q17+Q22+Q27. Verifica responsabilidade no uso.' },
+
+  // ── Fase 1-cluster: G2 (Gestão) — Info sensível ──
+  { id:'G2', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Conhecimento sobre dados que não devem ir para IA',
     textoCompleto:'Você sabe dizer quais tipos de informação da Swift NÃO devem ser inseridos em ferramentas de IA públicas?',
     opcoes: ['Nunca pensei sobre isso','Imagino que dados de clientes não devem, mas não tenho certeza','Sei que dados pessoais e financeiros não devem ser compartilhados','Conheço as categorias de dados sensíveis e sei distinguir o que pode ou não ser usado','Conheço as diretrizes da empresa e oriento colegas sobre o tema'],
-    hipoteses:['S10'], importa:'Mede conhecimento prático de classificação de dados. Risco direto de compliance se o nível for baixo.' },
-  { id:'G3', fase:'1', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', texto:'Conhecimento sobre viés e alucinação',
-    textoCompleto:'Como você avalia seu conhecimento sobre os riscos de viés e alucinação em ferramentas de IA?',
-    opcoes: ['Não sei o que são esses conceitos','Já ouvi falar, mas não saberia explicar','Entendo o conceito e sei que a IA pode gerar informações incorretas','Sei identificar quando um resultado pode estar enviesado ou inventado','Aplico rotinas de verificação e sei quando não confiar nos resultados da IA'],
-    hipoteses:['S10','S16'], importa:'Mede letramento em riscos sofisticados de IA. Viés e alucinação são riscos invisíveis para quem não os conhece.' },
+    hipoteses:['S10'], importa:'Info sensível — mantida apenas para gestão na V5.' },
 
-  // ── Fase 1-cluster: G4 (Execução) ──
-  { id:'G4', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Execucao', texto:'Orientação a colega sobre usar IA para decisão',
-    textoCompleto:'Se um colega te perguntasse "posso usar a IA para tomar essa decisão?", o que você responderia?',
-    opcoes: ['Não saberia orientar','Diria para usar com cuidado','Perguntaria que tipo de decisão e quais dados estão envolvidos','Avaliaria risco, reversibilidade e compliance antes de recomendar','Orientaria com base em critérios claros de governança e indicaria as diretrizes internas'],
-    hipoteses:['S15'], importa:'Mede capacidade de aplicar governança no dia a dia, orientando pares.' },
+  // ── Fase 1-cluster: G4 (Gestão) — Consciência de mecanismos de governança ──
+  { id:'G4', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Consciência dos mecanismos de governança de IA',
+    textoCompleto:'Qual frase melhor descreve sua consciência sobre os mecanismos de governança de IA na Swift?',
+    opcoes: ['Não sei se existem mecanismos de governança para IA','Sei que deve existir algo, mas nunca procurei saber','Conheço algumas diretrizes gerais da empresa sobre o tema','Tenho plena consciência dos mecanismos e sei como se aplicam ao meu trabalho','Conheço profundamente, ajudo a definir e oriento minha equipe sobre eles'],
+    hipoteses:['S15','S17'], importa:'Reformulada ex-Q58 (viés algorítmico) para consciência de governança real.' },
 
-  // ── Fase 1-cluster: G4 (Gestão) ──
-  { id:'G4', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Definição de orientações sobre uso de IA na área',
+  // ── Fase 1-cluster: G5 (Gestão) — Orientações para equipe ──
+  { id:'G5', fase:'1-cluster', dimensao:'Governanca', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Definição de orientações sobre uso de IA na área',
     textoCompleto:'Na sua área, você já definiu orientações específicas sobre como a equipe deve usar ferramentas de IA?',
     opcoes: ['Não','Não, mas pretendo fazer','Sim, orientações informais/verbais','Sim, com diretrizes documentadas','Sim, com diretrizes documentadas e monitoramento de conformidade'],
-    hipoteses:['S15'], importa:'Mede se o gestor já traduziu governança em ações concretas para sua equipe.' },
+    hipoteses:['S15'], importa:'Se o gestor já traduziu governança em ações concretas.' },
 
   // ── Fase 1: Maturidade (Tronco Comum) — Impacto ──
   { id:'I1', fase:'1', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', texto:'Identifica processos melhoráveis com IA',
@@ -376,11 +398,17 @@ const PERGUNTAS = [
     opcoes: ['Não saberia montar uma proposta','Daria uma ideia genérica em conversa informal','Escreveria uma descrição do problema e da solução proposta','Montaria uma proposta com problema, solução, benefícios e riscos','Estruturaria um business case com métricas, esforço estimado e critérios de sucesso'],
     hipoteses:['S6','S7','S8','S9','DV8'], importa:'Mede capacidade de estruturar propostas concretas no cluster Execução.' },
 
-  // ── Fase 1-cluster: I2 (Gestão) ──
-  { id:'I2', fase:'1-cluster', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Como avalia se vale investir em ideia de IA',
-    textoCompleto:'Quando surge uma ideia de uso de IA na sua área, como você avalia se vale a pena investir?',
-    opcoes: ['Não costumo avaliar — se parece bom, tento fazer','Penso no tempo que economizaria, mas sem medir','Avalio se resolve um problema real e se o time consegue executar','Comparo impacto esperado, esforço de implementação e riscos','Uso critérios formais de priorização com métricas e alinhamento estratégico'],
-    hipoteses:['S6','S7','S8','S9','DV8'], importa:'Mede maturidade no processo de priorização. Escala vai de decisão intuitiva até framework formal com métricas e alinhamento estratégico.' },
+  // ── Fase 1-cluster: I2 (Gestão) — Business case ──
+  { id:'I2', fase:'1-cluster', dimensao:'Impacto', tipo:'Likert', scoring:'Scored', cluster:'Gestao', texto:'Avaliar indicadores e business case de IA',
+    textoCompleto:'Você é capaz de avaliar indicadores e variáveis que justifiquem o investimento em uma iniciativa de IA?',
+    opcoes: ['Não, nunca pensei nisso','Tenho noção intuitiva mas não sei estruturar','Consigo identificar os indicadores relevantes (tempo, custo, qualidade)','Sei montar um business case básico com métricas de antes e depois','Estruturo business cases completos com ROI, riscos e critérios de sucesso'],
+    hipoteses:['S6','S8'], importa:'Nova na V5. Avalia capacidade de justificar investimento com indicadores concretos.' },
+
+  // ── Fase 1-cluster: I5 (Gestão) — Priorização checkbox ──
+  { id:'I5', fase:'1-cluster', dimensao:'Impacto', tipo:'Checkbox', scoring:'Nenhum', cluster:'Gestao', texto:'Critérios de priorização de projetos de IA',
+    textoCompleto:'Se você pudesse escolher projetos de IA para sua área, quais critérios usaria para priorizar?',
+    opcoes: ['Eficiência operacional / produtividade','Economia de custo imediata','Melhoria da experiência do cliente','Geração de receita nova ou diferenciação','O que o time mais pede','Pedido ou direcionamento da diretoria','Não saberia como priorizar'],
+    hipoteses:['S6','S7','S8'], importa:'Nova V5. Checkbox com múltipla escolha. Inclui eficiência e pedido da diretoria. Não entra no score — análise de perfil decisório.' },
 
   // ── Fase 1: Maturidade (Tronco Comum) — Cultura ──
   { id:'C1', fase:'1', dimensao:'Cultura', tipo:'Likert', scoring:'Scored', texto:'Compartilhou aprendizado de IA nos últimos 30 dias',
@@ -399,6 +427,17 @@ const PERGUNTAS = [
     textoCompleto:'Qual papel você sente que exerce hoje na adoção de IA dentro da Swift?',
     opcoes: ['Nenhum, não é meu tema','Observador — acompanho de longe','Participante — uso quando aparece oportunidade','Incentivador — recomendo e ajudo colegas','Multiplicador — atuo ativamente para disseminar o uso de IA na minha área'],
     hipoteses:['S11','S12'], importa:'Autoavaliação de papel na transformação. Identifica a curva de difusão de inovação dentro da Swift.' },
+
+  // ── Fase 2: Perguntas Abertas ──
+  { id:'A1', fase:'2', dimensao:'Impacto', tipo:'Aberta', scoring:'Nenhum', texto:'Tarefa que gostaria de automatizar',
+    textoCompleto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?',
+    opcoes: null, hipoteses:['DV2'], importa:'Alimenta backlog da esteira com oportunidades reais de automação identificadas pelos próprios colaboradores. Obrigatória.' },
+  { id:'A2', fase:'2', dimensao:'Utilizacao', tipo:'Aberta', scoring:'Nenhum', texto:'Experiência negativa com IA',
+    textoCompleto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?',
+    opcoes: null, hipoteses:['DV5','S13'], importa:'Identifica frustrações reais e barreiras práticas. Alimenta o design da capacitação com casos concretos de falha.' },
+  { id:'A3', fase:'2', dimensao:'Cultura', tipo:'Aberta', scoring:'Nenhum', texto:'Espaço livre sobre IA',
+    textoCompleto:'Compartilhe livremente: uma experiência com IA (boa ou ruim), uma preocupação, uma sugestão, ou qualquer coisa que gostaria de dizer.',
+    opcoes: null, hipoteses:[], importa:'Captura insights não estruturados, preocupações e sugestões que não foram cobertas pelas perguntas fechadas.' },
 
 ];
 
@@ -425,7 +464,7 @@ function Header({ dark, toggleDark }) {
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-extrabold tracking-tight">Pesquisa de Maturidade em IA — Swift v4</h1>
+          <h1 className="text-lg font-extrabold tracking-tight">Pesquisa de Maturidade em IA — Swift Final</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">Design doc interativo | IONIX</p>
         </div>
         <button
@@ -444,7 +483,7 @@ function Header({ dark, toggleDark }) {
   );
 }
 
-const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Clusters'];
+const TABS = ['Visão Geral','Matriz','Hipóteses','Perguntas','Scoring','Clusters','Adoção','Alterações'];
 
 function TabNav({ active, onChange }) {
   return (
@@ -499,26 +538,28 @@ function VisaoGeral({ onNavigate }) {
   ];
 
   const kpis = [
-    { label:'Perguntas', value:'21', detail:'CPF + 20 dimensionais' },
-    { label:'Scored', value:'20', detail:'entram no cálculo de maturidade' },
+    { label:'Perguntas Exec', value:'26', detail:'CPF + Q2 + 20 scored + U5 + 3 abertas (A1-A3)' },
+    { label:'Perguntas Gestão', value:'31', detail:'CPF + Q2 + 20 scored + U5 + I5 + G4 + G5 + 3 abertas (A1-A3)' },
     { label:'Dimensões', value:'5', detail:'Utilização, Dados, Governança, Impacto, Cultura' },
     { label:'Níveis', value:'4', detail:'Iniciante → Básico → Intermediário → Avançado' },
-    { label:'Clusters', value:'2', detail:'Execução + Gestão' },
+    { label:'Clusters', value:'2', detail:'Execução (reduzido) + Gestão (expandido)' },
     { label:'Suposições', value:'17', detail:'hipóteses a validar com a pesquisa' }
   ];
 
   const changes = [
-    'Somente CPF + 20 perguntas de dimensão (sem Q6, sem mapa de uso, sem controle, sem abertas)',
-    'IDs dimensionais: U1-U4, D1-D4, G1-G4, I1-I4, C1-C4',
-    'Todas as 20 perguntas usam escala progressiva unificada (5 opções → score 1 a 5)',
-    '16 perguntas no tronco comum + 4 com versões Execução/Gestão (U4, D2, G4, I2)',
-    'Cultura: todas as 4 perguntas são shared (sem versão cluster)'
+    'Opções scored convertidas para objetos {text, score} — score viaja com a resposta, independente da posição de exibição',
+    'Embaralhamento aleatório (Fisher-Yates) a cada acesso — ordem diferente para cada respondente e sessão',
+    'Saída dupla no Google Sheets: cada resposta scored gera ID (texto) + ID_score (número)',
+    'U5 (barreira) e I5 (priorização) mantidos como strings — sem score, sem embaralhamento',
+    'Eliminação de acquiescence bias — respondente não consegue decorar posição da resposta "certa"',
+    'Google Apps Script não precisa de alteração — achatamento {text,score} feito no formulário antes do envio',
+    'Perguntas, textos, IDs, scores e hipóteses CSD idênticos à V5 — comparabilidade total'
   ];
 
   const pipeline = [
-    { label:'Fase 0 — Identificação', desc:'CPF para cruzamento com RH', cor:'#94A3B8' },
+    { label:'Fase 0 — Identificação', desc:'CPF + Curso de IA', cor:'#94A3B8' },
     { label:'Fase 1 — Tronco Comum', desc:'16 perguntas shared (todas as dimensões)', cor:'#3B82F6' },
-    { label:'Fase 1C — Cluster', desc:'4 perguntas com versões Execução ou Gestão', cor:'#8B5CF6' }
+    { label:'Fase 1C — Cluster', desc:'Exec: 4 perguntas | Gestão: 7 perguntas', cor:'#8B5CF6' }
   ];
 
   return (
@@ -551,9 +592,9 @@ function VisaoGeral({ onNavigate }) {
         </div>
       </section>
 
-      {/* V3→V4 Changes */}
+      {/* V4→V5 Changes */}
       <section>
-        <h2 className="text-lg font-bold mb-4">Mudanças V3 → V4</h2>
+        <h2 className="text-lg font-bold mb-4">Mudanças V4 → V5</h2>
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-800">
           <div className="space-y-2">
             {changes.map((c,i) => (
@@ -1059,7 +1100,7 @@ function PerguntasView({ onOpenDrawer }) {
 
   return (
     <div className="fade-in space-y-6">
-      <h2 className="text-lg font-bold">Perguntas V4</h2>
+      <h2 className="text-lg font-bold">Perguntas V5</h2>
 
       <div className="flex gap-2 mb-4">
         <button onClick={() => {setPerfilTab('execucao');setFilterFase('Todas');}} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${perfilTab==='execucao'?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
@@ -1209,8 +1250,8 @@ function ScoringView() {
           </div>
 
           <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800">
-            <h4 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">Escala Unificada (V4)</h4>
-            <p className="text-sm text-emerald-800 dark:text-emerald-300 mb-3">Na V4, todas as 20 perguntas scored usam a mesma escala progressiva. Não há mais cenários comportamentais ou escalas invertidas. Cada dimensão tem exatamente 4 itens (3 shared + 1 cluster-specific).</p>
+            <h4 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">Escala Unificada (V5)</h4>
+            <p className="text-sm text-emerald-800 dark:text-emerald-300 mb-3">Na V5, todas as 20 perguntas scored usam a mesma escala progressiva. Não há mais cenários comportamentais ou escalas invertidas. Cada dimensão tem exatamente 4 itens (3 shared + 1 cluster-specific).</p>
             <div className="text-xs text-emerald-600 dark:text-emerald-400">Benefício: scoring transparente, comparável entre dimensões, fácil de explicar ao Comitê de IA.</div>
           </div>
 
@@ -1242,7 +1283,7 @@ function ScoringView() {
       {/* TAB: Conversão */}
       {scoreTab === 'conversao' && (
         <div className="space-y-6 fade-in">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Na V4, todas as 20 perguntas scored usam a mesma tabela de conversão progressiva.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Na V5, todas as 20 perguntas scored usam a mesma tabela de conversão progressiva.</p>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <h4 className="font-semibold text-sm mb-3">Escala Progressiva Unificada (20 itens)</h4>
@@ -1384,28 +1425,42 @@ function ScoringView() {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               {simQuestions.map(q => (
-                <div key={q.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700/50">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-xs font-mono font-bold text-gray-400 shrink-0">{q.id}</span>
-                    <span className="text-sm truncate">{q.texto}</span>
-                    {q.cluster && <Badge text="Cluster" color="#8B5CF6" small/>}
+                <div key={q.id} className="border border-gray-100 dark:border-gray-700 rounded-xl p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <span className="text-xs font-mono font-bold text-gray-400 shrink-0 mt-0.5">{q.id}</span>
+                    <div className="flex-1 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{q.texto}</span>
+                      {q.cluster && <Badge text="Cluster" color="#8B5CF6" small/>}
+                    </div>
+                    {simAnswers[q.id] !== undefined && (
+                      <div className="text-xs font-bold shrink-0 px-2 py-1 rounded-lg font-mono"
+                        style={{backgroundColor: LEVEL_COLORS[`N${simAnswers[q.id]}`]+'25', color: LEVEL_COLORS[`N${simAnswers[q.id]}`]}}>
+                        N{simAnswers[q.id]} = {simAnswers[q.id]}
+                      </div>
+                    )}
                   </div>
-                  <div className="shrink-0 flex gap-1">
-                    {[1,2,3,4,5].map(o => (
-                      <button
-                        key={o}
-                        onClick={() => setSimAnswers(prev => ({...prev, [q.id]:o}))}
-                        className={`w-8 h-8 rounded-lg text-xs font-bold transition ${simAnswers[q.id]===o ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                      >
-                        {o}
-                      </button>
-                    ))}
-                  </div>
-                  {simAnswers[q.id] !== undefined && (
-                    <div className="text-xs text-gray-500 shrink-0 w-16 text-right font-mono">
-                      = {PROGRESSIVE_SCALE.find(c=>c.r===simAnswers[q.id])?.s.toFixed(1) || '?'}
+                  {q.opcoes && (
+                    <div className="space-y-1">
+                      {q.opcoes.map((op, i) => {
+                        const val = i + 1;
+                        const isSelected = simAnswers[q.id] === val;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => setSimAnswers(prev => ({...prev, [q.id]: val}))}
+                            className={`w-full text-left text-xs px-3 py-2 rounded-lg transition flex items-center gap-2 border ${
+                              isSelected
+                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 text-blue-800 dark:text-blue-300'
+                                : 'bg-gray-50 dark:bg-gray-700/50 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300 dark:border-gray-500 text-gray-400'}`}>{val}</span>
+                            <span>{op}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1432,21 +1487,21 @@ function ClustersView({ onOpenDrawer }) {
           <div className="w-full max-w-lg rounded-xl p-4 text-center" style={{backgroundColor:'#3B82F620', border:'2px solid #3B82F640'}}>
             <div className="font-bold text-blue-600 mb-1">Tronco Comum</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">16 perguntas shared respondidas por TODOS</div>
-            <div className="text-xs text-gray-400 mt-1">U1, U2, U3, D1, D3, D4, G1, G2, G3, I1, I3, I4, C1, C2, C3, C4</div>
+            <div className="text-xs text-gray-400 mt-1">U1, U2, U3, U5, D1, D3, D4, G1, G3, I1, I3, I4, C1, C2, C3, C4</div>
           </div>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 14l6 6 6-6" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/></svg>
           <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
             <div className="rounded-xl p-4 text-center" style={{backgroundColor:'#3B82F620', border:'2px solid #3B82F6'}}>
               <div className="font-bold text-blue-600 mb-1">Cluster Execução</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Assistentes, Analistas, Especialistas, Coordenadores</div>
-              <div className="text-xs font-mono text-blue-500">U4, D2, G4, I2</div>
+              <div className="text-xs font-mono text-blue-500">U4, D2, G2, I2</div>
               <div className="text-[10px] text-gray-400 mt-1">4 perguntas específicas</div>
             </div>
             <div className="rounded-xl p-4 text-center" style={{backgroundColor:'#8B5CF620', border:'2px solid #8B5CF6'}}>
               <div className="font-bold text-purple-600 mb-1">Cluster Gestão</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Gerentes, Diretores</div>
-              <div className="text-xs font-mono text-purple-500">U4, D2, G4, I2</div>
-              <div className="text-[10px] text-gray-400 mt-1">4 perguntas específicas</div>
+              <div className="text-xs font-mono text-purple-500">U4, D2, G2, G4, G5, I2, I5</div>
+              <div className="text-[10px] text-gray-400 mt-1">7 perguntas específicas</div>
             </div>
           </div>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 14l6 6 6-6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -1457,49 +1512,64 @@ function ClustersView({ onOpenDrawer }) {
         </div>
       </div>
 
-      <h3 className="font-semibold">Comparação das 4 perguntas cluster-specific</h3>
+      <h3 className="font-semibold">Comparação das perguntas cluster-specific</h3>
       <div className="space-y-4">
         {CLUSTER_QUESTIONS.map(qId => {
           const execQ = PERGUNTAS.find(q => q.id === qId && q.cluster === 'Execucao');
           const gestaoQ = PERGUNTAS.find(q => q.id === qId && q.cluster === 'Gestao');
-          if (!execQ || !gestaoQ) return null;
-          const dimColor = DIM_COLORS[execQ.dimensao] || '#6B7280';
+          if (!execQ && !gestaoQ) return null;
+          const refQ = execQ || gestaoQ;
+          const dimColor = DIM_COLORS[refQ.dimensao] || '#6B7280';
           return (
             <div key={qId} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 overflow-hidden" style={{borderLeftColor: dimColor}}>
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg font-mono font-extrabold" style={{color: dimColor}}>{qId}</span>
-                  <Badge text={execQ.dimensao} color={dimColor}/>
+                  <Badge text={refQ.dimensao} color={dimColor}/>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-lg p-3 border-2" style={{borderColor:'#3B82F660', backgroundColor:'#3B82F608'}}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge text="Execução" color="#3B82F6"/>
+                  {execQ && (
+                    <div className="rounded-lg p-3 border-2" style={{borderColor:'#3B82F660', backgroundColor:'#3B82F608'}}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge text="Execução" color="#3B82F6"/>
+                      </div>
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{execQ.textoCompleto}</div>
+                      <div className="space-y-1">
+                        {execQ.opcoes.map((op,i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#3B82F6', fontSize:'9px'}}>{i+1}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{op}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{execQ.textoCompleto}</div>
-                    <div className="space-y-1">
-                      {execQ.opcoes.map((op,i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                          <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#3B82F6', fontSize:'9px'}}>{i+1}</span>
-                          <span className="text-gray-600 dark:text-gray-400">{op}</span>
-                        </div>
-                      ))}
+                  )}
+                  {gestaoQ && (
+                    <div className="rounded-lg p-3 border-2" style={{borderColor:'#8B5CF660', backgroundColor:'#8B5CF608'}}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge text="Gestão" color="#8B5CF6"/>
+                      </div>
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{gestaoQ.textoCompleto}</div>
+                      <div className="space-y-1">
+                        {gestaoQ.opcoes.map((op,i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#8B5CF6', fontSize:'9px'}}>{i+1}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{op}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="rounded-lg p-3 border-2" style={{borderColor:'#8B5CF660', backgroundColor:'#8B5CF608'}}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge text="Gestão" color="#8B5CF6"/>
+                  )}
+                  {!execQ && (
+                    <div className="rounded-lg p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">Apenas Gestão</span>
                     </div>
-                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">{gestaoQ.textoCompleto}</div>
-                    <div className="space-y-1">
-                      {gestaoQ.opcoes.map((op,i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                          <span className="w-5 h-5 rounded flex items-center justify-center text-white font-bold shrink-0" style={{backgroundColor:'#8B5CF6', fontSize:'9px'}}>{i+1}</span>
-                          <span className="text-gray-600 dark:text-gray-400">{op}</span>
-                        </div>
-                      ))}
+                  )}
+                  {!gestaoQ && (
+                    <div className="rounded-lg p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">Apenas Execução</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1509,8 +1579,344 @@ function ClustersView({ onOpenDrawer }) {
 
       <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 border border-pink-200 dark:border-pink-800">
         <h4 className="font-bold text-pink-700 dark:text-pink-400 mb-1">Cultura: 100% Shared</h4>
-        <p className="text-sm text-pink-800 dark:text-pink-300">Na V4, todas as 4 perguntas de Cultura (C1-C4) são compartilhadas entre clusters. A dimensão Cultura mede comportamento organizacional que não varia por nível hierárquico — multiplicadores podem estar em qualquer nível.</p>
+        <p className="text-sm text-pink-800 dark:text-pink-300">Na V5, todas as 4 perguntas de Cultura (C1-C4) são compartilhadas entre clusters. A dimensão Cultura mede comportamento organizacional que não varia por nível hierárquico — multiplicadores podem estar em qualquer nível.</p>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// VIEW 7: ADOÇÃO (Curva de Rogers)
+// ═══════════════════════════════════════════
+
+const ROGERS_SEGMENTS = [
+  { id: 'innovators', nome: 'Inovadores', pctRef: 2.5, cor: '#8B5CF6',
+    desc: 'Aventureiros e experimentadores. Buscam tecnologia por conta própria, constroem prompts avançados, fazem cursos e ensinam colegas.',
+    perfil: 'Altamente proativos, tolerantes a risco, primeiros a testar qualquer ferramenta nova.',
+    criterios: 'U1=5 (uso essencial) + U3≥4 (prompt avançado) + Q2≥4 (curso formal) + C4="Multiplicador"',
+    perguntas: ['U1','U3','Q2','C3','C4'] },
+  { id: 'early_adopters', nome: 'Adotantes Iniciais', pctRef: 13.5, cor: '#3B82F6',
+    desc: 'Líderes de opinião. Usam IA regularmente, refinam resultados, incentivam pares e são referência na equipe.',
+    perfil: 'Respeitados pelos colegas, tomam decisões informadas, influenciam a adoção dos demais.',
+    criterios: 'U1≥4 (uso diário) + U2≥4 (avalia criticamente) + C1≥4 (compartilha em reunião/ajuda colega)',
+    perguntas: ['U1','U2','U3','C1','C2'] },
+  { id: 'early_majority', nome: 'Maioria Inicial', pctRef: 34, cor: '#10B981',
+    desc: 'Pragmáticos deliberados. Adotam quando veem evidência concreta de valor, mas precisam de tempo para decidir.',
+    perfil: 'Querem ter certeza antes de adotar. Seguem exemplos bem-sucedidos dos early adopters.',
+    criterios: 'U1=3 (uso semanal) + Score geral 2.5-3.5 + C2≥3 (participaria de capacitação)',
+    perguntas: ['U1','I4','C2','D1'] },
+  { id: 'late_majority', nome: 'Maioria Tardia', pctRef: 34, cor: '#F59E0B',
+    desc: 'Céticos cautelosos. Adotam por pressão social ou organizacional, não por convicção própria.',
+    perfil: 'Desconfiados, adotam só quando a maioria já usa. Precisam de suporte e evidências claras.',
+    criterios: 'U1=2 (experimentou mas não usa) + Score geral 1.5-2.5 + I4≤3',
+    perguntas: ['U1','U5','I4','G1'] },
+  { id: 'laggards', nome: 'Retardatários', pctRef: 16, cor: '#EF4444',
+    desc: 'Resistentes à mudança. Não veem valor na IA, preferem métodos tradicionais, adotam apenas quando obrigados.',
+    perfil: 'Orientados ao passado, desconfiados de inovação, último grupo a adotar — se adotarem.',
+    criterios: 'U1=1 (nunca usou) + I4≤2 (não vê relação) + C2≤2 (não participaria)',
+    perguntas: ['U1','I4','C2','U5'] }
+];
+
+// Simulated data for visualization (will be replaced with real data post-survey)
+const ROGERS_SIMULATED = {
+  innovators:      { pct: 5, n: 10, areas: ['TI','Dados','Marketing'], insight: 'Potenciais champions para a Germinare' },
+  early_adopters:  { pct: 15, n: 30, areas: ['TI','Comercial','Logística'], insight: 'Líderes de opinião — ativar como multiplicadores' },
+  early_majority:  { pct: 35, n: 69, areas: ['Todas'], insight: 'Maior grupo — precisam de evidência e trilha guiada' },
+  late_majority:   { pct: 30, n: 59, areas: ['Operações','Administrativo'], insight: 'Adotam se a liderança patrocinar e o processo for claro' },
+  laggards:        { pct: 15, n: 30, areas: ['Diversas'], insight: 'Não priorizar — focar energia nos 3 primeiros grupos' }
+};
+
+function AdocaoView() {
+  const [selectedSegment, setSelectedSegment] = useState(null);
+  const [showSimulated, setShowSimulated] = useState(true);
+
+  // Bell curve SVG points
+  const bellCurvePoints = (() => {
+    const width = 800;
+    const height = 280;
+    const points = [];
+    for (let x = 0; x <= width; x += 2) {
+      const t = (x / width) * 6 - 3;
+      const y = height - (Math.exp(-t * t / 2) / Math.sqrt(2 * Math.PI)) * height * 2.2 - 20;
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
+  })();
+
+  // Segment boundaries on the bell curve (cumulative percentages → x positions)
+  const segmentBounds = [
+    { start: 0, end: 2.5 },      // Innovators
+    { start: 2.5, end: 16 },     // Early Adopters
+    { start: 16, end: 50 },      // Early Majority
+    { start: 50, end: 84 },      // Late Majority
+    { start: 84, end: 100 }      // Laggards
+  ];
+
+  function pctToX(pct) { return (pct / 100) * 800; }
+
+  const totalN = Object.values(ROGERS_SIMULATED).reduce((a, s) => a + s.n, 0);
+
+  return (
+    <div className="fade-in space-y-8">
+      {/* Header */}
+      <section>
+        <h2 className="text-lg font-bold mb-2">Curva de Adoção de Rogers</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
+          Classificação dos colaboradores da Swift nos 5 segmentos da curva de difusão de inovação de Everett Rogers (1962).
+          Cada respondente é classificado com base na combinação de respostas sobre frequência de uso, profundidade, proatividade e engajamento com IA.
+        </p>
+      </section>
+
+      {/* Toggle simulated data */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowSimulated(!showSimulated)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            showSimulated
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+          }`}
+        >
+          {showSimulated ? '📊 Dados simulados ativos' : '📊 Mostrar dados simulados'}
+        </button>
+        <span className="text-xs text-gray-400">Simulação com base em ~198 colaboradores. Dados reais serão inseridos após a coleta.</span>
+      </div>
+
+      {/* Bell Curve Visualization */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 overflow-x-auto">
+        <h3 className="font-bold text-sm mb-4">Distribuição na Curva de Adoção</h3>
+        <div className="min-w-[800px]">
+          <svg viewBox="0 0 800 340" className="w-full">
+            {/* Background segments */}
+            {ROGERS_SEGMENTS.map((seg, i) => {
+              const b = segmentBounds[i];
+              const x1 = pctToX(b.start);
+              const x2 = pctToX(b.end);
+              const isSelected = selectedSegment === seg.id;
+              return (
+                <g key={seg.id}>
+                  <rect
+                    x={x1} y={20} width={x2 - x1} height={260}
+                    fill={seg.cor} opacity={isSelected ? 0.15 : 0.06}
+                    rx={0}
+                    className="cursor-pointer transition-all"
+                    onClick={() => setSelectedSegment(isSelected ? null : seg.id)}
+                  />
+                  {/* Vertical separator */}
+                  {i > 0 && <line x1={x1} y1={20} x2={x1} y2={280} stroke={seg.cor} strokeWidth="1" strokeDasharray="4,4" opacity="0.3"/>}
+                  {/* Label */}
+                  <text x={(x1 + x2) / 2} y={300} textAnchor="middle" className="text-[11px] font-semibold" fill={seg.cor}>
+                    {seg.nome}
+                  </text>
+                  <text x={(x1 + x2) / 2} y={316} textAnchor="middle" className="text-[10px]" fill="#94A3B8">
+                    {seg.pctRef}%
+                  </text>
+                  {/* Simulated percentage */}
+                  {showSimulated && (
+                    <text x={(x1 + x2) / 2} y={332} textAnchor="middle" className="text-[10px] font-bold" fill={seg.cor}>
+                      ({ROGERS_SIMULATED[seg.id].pct}% | n={ROGERS_SIMULATED[seg.id].n})
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+            {/* Bell curve line */}
+            <polyline points={bellCurvePoints} fill="none" stroke="#475569" strokeWidth="2.5" opacity="0.7"/>
+            {/* Colored curve segments */}
+            {ROGERS_SEGMENTS.map((seg, i) => {
+              const b = segmentBounds[i];
+              const x1 = pctToX(b.start);
+              const x2 = pctToX(b.end);
+              const segPoints = [];
+              for (let x = Math.floor(x1); x <= Math.ceil(x2); x += 2) {
+                const t = (x / 800) * 6 - 3;
+                const y = 280 - (Math.exp(-t * t / 2) / Math.sqrt(2 * Math.PI)) * 280 * 2.2 - 20;
+                segPoints.push(`${x},${y}`);
+              }
+              segPoints.push(`${Math.ceil(x2)},280`);
+              segPoints.push(`${Math.floor(x1)},280`);
+              return (
+                <polygon
+                  key={seg.id + '-fill'}
+                  points={segPoints.join(' ')}
+                  fill={seg.cor}
+                  opacity={selectedSegment === seg.id ? 0.35 : 0.12}
+                  className="cursor-pointer transition-all"
+                  onClick={() => setSelectedSegment(selectedSegment === seg.id ? null : seg.id)}
+                />
+              );
+            })}
+          </svg>
+        </div>
+      </section>
+
+      {/* Segment Cards */}
+      <section>
+        <h3 className="font-bold text-sm mb-4">Segmentos — Detalhe</h3>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {ROGERS_SEGMENTS.map(seg => {
+            const sim = ROGERS_SIMULATED[seg.id];
+            const isSelected = selectedSegment === seg.id;
+            return (
+              <button
+                key={seg.id}
+                onClick={() => setSelectedSegment(isSelected ? null : seg.id)}
+                className={`text-left rounded-xl p-4 border-2 transition-all ${
+                  isSelected
+                    ? 'shadow-lg scale-[1.02]'
+                    : 'shadow-sm hover:shadow-md'
+                } bg-white dark:bg-gray-800`}
+                style={{ borderColor: isSelected ? seg.cor : 'transparent' }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: seg.cor }}/>
+                  <span className="text-xs font-bold" style={{ color: seg.cor }}>{seg.nome}</span>
+                </div>
+                <div className="text-2xl font-extrabold" style={{ color: seg.cor }}>
+                  {showSimulated ? `${sim.pct}%` : `${seg.pctRef}%`}
+                </div>
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  {showSimulated ? `${sim.n} de ${totalN} pessoas` : `Referência Rogers`}
+                </div>
+                {showSimulated && (
+                  <div className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-2">
+                    {sim.insight}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Selected Segment Detail */}
+      {selectedSegment && (() => {
+        const seg = ROGERS_SEGMENTS.find(s => s.id === selectedSegment);
+        const sim = ROGERS_SIMULATED[selectedSegment];
+        return (
+          <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-2 p-6 fade-in" style={{ borderColor: seg.cor + '40' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: seg.cor }}>
+                {seg.nome.charAt(0)}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg" style={{ color: seg.cor }}>{seg.nome}</h3>
+                <p className="text-xs text-gray-500">{seg.pctRef}% referência Rogers {showSimulated ? `| ${sim.pct}% simulado Swift (n=${sim.n})` : ''}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Descrição</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{seg.desc}</p>
+                <h4 className="text-sm font-semibold mt-4 mb-2">Perfil</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{seg.perfil}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Critérios de Classificação (V5)</h4>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs font-mono text-gray-700 dark:text-gray-300">
+                  {seg.criterios}
+                </div>
+                <h4 className="text-sm font-semibold mt-4 mb-2">Perguntas-Chave</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {seg.perguntas.map(pId => (
+                    <span key={pId} className="px-2 py-1 rounded-md text-xs font-mono font-semibold" style={{ backgroundColor: seg.cor + '15', color: seg.cor }}>
+                      {pId}
+                    </span>
+                  ))}
+                </div>
+                {showSimulated && (
+                  <>
+                    <h4 className="text-sm font-semibold mt-4 mb-2">Áreas com maior concentração</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {sim.areas.map(a => (
+                        <span key={a} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs text-gray-600 dark:text-gray-300">{a}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Strategy Table */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 className="font-bold text-sm mb-4">Estratégia por Segmento</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Segmento</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">% Ref.</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Ação Recomendada</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Canal</th>
+                <th className="text-left py-2 px-3 font-semibold text-xs text-gray-500">Prioridade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { seg: ROGERS_SEGMENTS[0], acao: 'Ativar como Champions e multiplicadores via Germinare', canal: 'Germinare + Pod Volante', prio: 'Imediata' },
+                { seg: ROGERS_SEGMENTS[1], acao: 'Capacitar em prompt avançado, dados e business case. Tornar referência por área', canal: 'Workshops + Mentoria', prio: 'Imediata' },
+                { seg: ROGERS_SEGMENTS[2], acao: 'Trilha guiada com curadoria, ferramentas aprovadas e casos de sucesso internos', canal: 'Trilha Online + Peer Learning', prio: 'Alta' },
+                { seg: ROGERS_SEGMENTS[3], acao: 'Demonstrar valor com quick wins da própria área. Sponsor da liderança essencial', canal: 'Liderança + Showcases', prio: 'Média' },
+                { seg: ROGERS_SEGMENTS[4], acao: 'Não forçar. Incluir naturalmente quando o ambiente já estiver maduro', canal: 'Exposição indireta', prio: 'Baixa' }
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.seg.cor }}/>
+                      <span className="font-semibold text-xs" style={{ color: row.seg.cor }}>{row.seg.nome}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-xs text-gray-500">{row.seg.pctRef}%</td>
+                  <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300">{row.acao}</td>
+                  <td className="py-3 px-3 text-xs text-gray-500">{row.canal}</td>
+                  <td className="py-3 px-3">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      row.prio === 'Imediata' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      row.prio === 'Alta' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                      row.prio === 'Média' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>{row.prio}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Methodology */}
+      <section className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
+        <h3 className="font-bold text-sm mb-3">Metodologia — Curva de Adoção de Rogers</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700 dark:text-gray-300">
+          <div>
+            <p className="mb-3">
+              A <strong>Teoria da Difusão de Inovações</strong> (Everett Rogers, 1962) descreve como novas tecnologias são adotadas ao longo do tempo em uma população.
+              A distribuição segue uma curva normal dividida em 5 segmentos baseados em desvios-padrão.
+            </p>
+            <p className="mb-3">
+              <strong>5 fatores</strong> influenciam a velocidade de adoção: <em>Vantagem Relativa</em> (a IA é melhor que o método atual?),
+              <em>Compatibilidade</em> (encaixa no fluxo existente?), <em>Complexidade</em> (é fácil de usar?),
+              <em>Testabilidade</em> (posso experimentar antes?) e <em>Observabilidade</em> (os benefícios são visíveis?).
+            </p>
+          </div>
+          <div>
+            <p className="mb-3">
+              <strong>Na Swift:</strong> Classificamos cada respondente combinando respostas de múltiplas dimensões:
+              frequência de uso (U1), profundidade de prompt (U3), capacitação autônoma (Q2),
+              compartilhamento com pares (C1/C3/C4) e visão de valor (I4).
+            </p>
+            <p>
+              <strong>Objetivo:</strong> Identificar os <strong>Inovadores + Adotantes Iniciais (~16%)</strong> como potenciais
+              <strong> Champions</strong> para a Germinare, e entender o tamanho da <strong>Maioria Tardia + Retardatários (~50%)</strong>
+              para calibrar o esforço de change management.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1634,6 +2040,126 @@ function DrawerContent({ type, id, onNavigate, onOpenDrawer }) {
 }
 
 // ═══════════════════════════════════════════
+// VIEW 8: ALTERAÇÕES (V5 → Final)
+// ═══════════════════════════════════════════
+function AlteracoesView() {
+  const TIPO_COR = { 'Novo':'#10B981','Mantido':'#6B7280','Compatível':'#F59E0B','Comportamento':'#3B82F6' };
+  const categorias = [
+    {
+      titulo:'Metodologia de Resposta', cor:'#3B82F6',
+      items:[
+        { tipo:'Novo', titulo:'Score vinculado à opção, não à posição',
+          desc:'Na V5, o score era implícito na posição do array (posição 0 = 1, posição 4 = 5). Na versão Final, cada opção é um objeto {text, score} — o score viaja junto com o texto independente de onde a opção apareça na tela.',
+          impacto:'Cálculos de maturidade preservados mesmo com a ordem das opções alterada.',
+          afeta:'U1-U4, Q2, D1-D4, G1-G5, I1-I4, C1-C4' },
+        { tipo:'Novo', titulo:'Embaralhamento aleatório por sessão (Fisher-Yates)',
+          desc:'A cada carregamento do formulário, as opções de todas as perguntas scored são embaralhadas com o algoritmo Fisher-Yates. A ordem é diferente para cada respondente e a cada acesso — impossível "decorar" a sequência.',
+          impacto:'Elimina acquiescence bias (tendência de marcar o extremo) e social desirability bias (marcar o que parece certo pela posição). A ordem se estabiliza ao longo da sessão — navegar Voltar/Próximo não reembaralha.',
+          afeta:'Todas as perguntas com opções {text, score}' }
+      ]
+    },
+    {
+      titulo:'Saída de Dados (Google Sheets)', cor:'#10B981',
+      items:[
+        { tipo:'Novo', titulo:'Colunas duplas por resposta scored',
+          desc:'O Sheets recebe duas colunas por pergunta scored: o texto selecionado (ex: U1 = "Uso diariamente em tarefas específicas") e o score numérico (ex: U1_score = 3.5). Análise direta sem lookup tables.',
+          impacto:'Médias, percentis e scores por dimensão calculáveis diretamente nas células da planilha.',
+          afeta:'Todas as perguntas scored — geram par ID / ID_score' },
+        { tipo:'Mantido', titulo:'U5 e I5 sem score e sem embaralhamento',
+          desc:'U5 (maior barreira — 7 opções) e I5 (critérios de priorização — checkbox, apenas Gestão) não têm progressão de maturidade. Permanecem como strings simples, na ordem original, sem coluna _score.',
+          impacto:'Análise qualitativa separada — frequência de barreiras e critérios decisórios.',
+          afeta:'U5 (radio, 7 opções) e I5 (checkbox, Gestão)' }
+      ]
+    },
+    {
+      titulo:'Compatibilidade e Infraestrutura', cor:'#8B5CF6',
+      items:[
+        { tipo:'Compatível', titulo:'Google Apps Script sem alterações',
+          desc:'O receptor de respostas (google-apps-script.js) não precisa ser modificado. O achatamento {text, score} → colunas separadas é feito no formulário antes do envio. O script continua recebendo JSON simples com strings e números.',
+          impacto:'Zero impacto na infraestrutura existente.',
+          afeta:'google-apps-script.js — sem alterações necessárias' },
+        { tipo:'Comportamento', titulo:'Ordem estável dentro da sessão',
+          desc:'O embaralhamento ocorre uma única vez ao carregar a página. Navegar entre seções (Voltar/Próximo) mantém a mesma ordem — o respondente não vê as opções "pularem". A ordem muda apenas ao recarregar o formulário.',
+          impacto:'Experiência consistente durante toda a sessão.',
+          afeta:'UX — lógica de navegação entre páginas' }
+      ]
+    },
+    {
+      titulo:'Sem Alterações', cor:'#6B7280',
+      items:[
+        { tipo:'Mantido', titulo:'Perguntas, textos, IDs — idênticos à V5',
+          desc:'Nenhum texto de pergunta foi alterado. IDs (U1, D2, G3 etc.), estrutura por dimensão, separação por cluster, número de perguntas e todas as hipóteses CSD permanecem idênticos.',
+          impacto:'Comparabilidade total entre resultados da versão Final e análises baseadas na V5.',
+          afeta:'Todas as perguntas' },
+        { tipo:'Mantido', titulo:'Escala de scores e faixas de maturidade — idênticas à V5',
+          desc:'Escala progressiva 1.0→1.5→2.5→3.5→4.0 e faixas de corte (Iniciante 1.0–1.49, Básico 1.5–2.49, Intermediário 2.5–3.49, Avançado 3.5–4.0) inalteradas.',
+          impacto:'Resultados diretamente comparáveis com análises pré-existentes.',
+          afeta:'Scoring, faixas, Matriz de Maturidade' },
+        { tipo:'Mantido', titulo:'Curva de Adoção de Rogers — idêntica à V5',
+          desc:'Classificação nos 5 segmentos (Inovadores, Early Adopters, Maioria Inicial, Maioria Tardia, Retardatários) e simulador inalterados.',
+          impacto:'Identificação de multiplicadores idêntica à V5.',
+          afeta:'Aba Adoção' }
+      ]
+    }
+  ];
+
+  return (
+    <div className="fade-in space-y-8">
+      <section>
+        <h2 className="text-lg font-bold mb-1">Alterações: V5 → Final</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Mudanças técnicas e metodológicas da versão Final. Perguntas, scores e hipóteses permanecem intactos.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+          {[
+            { n:'2', label:'novas funcionalidades', sub:'Score vinculado + Embaralhamento', cor:'emerald' },
+            { n:'1', label:'mudança na saída', sub:'Colunas ID + ID_score no Sheets', cor:'amber' },
+            { n:'0', label:'alterações nas perguntas', sub:'Textos, IDs e scores idênticos', cor:'gray' }
+          ].map((k,i)=>(
+            <div key={i} className={`bg-${k.cor}-50 dark:bg-${k.cor}-900/20 rounded-xl p-4 border border-${k.cor}-100 dark:border-${k.cor}-800`}>
+              <div className={`text-2xl font-bold text-${k.cor}-600`}>{k.n}</div>
+              <div className={`text-xs text-${k.cor}-700 dark:text-${k.cor}-400 font-medium`}>{k.label}</div>
+              <div className="text-xs text-gray-500 mt-1">{k.sub}</div>
+            </div>
+          ))}
+        </div>
+        {categorias.map((cat,ci)=>(
+          <div key={ci} className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-3 h-3 rounded-full" style={{background:cat.cor}}/>
+              <h3 className="font-bold text-sm">{cat.titulo}</h3>
+            </div>
+            <div className="space-y-3">
+              {cat.items.map((item,ii)=>(
+                <div key={ii} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <span className="font-semibold text-sm">{item.titulo}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{background:TIPO_COR[item.tipo]+'20',color:TIPO_COR[item.tipo]}}>{item.tipo}</span>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3">{item.desc}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs"><span className="font-medium text-gray-500">Impacto: </span><span className="text-gray-600 dark:text-gray-300">{item.impacto}</span></p>
+                    <p className="text-xs"><span className="font-medium text-gray-500">Afeta: </span><span className="text-gray-400 font-mono">{item.afeta}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800 mt-2">
+          <h4 className="font-bold text-sm text-blue-800 dark:text-blue-300 mb-3">Resumo técnico</h4>
+          <div className="space-y-1 font-mono text-xs text-blue-700 dark:text-blue-300">
+            <div>{'// opções scored: string[] → {text,score}[]'}</div>
+            <div>{'// shuffle: Fisher-Yates, executado 1× ao carregar PAGES'}</div>
+            <div>{'// RadioQuestion detecta typeof op === "object" && "score" in op'}</div>
+            <div>{'// submitToSheets: flat[k]=v.text; flat[k+"_score"]=v.score'}</div>
+            <div>{'// U5, I5: string[] — sem score, sem shuffle'}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════
 function App() {
@@ -1661,6 +2187,8 @@ function App() {
       case 'Perguntas': return <PerguntasView onOpenDrawer={openDrawer}/>;
       case 'Scoring': return <ScoringView/>;
       case 'Clusters': return <ClustersView onOpenDrawer={openDrawer}/>;
+      case 'Adoção': return <AdocaoView/>;
+      case 'Alterações': return <AlteracoesView/>;
       default: return null;
     }
   }

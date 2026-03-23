@@ -46,13 +46,13 @@ const DIM_COLORS = {
   Impacto: '#F59E0B',
   Cultura: '#EC4899'
 };
-const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316' };
+const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316', N5: '#EF4444' };
 const PRIO_COLORS = { Critica: '#EF4444', Alta: '#F97316', Media: '#EAB308' };
 const CLUSTER_COLORS = { Execucao: '#3B82F6', Gestao: '#8B5CF6', Transversal: '#6B7280' };
 
 const DIMENSIONS = ['Utilizacao','Dados','Governanca','Impacto','Cultura'];
-const LEVELS = ['Iniciante','Básico','Intermediário','Avançado'];
-const LEVEL_KEYS = ['N1','N2','N3','N4'];
+const LEVELS = ['Iniciante','Básico','Intermediário','Avançado','Expert'];
+const LEVEL_KEYS = ['N1','N2','N3','N4','N5'];
 
 // ─── MATRIX DESCRIPTORS ───
 const MATRIX = {
@@ -60,31 +60,36 @@ const MATRIX = {
     N1: 'Não usa IA',
     N2: 'Uso pontual e operacional',
     N3: 'Uso regular com prompts eficientes',
-    N4: 'Uso estratégico para decisões complexas'
+    N4: 'Uso estratégico para decisões complexas',
+    N5: 'IA como fluxo essencial — constrói, itera e ensina'
   },
   Dados: {
     N1: 'Desconhece a relação dados e IA',
     N2: 'Sabe que dados são importantes',
     N3: 'Compreende qualidade e organização',
-    N4: 'Domina preparação e aplicação em modelos'
+    N4: 'Domina preparação e aplicação em modelos',
+    N5: 'Avalia viés e melhora infraestrutura de dados da área'
   },
   Governanca: {
     N1: 'Sem conhecimento',
     N2: 'Noções básicas de uso responsável',
     N3: 'Entende princípios e boas práticas',
-    N4: 'Aplica governança, ética e compliance'
+    N4: 'Aplica governança, ética e compliance',
+    N5: 'Define políticas, garante rastreabilidade e orienta a equipe'
   },
   Impacto: {
     N1: 'Não identifica oportunidades',
     N2: 'Identifica casos simples',
     N3: 'Sugere melhorias em processos',
-    N4: 'Estrutura business cases'
+    N4: 'Estrutura business cases',
+    N5: 'Visão estratégica — IA como vantagem competitiva da Swift'
   },
   Cultura: {
     N1: 'Curiosidade inicial',
     N2: 'Interesse ativo em aprender',
     N3: 'Incentivador na equipe',
-    N4: 'Agente de transformação'
+    N4: 'Agente de transformação',
+    N5: 'Multiplicador ativo — dissemina e lidera a adoção em IA'
   }
 };
 
@@ -311,8 +316,8 @@ const PERGUNTAS = [
 ];
 
 // ─── SCORING TABLES ───
-const LIKERT_PADRAO = [{r:1,s:1.0},{r:2,s:1.5},{r:3,s:2.0},{r:4,s:3.0},{r:5,s:4.0}];
-const LIKERT_REVERSO = [{r:1,s:4.0},{r:2,s:3.0},{r:3,s:2.0},{r:4,s:1.5},{r:5,s:1.0}];
+const LIKERT_PADRAO = [{r:1,s:1},{r:2,s:2},{r:3,s:3},{r:4,s:4},{r:5,s:5}];
+const LIKERT_REVERSO = [{r:1,s:5},{r:2,s:4},{r:3,s:3},{r:4,s:2},{r:5,s:1}];
 
 
 const SCORE_COMUM_MAP = {
@@ -329,10 +334,11 @@ const SCORE_ESTENDIDO_MAP = {
 };
 
 const FAIXAS = [
-  { min:1.0, max:1.49, nivel:'Iniciante', cor:'#94A3B8' },
-  { min:1.5, max:2.49, nivel:'Básico', cor:'#22C55E' },
-  { min:2.5, max:3.49, nivel:'Intermediário', cor:'#EAB308' },
-  { min:3.5, max:4.0, nivel:'Avançado', cor:'#F97316' }
+  { min: 1.0, max: 1.49, nivel: 'Iniciante',     cor: '#94A3B8' },
+  { min: 1.5, max: 2.49, nivel: 'Básico',         cor: '#22C55E' },
+  { min: 2.5, max: 3.49, nivel: 'Intermediário',  cor: '#EAB308' },
+  { min: 3.5, max: 4.49, nivel: 'Avançado',       cor: '#F97316' },
+  { min: 4.5, max: 5.0,  nivel: 'Expert',         cor: '#EF4444' }
 ];
 
 // ─── HELPER: get scoring conversion for a question
@@ -1273,7 +1279,7 @@ function ScoringView() {
             <div className="flex flex-col md:flex-row items-stretch gap-0">
               {[
                 { icon:'📝', title:'Resposta bruta', desc:'Likert 1-5, cenário, escala', cor:'#3B82F6' },
-                { icon:'🔄', title:'Conversão', desc:'Resposta → score 1.0 a 4.0', cor:'#8B5CF6' },
+                { icon:'🔄', title:'Conversão', desc:'Resposta → score 1 a 5', cor:'#8B5CF6' },
                 { icon:'📊', title:'Score dimensão', desc:'Média dos itens', cor:'#10B981' },
                 { icon:'🎯', title:'Nível Matriz', desc:'Faixas de corte', cor:'#F59E0B' },
                 { icon:'⭐', title:'Score geral', desc:'Média das 5 dimensões', cor:'#EC4899' },
@@ -1334,7 +1340,7 @@ function ScoringView() {
       {/* TAB: Conversões */}
       {scoreTab === 'conversoes' && (
         <div className="space-y-6 fade-in">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Cada resposta é convertida para um score de 1.0 a 4.0 correspondendo aos 4 níveis da Matriz de Letramento.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Cada resposta é convertida para um score de 1 a 5 correspondendo aos 5 níveis da Matriz de Letramento.</p>
 
           <h3 className="font-semibold">Escalas Likert</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1346,7 +1352,7 @@ function ScoringView() {
             </div>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
-            <strong>Por que não é linear?</strong> A Matriz tem 4 níveis, a escala tem 5 pontos. O ponto 3 ("neutro") mapeia para nível 2 (Básico) porque neutralidade indica falta de prática ativa. Na V3, a escala de confiança (Q17) foi convertida em cenário comportamental para eliminar a penalização anti-intuitiva do valor máximo.
+            <strong>Escala linear 1–5.</strong> A Matriz tem 5 níveis e cada resposta corresponde diretamente a um nível: 1=Iniciante, 2=Básico, 3=Intermediário, 4=Avançado, 5=Expert. Na V3, algumas perguntas de cenário possuem scores intermediários para capturar comportamentos parciais.
           </div>
 
           <h3 className="font-semibold mt-6">Cenários comportamentais</h3>
@@ -1526,14 +1532,14 @@ function ScoringView() {
 // Cenario/Escala options for simulator
 const CENARIO_OPTIONS = {
   Q62: [{label:'a) Sei pouco ou nada',s:1},{label:'b) Sei que existem tipos',s:2},{label:'c) Explico diferenças e limitações',s:3},{label:'d) Conecto ao negócio',s:4}],
-  Q17: [{label:'a) Apresenta direto',s:1.0},{label:'b) Não usaria',s:1.5},{label:'c) Lida rápida',s:2.5},{label:'d) Revisa criticamente',s:3.5},{label:'e) Refaz tudo',s:2.0}],
+  Q17: [{label:'a) Apresenta direto',s:1},{label:'b) Não usaria',s:2},{label:'c) Lida rápida',s:3},{label:'d) Revisa criticamente',s:4},{label:'e) Refaz tudo',s:2}],
   Q23: [{label:'d) Não saberia',s:1},{label:'a) Peço direto',s:2},{label:'b) Verifico dados',s:3},{label:'c) Estruturo e verifico',s:4}],
   Q25: [{label:'a) Cola direto',s:1},{label:'e) Não saberia avaliar',s:1},{label:'d) Não usaria IA',s:2},{label:'b) Remove sensíveis',s:3},{label:'c) Ferramenta interna',s:4}],
-  Q43: [{label:'a) Primeiro resultado',s:1},{label:'b) Ajusto prompt',s:2.5},{label:'d) Refaço manualmente',s:3},{label:'c) Combino fontes',s:4}],
-  Q44: [{label:'Nunca tentei',s:1},{label:'Não visualizo como',s:1},{label:'Sei que seria possível',s:2},{label:'Sim, uma vez',s:3},{label:'Sim, mais de uma vez',s:4}],
-  Q48: [{label:'e) Não saberia priorizar',s:1},{label:'d) O que o time pede',s:2},{label:'a) Economia de custo',s:2.5},{label:'b) Experiência do cliente',s:3},{label:'c) Receita/diferenciação',s:4}],
-  Q49: [{label:'d) Não penso nisso',s:1},{label:'e) Quero mas não sei',s:1.5},{label:'c) Informalmente',s:2},{label:'b) Anoto sem processo',s:3},{label:'a) Processo estruturado',s:4}],
-  Q51: [{label:'Não',s:1},{label:'Pretendo fazer',s:2},{label:'Informais/verbais',s:3},{label:'Formais documentadas',s:4}],
+  Q43: [{label:'a) Primeiro resultado',s:1},{label:'b) Ajusto prompt',s:3},{label:'d) Refaço manualmente',s:3},{label:'c) Combino fontes',s:4}],
+  Q44: [{label:'Nunca tentei',s:1},{label:'Não visualizo como',s:1},{label:'Sei que seria possível',s:2},{label:'Sim, uma vez',s:4},{label:'Sim, mais de uma vez',s:5}],
+  Q48: [{label:'e) Não saberia priorizar',s:1},{label:'d) O que o time pede',s:2},{label:'a) Economia de custo',s:3},{label:'b) Experiência do cliente',s:4},{label:'c) Receita/diferenciação',s:5}],
+  Q49: [{label:'d) Não penso nisso',s:1},{label:'e) Quero mas não sei',s:2},{label:'c) Informalmente',s:2},{label:'b) Anoto sem processo',s:4},{label:'a) Processo estruturado',s:5}],
+  Q51: [{label:'Não',s:1},{label:'Pretendo fazer',s:2},{label:'Informais/verbais',s:3},{label:'Formais documentadas',s:5}],
   Q63: [{label:'Não economizo',s:1},{label:'Menos de 1h',s:2},{label:'1-3h',s:3},{label:'Mais de 3h',s:4}],
   Q64: [{label:'Nenhum impacto',s:1},{label:'Baixo',s:2},{label:'Médio',s:3},{label:'Alto',s:4}],
 };

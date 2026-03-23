@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pesquisa de Maturidade em IA — Raciocínio Analítico dos Resultados</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+  .email-container {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+
+  /* Header */
+  .email-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+    padding: 36px 40px;
+  }
+  .email-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -0.3px;
+  }
+  .email-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .email-meta span { display: flex; align-items: center; gap: 6px; }
+  .email-meta strong { font-weight: 600; opacity: 1; }
+
+  /* Body */
+  .email-body { padding: 40px; }
+  .email-body p { margin-bottom: 16px; font-size: 15px; }
+  .email-body em { color: #64748b; font-style: italic; }
+  .email-body strong { font-weight: 600; color: #0f172a; }
+
+  /* Sections */
+  .section {
+    margin-top: 36px;
+    padding-top: 32px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .section:first-of-type { margin-top: 24px; border-top: none; padding-top: 0; }
+
+  .section-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 12px;
+  }
+  .section-number.rev { background: #f59e0b; }
+  .section-number.csd { background: #3b82f6; }
+  .section-number.hist { background: #10b981; }
+  .section-number.rogers { background: #8b5cf6; }
+
+  .section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+    letter-spacing: -0.2px;
+  }
+  .section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+  }
+
+  /* Highlight box */
+  .highlight {
+    background: #f1f5f9;
+    border-left: 3px solid #94a3b8;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .highlight.amber { border-left-color: #f59e0b; background: #fffbeb; }
+  .highlight.blue { border-left-color: #3b82f6; background: #eff6ff; }
+  .highlight.green { border-left-color: #10b981; background: #ecfdf5; }
+  .highlight.purple { border-left-color: #8b5cf6; background: #f5f3ff; }
+
+  /* V4→V5 comparison cards */
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .comp-card {
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .comp-card.v4 { background: #f1f5f9; border: 1px solid #e2e8f0; }
+  .comp-card.v5 { background: #ecfdf5; border: 1px solid #bbf7d0; }
+  .comp-card .comp-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .comp-card.v4 .comp-label { color: #64748b; }
+  .comp-card.v5 .comp-label { color: #059669; }
+  .comp-card ul { padding-left: 16px; margin: 0; }
+  .comp-card li { margin-bottom: 4px; }
+
+  /* New question tag */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+  }
+  .tag.new { background: #dcfce7; color: #166534; }
+  .tag.changed { background: #fef3c7; color: #92400e; }
+  .tag.removed { background: #fee2e2; color: #991b1b; }
+
+  /* Benefits grid */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .benefit-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .benefit-card strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  @media (max-width: 600px) {
+    .comparison-grid, .benefits-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Bullet list */
+  .bullet-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+  }
+  .bullet-list li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+  }
+
+  /* Tables */
+  .table-wrapper {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: #f8fafc;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    color: #475569;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Scenario boxes */
+  .scenarios {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .scenario {
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .scenario.a { background: #ecfdf5; border: 1px solid #bbf7d0; }
+  .scenario.b { background: #fef3c7; border: 1px solid #fde68a; }
+  .scenario strong { display: block; margin-bottom: 6px; font-size: 13px; }
+
+  /* Connection box */
+  .connection-box {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin: 32px 0 16px;
+  }
+  .connection-box h3 {
+    color: white;
+    opacity: 0.7;
+    margin-top: 0;
+  }
+  .connection-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .connection-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+  }
+  .connection-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .connection-item .arrow {
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+  }
+  .connection-item .label { font-weight: 600; min-width: 140px; }
+  .connection-item .desc { opacity: 0.7; }
+
+  /* Closing */
+  .closing {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 15px;
+  }
+  .signature {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  /* Strategic questions */
+  .strategic-questions {
+    counter-reset: sq;
+    margin: 16px 0;
+  }
+  .sq-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .sq-item::before {
+    counter-increment: sq;
+    content: counter(sq);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f5f3ff;
+    color: #8b5cf6;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* Rogers segments */
+  .rogers-segment {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+  }
+  .rogers-segment:last-child { border-bottom: none; }
+  .rogers-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 130px;
+    justify-content: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .email-body { padding: 24px; }
+    .email-header { padding: 24px; }
+    .scenarios { grid-template-columns: 1fr; }
+    .email-meta { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="email-container">
+
+  <!-- HEADER -->
+  <div class="email-header">
+    <h1>Pesquisa de Maturidade em IA — Revisões V4→V5 e Raciocínio Analítico dos Resultados</h1>
+    <div class="email-meta">
+      <span><strong>De:</strong> Vinicius / IONIX</span>
+      <span><strong>Para:</strong> Alan, Debora / Swift</span>
+      <span><strong>Data:</strong> 20/03/2026</span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="email-body">
+
+    <p>Alan, Debora,</p>
+
+    <p>Queria compartilhar com vocês dois pontos importantes: primeiro, as <strong>revisões que fizemos na pesquisa</strong> (da V4 para a V5) e os benefícios de cada mudança; segundo, o <strong>raciocínio analítico</strong> que vamos aplicar sobre os resultados — ou seja, como vamos transformar dados em decisões concretas.</p>
+
+    <!-- ════════ PARTE 1: REVISÕES V4→V5 ════════ -->
+    <div class="section">
+      <div class="section-number rev" style="width: auto; padding: 0 12px; font-size: 12px;">V4→V5</div>
+      <h2>Revisões da Pesquisa: o que mudou e por quê</h2>
+
+      <p>Fizemos uma revisão completa da pesquisa com base nos feedbacks da reunião de refinamento. O princípio foi: <strong>pesquisa mais inteligente, não mais longa</strong> — o tempo de preenchimento continua em ~7 minutos.</p>
+
+      <h3>Visão geral</h3>
+
+      <div class="comparison-grid">
+        <div class="comp-card v4">
+          <div class="comp-label">V4 — Anterior</div>
+          <ul>
+            <li>CPF + 20 perguntas scored</li>
+            <li>Escala Likert numérica</li>
+            <li>4 níveis de maturidade</li>
+            <li>Sem perguntas abertas</li>
+            <li>Sem curva de adoção</li>
+            <li>Exec e Gestão simétricos (mesma quantidade)</li>
+          </ul>
+        </div>
+        <div class="comp-card v5">
+          <div class="comp-label">V5 — Atual</div>
+          <ul>
+            <li>CPF + Q2 (cursos) + 20 scored + U5 (barreira) + 3 abertas</li>
+            <li>100% descritivo — respondente se reconhece na opção</li>
+            <li>5 níveis de maturidade (+ Expert)</li>
+            <li>3 perguntas abertas (backlog + frustrações + livre)</li>
+            <li>Curva de Adoção de Rogers</li>
+            <li>Exec enxuto / Gestão expandido</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Novas perguntas adicionadas</h3>
+
+      <p><strong>Para todos os respondentes:</strong></p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Pergunta</th>
+              <th>Por que foi incluída</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Q2</strong> <span class="tag new">nova</span></td>
+              <td>"Você está fazendo ou já fez algum curso ou capacitação sobre IA?"</td>
+              <td>Identifica champions e segmenta por investimento pessoal em aprendizado. Alimenta seleção de multiplicadores da Germinare</td>
+            </tr>
+            <tr>
+              <td><strong>U3</strong> <span class="tag changed">reformulada</span></td>
+              <td>"O quão familiarizado você está com o conceito de prompt?"</td>
+              <td>Versão mais detalhada. Mede a habilidade técnica central: prompt engineering é o skill mais transferível</td>
+            </tr>
+            <tr>
+              <td><strong>U5</strong> <span class="tag new">nova</span></td>
+              <td>"Qual é a sua maior barreira para usar mais IA?"</td>
+              <td>Inclui a opção <strong>"Não sei se posso usar"</strong> — captura insegurança sobre permissão, que é resolvida com comunicação</td>
+            </tr>
+            <tr>
+              <td><strong>G3</strong> <span class="tag new">nova</span></td>
+              <td>"Se alguém te pedisse para explicar como a IA chegou no resultado, você conseguiria?"</td>
+              <td>Nova dimensão de <strong>explicabilidade</strong>. Essencial para uso responsável e auditável</td>
+            </tr>
+            <tr>
+              <td><strong>A1</strong> <span class="tag new">nova</span></td>
+              <td>"Qual tarefa você mais gostaria de nunca mais fazer manualmente?"</td>
+              <td>Alimenta diretamente o <strong>backlog da esteira</strong> com oportunidades reais</td>
+            </tr>
+            <tr>
+              <td><strong>A2</strong> <span class="tag new">nova</span></td>
+              <td>"Conta uma vez que você tentou usar IA e não deu certo"</td>
+              <td>Identifica frustrações e barreiras práticas para calibrar a capacitação</td>
+            </tr>
+            <tr>
+              <td><strong>A3</strong> <span class="tag new">nova</span></td>
+              <td>"Compartilhe livremente: experiência, preocupação, sugestão..."</td>
+              <td>Captura insights não estruturados que as perguntas fechadas não cobrem</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Exclusivas do cluster Gestão:</strong></p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Pergunta</th>
+              <th>Por que foi incluída</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>G4</strong> <span class="tag new">nova</span></td>
+              <td>"Qual frase melhor descreve sua consciência sobre os mecanismos de governança de IA na Swift?"</td>
+              <td>Substitui a antiga pergunta sobre viés. Mais prática e acionável para liderança</td>
+            </tr>
+            <tr>
+              <td><strong>G5</strong> <span class="tag new">nova</span></td>
+              <td>"Você já definiu orientações sobre como a equipe deve usar IA?"</td>
+              <td>Mede se o gestor traduziu governança em ações concretas</td>
+            </tr>
+            <tr>
+              <td><strong>I2</strong> <span class="tag changed">reformulada</span></td>
+              <td>"Você é capaz de avaliar indicadores que justifiquem o investimento em IA?"</td>
+              <td>Avalia capacidade de montar <strong>business case</strong> — essencial para priorização na esteira</td>
+            </tr>
+            <tr>
+              <td><strong>I5</strong> <span class="tag new">nova</span></td>
+              <td>"Quais critérios usaria para priorizar projetos de IA?" <em>(checkbox)</em></td>
+              <td>Múltipla escolha: eficiência, experiência do cliente, direcionamento da diretoria. Mapeia o perfil decisório</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Exclusiva do cluster Execução:</strong></p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Pergunta</th>
+              <th>Por que foi incluída</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>G2</strong> <span class="tag changed">merge</span></td>
+              <td>"Quando você usa IA, como lida com a verificação dos dados e resultados?"</td>
+              <td>Unifica 3 perguntas antigas em uma só. Mede responsabilidade prática no uso</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Perguntas removidas ou reduzidas</h3>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Mudança</th>
+              <th>Detalhe</th>
+              <th>Justificativa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag removed">removida</span> <strong>G4-exec</strong></td>
+              <td>"Se um colega perguntasse 'posso usar IA para essa decisão?'"</td>
+              <td>Movida apenas para Gestão — mais relevante para líderes</td>
+            </tr>
+            <tr>
+              <td><span class="tag removed">removida</span> <strong>C3-exec</strong></td>
+              <td>"Como reage quando descobre nova ferramenta de IA?"</td>
+              <td>Removida do cluster Execução para reduzir pesquisa. Mantida na Gestão</td>
+            </tr>
+            <tr>
+              <td><span class="tag changed">reduzida</span> Governança Exec</td>
+              <td>4 &rarr; 3 perguntas</td>
+              <td>Foco nas perguntas mais acionáveis para o dia a dia operacional</td>
+            </tr>
+            <tr>
+              <td><span class="tag changed">reduzida</span> Cultura Exec</td>
+              <td>4 &rarr; 3 perguntas</td>
+              <td>Reduz fadiga do respondente sem perder poder analítico</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Dimensões expandidas para gestão</h3>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimensão</th>
+              <th>V4</th>
+              <th>V5</th>
+              <th>O que ganhamos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Governança</strong></td>
+              <td>4 perguntas</td>
+              <td>5 perguntas</td>
+              <td>Consciência de mecanismos + orientações para equipe</td>
+            </tr>
+            <tr>
+              <td><strong>Impacto</strong></td>
+              <td>4 perguntas</td>
+              <td>5 perguntas (inclui checkbox)</td>
+              <td>Business case + critérios de priorização</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Benefícios consolidados da V5</h3>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <strong>Formato 100% descritivo</strong>
+          Sai a escala Likert numérica, entra descrições de maturidade. O respondente se reconhece na opção ao invés de interpretar um número.
+        </div>
+        <div class="benefit-card">
+          <strong>Diferenciação real entre clusters</strong>
+          Execução ficou mais enxuta (foco no uso prático), Gestão ganhou profundidade (business case, governança, priorização).
+        </div>
+        <div class="benefit-card">
+          <strong>Backlog automático para a esteira</strong>
+          A pergunta A1 ("qual tarefa automatizar?") gera um backlog de oportunidades direto dos colaboradores — matéria-prima para o Pod Volante.
+        </div>
+        <div class="benefit-card">
+          <strong>Barreiras acionáveis</strong>
+          A opção "Não sei se posso usar" diferencia falta de habilidade de insegurança sobre permissão. Isso se resolve com comunicação, não capacitação.
+        </div>
+        <div class="benefit-card">
+          <strong>Explicabilidade</strong>
+          Nova dimensão de governança que mede se colaboradores conseguem rastrear e explicar resultados da IA — requisito crescente de compliance.
+        </div>
+        <div class="benefit-card">
+          <strong>Monitoramento longitudinal</strong>
+          5 perguntas-chave imutáveis (uma por pilar) + 15 perguntas comuns entre clusters garantem comparabilidade entre rodadas futuras.
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ TRANSIÇÃO ════════ -->
+    <div class="section">
+      <p>Com a pesquisa revisada, agora quero explicar <strong>como vamos ler os resultados</strong>. São três lentes analíticas complementares:</p>
+    </div>
+
+    <!-- ════════ SEÇÃO 1: CSD ════════ -->
+    <div class="section">
+      <div class="section-number csd">1</div>
+      <h2>Matriz CSD (Certezas, Suposições e Dúvidas)</h2>
+
+      <p>A pesquisa foi desenhada a partir de uma <strong>Matriz CSD</strong> — um framework que separa o que já sabemos (certezas), o que acreditamos mas precisamos validar (suposições) e o que genuinamente não sabemos (dúvidas).</p>
+
+      <h3>Como funciona na prática</h3>
+
+      <p>Temos <strong>17 suposições</strong> mapeadas antes da pesquisa. Cada uma está vinculada a perguntas específicas do questionário. Quando os resultados chegarem, cada suposição será classificada como <strong>confirmada</strong> ou <strong>refutada</strong> — e cada resultado tem uma ação concreta já planejada.</p>
+
+      <h3>Exemplos do que vamos validar</h3>
+
+      <ul class="bullet-list">
+        <li><em>"A maioria já usa IA, mas de forma rasa"</em> (S1) — Se confirmada, a capacitação parte do nível 2, sem precisar evangelizar. Se refutada, podemos começar mais avançados.</li>
+        <li><em>"Gestores não conseguem formular hipóteses testáveis com IA"</em> (S6) — Este é o gargalo #1 da esteira. Se confirmado, a trilha estratégica começa por pensamento de hipótese, não por ferramentas.</li>
+        <li><em>"Governança muito baixa em todos os níveis"</em> (S10) — Se confirmada, governança precisa ser a PRIMEIRA intervenção, antes de ampliar uso. Risco real de compliance.</li>
+        <li><em>"15-20% são early adopters"</em> (S11) — Cada multiplicador impacta 5-8 colegas via Germinare. Precisamos saber se temos essa massa crítica.</li>
+      </ul>
+
+      <p>Além das suposições, temos <strong>8 dúvidas</strong> que a pesquisa vai esclarecer — desde quais áreas têm bolsões de maturidade espontâneos até quais processos os próprios colaboradores enxergam como candidatos a automação (essa última alimenta diretamente o backlog da esteira via a pergunta aberta A1).</p>
+
+      <div class="highlight blue">
+        <strong>O que a Matriz CSD entrega:</strong> Um mapa de decisões com base em evidências. Cada suposição confirmada ou refutada desbloqueia uma ação específica no programa — sequência de capacitação, prioridade de governança, ativação de multiplicadores, calibração do Pod Volante.
+      </div>
+    </div>
+
+    <!-- ════════ SEÇÃO 2: HISTOGRAMA ════════ -->
+    <div class="section">
+      <div class="section-number hist">2</div>
+      <h2>Histograma de Dispersão e Análise Estatística</h2>
+
+      <p>A média geral de maturidade conta uma parte da história. O histograma conta o resto.</p>
+
+      <h3>Por que importa</h3>
+
+      <p>Imagine que o score médio da Swift em Utilização dê 2.5 (Intermediário). Isso pode significar duas realidades completamente diferentes:</p>
+
+      <div class="scenarios">
+        <div class="scenario a">
+          <strong>Cenário A — Distribuição concentrada</strong>
+          A maioria das pessoas está entre 2.0 e 3.0. O time é relativamente homogêneo. Uma trilha de capacitação unificada funciona.
+        </div>
+        <div class="scenario b">
+          <strong>Cenário B — Distribuição bimodal</strong>
+          Metade está no nível 1 (nunca usou) e metade no nível 4 (uso avançado). A média é 2.5, mas ninguém está no 2.5. Uma trilha única não serve para ninguém.
+        </div>
+      </div>
+
+      <h3>O que vamos analisar em cada dimensão</h3>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Métrica</th>
+              <th>O que revela</th>
+              <th>Decisão que alimenta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Mediana</strong></td>
+              <td>Onde está o colaborador "típico" (menos sensível a extremos que a média)</td>
+              <td>Ponto de partida real da capacitação</td>
+            </tr>
+            <tr>
+              <td><strong>Desvio padrão</strong></td>
+              <td>Quanto o time varia — homogêneo ou polarizado</td>
+              <td>Trilha unificada vs. trilhas segmentadas</td>
+            </tr>
+            <tr>
+              <td><strong>Percentil 25 (P25)</strong></td>
+              <td>O "piso" — onde estão os 25% menos maduros</td>
+              <td>Prioridade de intervenção básica</td>
+            </tr>
+            <tr>
+              <td><strong>Percentil 75 (P75)</strong></td>
+              <td>O "teto" — onde estão os 25% mais maduros</td>
+              <td>Pool de candidatos a multiplicadores</td>
+            </tr>
+            <tr>
+              <td><strong>Distância P75-P25 (IQR)</strong></td>
+              <td>Tamanho do gap entre base e topo</td>
+              <td>Quanto esforço de nivelamento é necessário</td>
+            </tr>
+            <tr>
+              <td><strong>Distribuição por faixa</strong></td>
+              <td>Quantas pessoas em cada nível (1-5)</td>
+              <td>Dimensionamento de turmas e recursos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Cruzamentos importantes</h3>
+
+      <p>Vamos sobrepor os histogramas com os dados demográficos via CPF (cruzamento com base RH):</p>
+
+      <ul class="bullet-list">
+        <li><strong>Por área/departamento</strong> — Identificar bolsões de maturidade e áreas que precisam de atenção prioritária</li>
+        <li><strong>Por nível hierárquico</strong> — Verificar se gestores estão mais avançados em Impacto e Governança que Execução (esperado) ou se há gaps inesperados</li>
+        <li><strong>Por geração</strong> — Testar a suposição S4 (Gen Z usa mais mas não é mais profunda)</li>
+      </ul>
+
+      <div class="highlight green">
+        <strong>O que o histograma entrega:</strong> Visibilidade real da dispersão, que evita o erro de tratar a Swift como um bloco homogêneo. Permite personalizar a capacitação por grupo e dimensionar recursos com precisão.
+      </div>
+    </div>
+
+    <!-- ════════ SEÇÃO 3: ROGERS ════════ -->
+    <div class="section">
+      <div class="section-number rogers">3</div>
+      <h2>Curva de Adoção de Rogers</h2>
+
+      <p>Esta é a análise que transforma dados individuais em um mapa estratégico de ativação.</p>
+
+      <h3>O conceito</h3>
+
+      <p>A Curva de Difusão de Inovação (Everett Rogers, 1962) classifica as pessoas em 5 segmentos baseados no seu comportamento frente a uma nova tecnologia. Não é sobre "quem sabe mais" — é sobre <strong>quem age primeiro e influencia os demais</strong>.</p>
+
+      <h3>Como vamos classificar cada respondente</h3>
+
+      <div style="margin: 16px 0;">
+        <div class="rogers-segment">
+          <span class="rogers-badge" style="background: #dbeafe; color: #1e40af;">Inovadores ~2.5%</span>
+          <div>
+            <strong>~5 pessoas</strong> — Uso essencial + prompt avançado + múltiplos cursos + papel de multiplicador.<br/>
+            <em>Embaixadores do programa.</em> São os primeiros a testar novas ferramentas e validar com o time.
+          </div>
+        </div>
+        <div class="rogers-segment">
+          <span class="rogers-badge" style="background: #d1fae5; color: #065f46;">Adotantes iniciais ~13.5%</span>
+          <div>
+            <strong>~27 pessoas</strong> — Uso frequente + avaliam criticamente + compartilham ativamente.<br/>
+            <em>Multiplicadores da Germinare.</em> Cada um impacta 5-8 colegas. São a alavanca de escala.
+          </div>
+        </div>
+        <div class="rogers-segment">
+          <span class="rogers-badge" style="background: #fef9c3; color: #854d0e;">Maioria inicial ~34%</span>
+          <div>
+            <strong>~67 pessoas</strong> — Uso regular + maturidade intermediária.<br/>
+            <em>Público-alvo principal da capacitação.</em> Respondem bem a trilhas guiadas com exemplos práticos.
+          </div>
+        </div>
+        <div class="rogers-segment">
+          <span class="rogers-badge" style="background: #fed7aa; color: #9a3412;">Maioria tardia ~34%</span>
+          <div>
+            <strong>~67 pessoas</strong> — Uso esporádico + maturidade básica.<br/>
+            <em>Precisam de evidência social.</em> Só adotam quando veem colegas usando com sucesso.
+          </div>
+        </div>
+        <div class="rogers-segment">
+          <span class="rogers-badge" style="background: #f1f5f9; color: #64748b;">Retardatários ~16%</span>
+          <div>
+            <strong>~32 pessoas</strong> — Nunca usaram + não veem relação com seu trabalho.<br/>
+            <em>Não são o foco inicial.</em> Conversão forçada gera resistência. A estratégia é cercar com evidência e esperar.
+          </div>
+        </div>
+      </div>
+
+      <h3>Por que isso importa para a Swift</h3>
+
+      <p>A curva responde três perguntas estratégicas:</p>
+
+      <div class="strategic-questions">
+        <div class="sq-item">
+          <div><strong>"Temos massa crítica para a Germinare?"</strong> — Precisamos de pelo menos ~30 pessoas entre Inovadores e Adotantes Iniciais para ativar o modelo train-the-trainer. Se tivermos menos de 15, a Germinare precisa de mais suporte externo da IONIX.</div>
+        </div>
+        <div class="sq-item">
+          <div><strong>"Onde estão os detratores e por quê?"</strong> — A Maioria Tardia e os Retardatários não são "resistentes" — são pessoas que precisam de estímulos diferentes. A pesquisa nos diz o <em>motivo</em>: U5 (barreira) diferencia quem não usa por falta de habilidade, por insegurança sobre permissão, por medo de errar ou por falta de ferramentas. Cada barreira tem uma intervenção diferente.</div>
+        </div>
+        <div class="sq-item">
+          <div><strong>"Qual é a sequência certa de ativação?"</strong> — A teoria de Rogers mostra que forçar adoção na Maioria Tardia antes de consolidar os Adotantes Iniciais é contraproducente. A sequência correta é: ativar Inovadores &rarr; treinar Adotantes Iniciais como multiplicadores &rarr; a Maioria Inicial adota por influência &rarr; a Maioria Tardia segue por evidência social.</div>
+        </div>
+      </div>
+
+      <h3>Cruzamento com dados demográficos</h3>
+
+      <p>Vamos sobrepor a curva de Rogers com área, cargo e geração. Isso responde perguntas como:</p>
+
+      <ul class="bullet-list">
+        <li>Qual área tem mais Inovadores? (candidata a piloto da esteira)</li>
+        <li>A liderança está entre os Adotantes Iniciais ou na Maioria Tardia? (define se precisamos trabalhar top-down ou bottom-up)</li>
+        <li>A Gen Z está distribuída entre Inovadores e Adotantes ou concentrada na Maioria Inicial? (testa a suposição S4)</li>
+      </ul>
+
+      <div class="highlight purple">
+        <strong>O que a Curva de Rogers entrega:</strong> Um plano de ativação por segmento com nomes reais (via CPF). Sabemos exatamente quem convidar para o primeiro ciclo de multiplicadores da Germinare, quem precisa de cases antes de aderir, e quem não deve ser forçado.
+      </div>
+    </div>
+
+    <!-- ════════ CONEXÃO ════════ -->
+    <div class="connection-box">
+      <h3>Como as três lentes se conectam</h3>
+      <div class="connection-grid">
+        <div class="connection-item">
+          <span class="connection-dot" style="background: #3b82f6;"></span>
+          <span class="label">Matriz CSD</span>
+          <span class="arrow">&rarr;</span>
+          <span class="desc"><strong>O QUE</strong> é verdade (valida/refuta hipóteses)</span>
+        </div>
+        <div class="connection-item">
+          <span class="connection-dot" style="background: #10b981;"></span>
+          <span class="label">Histograma</span>
+          <span class="arrow">&rarr;</span>
+          <span class="desc"><strong>COMO</strong> a maturidade se distribui (dispersão e gaps)</span>
+        </div>
+        <div class="connection-item">
+          <span class="connection-dot" style="background: #8b5cf6;"></span>
+          <span class="label">Curva de Rogers</span>
+          <span class="arrow">&rarr;</span>
+          <span class="desc"><strong>QUEM</strong> ativar primeiro e em que sequência (plano de ação)</span>
+        </div>
+      </div>
+      <p style="margin-top: 20px; font-size: 14px; opacity: 0.85;">
+        Juntas, essas três análises nos dão: o <strong>diagnóstico</strong> (CSD), a <strong>radiografia</strong> (histograma) e o <strong>plano de ativação</strong> (Rogers). Nenhuma sozinha é suficiente — é a combinação que transforma dados em decisões.
+      </p>
+    </div>
+
+    <!-- ════════ FECHAMENTO ════════ -->
+    <div class="closing">
+      <p>Fico à disposição para alinharmos qualquer ponto. A ideia é que quando os resultados chegarem, vocês já entendam a lógica por trás de cada número e gráfico que vamos apresentar.</p>
+      <div class="signature">
+        <p>Abraço,<br/><strong>Vinicius</strong></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

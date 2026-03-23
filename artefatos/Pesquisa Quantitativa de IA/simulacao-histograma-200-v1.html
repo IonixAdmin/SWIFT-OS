@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Simulação de Resultados — Pesquisa de Maturidade em IA · Swift</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+@media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect } = React;
+
+// ─── CONSTANTES ───
+const DIMENSOES = ['Utilizacao','Dados','Governanca','Impacto','Cultura'];
+const DIM_LABELS = { Utilizacao:'Utilização', Dados:'Dados', Governanca:'Governança', Impacto:'Impacto de Negócio', Cultura:'Cultura' };
+const DIM_COLORS = { Utilizacao:'#3B82F6', Dados:'#10B981', Governanca:'#8B5CF6', Impacto:'#F59E0B', Cultura:'#EC4899' };
+const NIVEL_LABELS = ['Iniciante','Básico','Intermediário','Avançado'];
+const NIVEL_COLORS = ['#94A3B8','#22C55E','#EAB308','#F97316'];
+const FAIXAS = [
+  { nivel:'Iniciante', min:1.0, max:1.49 },
+  { nivel:'Básico', min:1.5, max:2.49 },
+  { nivel:'Intermediário', min:2.5, max:3.49 },
+  { nivel:'Avançado', min:3.5, max:4.0 }
+];
+
+const CARGOS = [
+  { nome:'Assistente', n:13, geracao:{ GenZ:4, GenY:5, GenX:4, BB:0 } },
+  { nome:'Analista', n:99, geracao:{ GenZ:30, GenY:55, GenX:12, BB:2 } },
+  { nome:'Especialista', n:18, geracao:{ GenZ:5, GenY:10, GenX:3, BB:0 } },
+  { nome:'Coordenador', n:25, geracao:{ GenZ:5, GenY:14, GenX:5, BB:1 } },
+  { nome:'Gerente', n:31, geracao:{ GenZ:2, GenY:18, GenX:10, BB:1 } },
+  { nome:'Diretor', n:9, geracao:{ GenZ:0, GenY:4, GenX:5, BB:0 } }
+];
+
+const GERACOES = ['GenZ','GenY','GenX','BB'];
+const GER_LABELS = { GenZ:'Gen Z', GenY:'Millennial', GenX:'Gen X', BB:'Baby Boomer' };
+const GER_COLORS = { GenZ:'#8B5CF6', GenY:'#3B82F6', GenX:'#F59E0B', BB:'#EF4444' };
+
+const CLUSTERS = { Execucao:'Execução', Gestao:'Gestão' };
+const CLUSTER_COLORS = { Execucao:'#3B82F6', Gestao:'#8B5CF6' };
+
+// ─── PERFIS DE DISTRIBUIÇÃO POR DIMENSÃO × CARGO ───
+// Baseados nas suposições S1-S17 e perfil demográfico
+// Cada perfil = probabilidades [Iniciante, Básico, Intermediário, Avançado]
+const PERFIS = {
+  Utilizacao: {
+    Assistente:  [0.15, 0.50, 0.30, 0.05],
+    Analista:    [0.08, 0.42, 0.38, 0.12],
+    Especialista:[0.05, 0.30, 0.45, 0.20],
+    Coordenador: [0.10, 0.40, 0.35, 0.15],
+    Gerente:     [0.15, 0.45, 0.30, 0.10],
+    Diretor:     [0.20, 0.40, 0.30, 0.10]
+  },
+  Dados: {
+    Assistente:  [0.30, 0.50, 0.18, 0.02],
+    Analista:    [0.15, 0.50, 0.28, 0.07],
+    Especialista:[0.08, 0.35, 0.42, 0.15],
+    Coordenador: [0.18, 0.45, 0.30, 0.07],
+    Gerente:     [0.25, 0.45, 0.25, 0.05],
+    Diretor:     [0.20, 0.45, 0.28, 0.07]
+  },
+  Governanca: {
+    Assistente:  [0.45, 0.40, 0.13, 0.02],
+    Analista:    [0.35, 0.42, 0.18, 0.05],
+    Especialista:[0.25, 0.40, 0.28, 0.07],
+    Coordenador: [0.28, 0.40, 0.25, 0.07],
+    Gerente:     [0.20, 0.38, 0.30, 0.12],
+    Diretor:     [0.15, 0.30, 0.35, 0.20]
+  },
+  Impacto: {
+    Assistente:  [0.40, 0.45, 0.13, 0.02],
+    Analista:    [0.20, 0.48, 0.27, 0.05],
+    Especialista:[0.10, 0.35, 0.40, 0.15],
+    Coordenador: [0.15, 0.40, 0.35, 0.10],
+    Gerente:     [0.12, 0.35, 0.38, 0.15],
+    Diretor:     [0.08, 0.25, 0.40, 0.27]
+  },
+  Cultura: {
+    Assistente:  [0.10, 0.40, 0.40, 0.10],
+    Analista:    [0.08, 0.35, 0.40, 0.17],
+    Especialista:[0.05, 0.30, 0.42, 0.23],
+    Coordenador: [0.10, 0.35, 0.38, 0.17],
+    Gerente:     [0.12, 0.38, 0.35, 0.15],
+    Diretor:     [0.10, 0.30, 0.35, 0.25]
+  }
+};
+
+// Ajuste geracional: GenZ +0.15 em Utilização/Cultura, GenX -0.1, BB -0.2
+const GER_BOOST = {
+  GenZ:  { Utilizacao: 0.15, Dados: 0.0, Governanca:-0.05, Impacto:-0.05, Cultura: 0.15 },
+  GenY:  { Utilizacao: 0.05, Dados: 0.0, Governanca: 0.0,  Impacto: 0.0,  Cultura: 0.05 },
+  GenX:  { Utilizacao:-0.10, Dados: 0.05,Governanca: 0.05, Impacto: 0.05, Cultura:-0.10 },
+  BB:    { Utilizacao:-0.20, Dados: 0.0, Governanca: 0.05, Impacto: 0.05, Cultura:-0.20 }
+};
+
+// ─── GERADOR DE DADOS ───
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
+
+function weightedChoice(probs, rand) {
+  const r = rand();
+  let cum = 0;
+  for (let i = 0; i < probs.length; i++) {
+    cum += probs[i];
+    if (r <= cum) return i;
+  }
+  return probs.length - 1;
+}
+
+function scoreFromNivel(nivel, rand) {
+  const ranges = [[1.0,1.49],[1.5,2.49],[2.5,3.49],[3.5,4.0]];
+  const [min, max] = ranges[nivel];
+  return Math.round((min + rand() * (max - min)) * 100) / 100;
+}
+
+function gerarDados(seed) {
+  const rand = seededRandom(seed);
+  const pessoas = [];
+  let id = 1;
+
+  for (const cargo of CARGOS) {
+    for (const ger of GERACOES) {
+      const n = cargo.geracao[ger];
+      for (let i = 0; i < n; i++) {
+        const cluster = ['Gerente','Diretor','Coordenador'].includes(cargo.nome) ? 'Gestao' : 'Execucao';
+        const scores = {};
+        const niveis = {};
+
+        for (const dim of DIMENSOES) {
+          const basePerfil = [...PERFIS[dim][cargo.nome]];
+          const boost = GER_BOOST[ger][dim];
+
+          // Aplicar boost geracional redistribuindo probabilidade
+          const adjusted = basePerfil.map((p, idx) => {
+            if (idx === 3) return Math.max(0.01, p + boost * 0.4);
+            if (idx === 2) return Math.max(0.01, p + boost * 0.3);
+            if (idx === 1) return Math.max(0.01, p - boost * 0.1);
+            return Math.max(0.01, p - boost * 0.6);
+          });
+          const sum = adjusted.reduce((a, b) => a + b, 0);
+          const normalized = adjusted.map(p => p / sum);
+
+          const nivel = weightedChoice(normalized, rand);
+          niveis[dim] = nivel;
+          scores[dim] = scoreFromNivel(nivel, rand);
+        }
+
+        // Score geral = média ponderada
+        const scoreGeral = Math.round(DIMENSOES.reduce((acc, d) => acc + scores[d], 0) / DIMENSOES.length * 100) / 100;
+        let nivelGeral;
+        if (scoreGeral < 1.5) nivelGeral = 0;
+        else if (scoreGeral < 2.5) nivelGeral = 1;
+        else if (scoreGeral < 3.5) nivelGeral = 2;
+        else nivelGeral = 3;
+
+        pessoas.push({ id: id++, cargo: cargo.nome, geracao: ger, cluster, scores, niveis, scoreGeral, nivelGeral });
+      }
+    }
+  }
+  return pessoas;
+}
+
+// ─── COMPONENTES VISUAIS ───
+
+function Histogram({ data, labels, colors, title, subtitle, maxVal, showPct, height = 220 }) {
+  const total = data.reduce((a, b) => a + b, 0);
+  const max = maxVal || Math.max(...data, 1);
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+      <div className="mb-4">
+        <div className="font-semibold text-sm">{title}</div>
+        {subtitle && <div className="text-xs text-gray-400">{subtitle}</div>}
+      </div>
+      <div className="flex items-end gap-2 justify-center" style={{ height }}>
+        {data.map((val, i) => {
+          const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+          const barH = max > 0 ? (val / max) * (height - 40) : 0;
+          return (
+            <div key={i} className="flex flex-col items-center gap-1 flex-1 min-w-0">
+              <div className="text-xs font-bold" style={{ color: colors[i] }}>
+                {showPct ? `${pct}%` : val}
+              </div>
+              <div className="w-full rounded-t-lg transition-all duration-700 ease-out"
+                style={{ height: barH, backgroundColor: colors[i], minHeight: val > 0 ? 4 : 0, maxWidth: 80 }} />
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 text-center leading-tight mt-1 truncate w-full">
+                {labels[i]}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StackedBar({ segments, labels, colors, total, title }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium">{title}</span>
+        <span className="text-xs text-gray-400">n={total}</span>
+      </div>
+      <div className="flex h-7 rounded-lg overflow-hidden">
+        {segments.map((val, i) => {
+          const pct = total > 0 ? (val / total) * 100 : 0;
+          if (pct === 0) return null;
+          return (
+            <div key={i} className="flex items-center justify-center text-[10px] font-bold text-white transition-all duration-500"
+              style={{ width: `${pct}%`, backgroundColor: colors[i], minWidth: pct > 3 ? 'auto' : 0 }}
+              title={`${labels[i]}: ${val} (${Math.round(pct)}%)`}>
+              {pct >= 8 ? `${Math.round(pct)}%` : ''}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, color }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+      <div className="text-2xl font-bold mt-1" style={{ color }}>{value}</div>
+      {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function HeatmapCell({ value, max, color }) {
+  const intensity = max > 0 ? value / max : 0;
+  const bg = `${color}${Math.round(intensity * 200 + 20).toString(16).padStart(2, '0')}`;
+  return (
+    <td className="text-center text-xs font-medium p-2 rounded" style={{ backgroundColor: bg, color: intensity > 0.5 ? '#fff' : '#374151' }}>
+      {value}
+    </td>
+  );
+}
+
+// ─── APP PRINCIPAL ───
+function App() {
+  const [seed, setSeed] = useState(2026);
+  const [dark, setDark] = useState(false);
+  const [filtroCluster, setFiltroCluster] = useState('Todos');
+  const [filtroCargo, setFiltroCargo] = useState('Todos');
+  const [filtroGeracao, setFiltroGeracao] = useState('Todos');
+  const [activeTab, setActiveTab] = useState('geral');
+
+  const dados = useMemo(() => gerarDados(seed), [seed]);
+
+  const filtrados = useMemo(() => {
+    let r = dados;
+    if (filtroCluster !== 'Todos') r = r.filter(p => p.cluster === filtroCluster);
+    if (filtroCargo !== 'Todos') r = r.filter(p => p.cargo === filtroCargo);
+    if (filtroGeracao !== 'Todos') r = r.filter(p => p.geracao === filtroGeracao);
+    return r;
+  }, [dados, filtroCluster, filtroCargo, filtroGeracao]);
+
+  // Stats gerais
+  const stats = useMemo(() => {
+    const n = filtrados.length;
+    const mediaGeral = n > 0 ? Math.round(filtrados.reduce((a, p) => a + p.scoreGeral, 0) / n * 100) / 100 : 0;
+    const dist = [0, 0, 0, 0];
+    filtrados.forEach(p => dist[p.nivelGeral]++);
+
+    const porDim = {};
+    for (const dim of DIMENSOES) {
+      const media = n > 0 ? Math.round(filtrados.reduce((a, p) => a + p.scores[dim], 0) / n * 100) / 100 : 0;
+      const d = [0, 0, 0, 0];
+      filtrados.forEach(p => d[p.niveis[dim]]++);
+      porDim[dim] = { media, dist: d };
+    }
+
+    const porCargo = {};
+    for (const c of CARGOS) {
+      const sub = filtrados.filter(p => p.cargo === c.nome);
+      if (sub.length === 0) continue;
+      const m = Math.round(sub.reduce((a, p) => a + p.scoreGeral, 0) / sub.length * 100) / 100;
+      const d = [0, 0, 0, 0];
+      sub.forEach(p => d[p.nivelGeral]++);
+      porCargo[c.nome] = { media: m, dist: d, n: sub.length };
+    }
+
+    const porGeracao = {};
+    for (const g of GERACOES) {
+      const sub = filtrados.filter(p => p.geracao === g);
+      if (sub.length === 0) continue;
+      const m = Math.round(sub.reduce((a, p) => a + p.scoreGeral, 0) / sub.length * 100) / 100;
+      const d = [0, 0, 0, 0];
+      sub.forEach(p => d[p.nivelGeral]++);
+      porGeracao[g] = { media: m, dist: d, n: sub.length };
+    }
+
+    return { n, mediaGeral, dist, porDim, porCargo, porGeracao };
+  }, [filtrados]);
+
+  // Heatmap cargo × dimensão
+  const heatmap = useMemo(() => {
+    const result = {};
+    let maxVal = 0;
+    for (const c of CARGOS) {
+      result[c.nome] = {};
+      for (const dim of DIMENSOES) {
+        const sub = filtrados.filter(p => p.cargo === c.nome);
+        const media = sub.length > 0 ? Math.round(sub.reduce((a, p) => a + p.scores[dim], 0) / sub.length * 100) / 100 : 0;
+        result[c.nome][dim] = media;
+        if (media > maxVal) maxVal = media;
+      }
+    }
+    return { data: result, max: maxVal };
+  }, [filtrados]);
+
+  // Early adopters (score geral >= 3.0)
+  const earlyAdopters = useMemo(() => {
+    return filtrados.filter(p => p.scoreGeral >= 3.0);
+  }, [filtrados]);
+
+  // Gaps críticos
+  const gaps = useMemo(() => {
+    return DIMENSOES
+      .map(dim => ({ dim, media: stats.porDim[dim]?.media || 0, pctIniciante: stats.n > 0 ? Math.round((stats.porDim[dim]?.dist[0] || 0) / stats.n * 100) : 0 }))
+      .sort((a, b) => a.media - b.media);
+  }, [stats]);
+
+  const tabs = [
+    { id: 'geral', label: 'Visão Geral', icon: '📊' },
+    { id: 'dimensoes', label: 'Por Dimensão', icon: '📐' },
+    { id: 'demografico', label: 'Demográfico', icon: '👥' },
+    { id: 'heatmap', label: 'Heatmap', icon: '🗺️' },
+    { id: 'insights', label: 'Insights', icon: '💡' }
+  ];
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold">Simulação — Pesquisa de Maturidade em IA</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {stats.n} colaboradores simulados · Seed: {seed} · Swift × IONIX
+              </p>
+            </div>
+            <div className="flex items-center gap-3 no-print">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Seed:</label>
+                <input type="number" value={seed} onChange={e => setSeed(Number(e.target.value) || 1)}
+                  className="w-20 text-sm p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center" />
+                <button onClick={() => setSeed(Math.floor(Math.random() * 99999))}
+                  className="px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                  🎲 Nova
+                </button>
+              </div>
+              <button onClick={() => { setDark(!dark); document.documentElement.classList.toggle('dark'); }}
+                className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                {dark ? '☀️' : '🌙'}
+              </button>
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-3 mb-3 no-print">
+            <select value={filtroCluster} onChange={e => setFiltroCluster(e.target.value)}
+              className="text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <option value="Todos">Todos os clusters</option>
+              <option value="Execucao">Execução</option>
+              <option value="Gestao">Gestão</option>
+            </select>
+            <select value={filtroCargo} onChange={e => setFiltroCargo(e.target.value)}
+              className="text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <option value="Todos">Todos os cargos</option>
+              {CARGOS.map(c => <option key={c.nome} value={c.nome}>{c.nome}</option>)}
+            </select>
+            <select value={filtroGeracao} onChange={e => setFiltroGeracao(e.target.value)}
+              className="text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <option value="Todos">Todas as gerações</option>
+              {GERACOES.map(g => <option key={g} value={g}>{GER_LABELS[g]}</option>)}
+            </select>
+            {(filtroCluster !== 'Todos' || filtroCargo !== 'Todos' || filtroGeracao !== 'Todos') && (
+              <button onClick={() => { setFiltroCluster('Todos'); setFiltroCargo('Todos'); setFiltroGeracao('Todos'); }}
+                className="text-xs text-red-500 hover:text-red-700 font-medium">
+                ✕ Limpar filtros
+              </button>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 overflow-x-auto no-print">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition whitespace-nowrap ${
+                  activeTab === t.id
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* ── VISÃO GERAL ── */}
+        {activeTab === 'geral' && (
+          <div className="fade-in space-y-6">
+            {/* KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <StatCard label="Respondentes" value={stats.n} color="#3B82F6" />
+              <StatCard label="Score Médio" value={stats.mediaGeral.toFixed(2)} sub={`de 4.00`} color="#10B981" />
+              <StatCard label="Nível Predominante" value={NIVEL_LABELS[stats.dist.indexOf(Math.max(...stats.dist))]}
+                sub={`${Math.round(Math.max(...stats.dist) / stats.n * 100)}% dos respondentes`}
+                color={NIVEL_COLORS[stats.dist.indexOf(Math.max(...stats.dist))]} />
+              <StatCard label="Early Adopters" value={earlyAdopters.length}
+                sub={`${Math.round(earlyAdopters.length / stats.n * 100)}% do total`} color="#F97316" />
+              <StatCard label="Dimensão + Fraca" value={DIM_LABELS[gaps[0]?.dim]}
+                sub={`média ${gaps[0]?.media.toFixed(2)}`} color="#EF4444" />
+            </div>
+
+            {/* Histograma geral */}
+            <Histogram data={stats.dist} labels={NIVEL_LABELS} colors={NIVEL_COLORS}
+              title="Distribuição Geral de Maturidade" subtitle={`${stats.n} colaboradores · Score médio: ${stats.mediaGeral.toFixed(2)}`}
+              showPct height={240} />
+
+            {/* Histogramas por dimensão */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {DIMENSOES.map(dim => (
+                <Histogram key={dim}
+                  data={stats.porDim[dim].dist}
+                  labels={NIVEL_LABELS}
+                  colors={NIVEL_COLORS}
+                  title={DIM_LABELS[dim]}
+                  subtitle={`Média: ${stats.porDim[dim].media.toFixed(2)}`}
+                  showPct height={180} />
+              ))}
+            </div>
+
+            {/* Stacked bars por cargo */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-4">Distribuição por Cargo</div>
+              {Object.entries(stats.porCargo).map(([cargo, info]) => (
+                <StackedBar key={cargo} title={`${cargo} (média ${info.media.toFixed(2)})`}
+                  segments={info.dist} labels={NIVEL_LABELS} colors={NIVEL_COLORS} total={info.n} />
+              ))}
+              <div className="flex gap-4 mt-4 justify-center">
+                {NIVEL_LABELS.map((l, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: NIVEL_COLORS[i] }} />
+                    <span className="text-gray-500">{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── POR DIMENSÃO ── */}
+        {activeTab === 'dimensoes' && (
+          <div className="fade-in space-y-6">
+            {DIMENSOES.map(dim => {
+              const info = stats.porDim[dim];
+              const total = info.dist.reduce((a, b) => a + b, 0);
+              return (
+                <div key={dim} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="font-bold text-lg" style={{ color: DIM_COLORS[dim] }}>{DIM_LABELS[dim]}</div>
+                      <div className="text-xs text-gray-400">Média: {info.media.toFixed(2)} · n={total}</div>
+                    </div>
+                    <div className="text-3xl font-black" style={{ color: DIM_COLORS[dim] }}>{info.media.toFixed(1)}</div>
+                  </div>
+
+                  {/* Barra horizontal grande */}
+                  <div className="flex h-10 rounded-xl overflow-hidden mb-4">
+                    {info.dist.map((val, i) => {
+                      const pct = total > 0 ? (val / total) * 100 : 0;
+                      return (
+                        <div key={i} className="flex items-center justify-center text-xs font-bold text-white transition-all duration-500"
+                          style={{ width: `${pct}%`, backgroundColor: NIVEL_COLORS[i] }}>
+                          {pct >= 8 ? `${NIVEL_LABELS[i]} ${Math.round(pct)}%` : pct >= 4 ? `${Math.round(pct)}%` : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Detalhes por cargo nesta dimensão */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {CARGOS.map(c => {
+                      const sub = filtrados.filter(p => p.cargo === c.nome);
+                      if (sub.length === 0) return null;
+                      const m = Math.round(sub.reduce((a, p) => a + p.scores[dim], 0) / sub.length * 100) / 100;
+                      const d = [0, 0, 0, 0];
+                      sub.forEach(p => d[p.niveis[dim]]++);
+                      return (
+                        <div key={c.nome} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700">
+                          <div className="text-xs font-semibold mb-1">{c.nome} <span className="text-gray-400">({sub.length})</span></div>
+                          <div className="text-sm font-bold mb-1" style={{ color: DIM_COLORS[dim] }}>{m.toFixed(2)}</div>
+                          <div className="flex h-3 rounded overflow-hidden">
+                            {d.map((v, i) => {
+                              const pct = sub.length > 0 ? (v / sub.length) * 100 : 0;
+                              return <div key={i} style={{ width: `${pct}%`, backgroundColor: NIVEL_COLORS[i] }} />;
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── DEMOGRÁFICO ── */}
+        {activeTab === 'demografico' && (
+          <div className="fade-in space-y-6">
+            {/* Por geração */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-4">Distribuição por Geração</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {Object.entries(stats.porGeracao).map(([ger, info]) => (
+                  <Histogram key={ger}
+                    data={info.dist}
+                    labels={NIVEL_LABELS}
+                    colors={NIVEL_COLORS}
+                    title={`${GER_LABELS[ger]} (n=${info.n})`}
+                    subtitle={`Média: ${info.media.toFixed(2)} · ${Math.round(info.n / stats.n * 100)}% do total`}
+                    showPct height={160} />
+                ))}
+              </div>
+            </div>
+
+            {/* Geração × Dimensão */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-4">Média por Geração × Dimensão</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left p-2 text-xs text-gray-500">Geração</th>
+                      {DIMENSOES.map(d => (
+                        <th key={d} className="text-center p-2 text-xs font-medium" style={{ color: DIM_COLORS[d] }}>{DIM_LABELS[d]}</th>
+                      ))}
+                      <th className="text-center p-2 text-xs text-gray-500 font-bold">Geral</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GERACOES.map(ger => {
+                      const sub = filtrados.filter(p => p.geracao === ger);
+                      if (sub.length === 0) return null;
+                      return (
+                        <tr key={ger} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="p-2 text-xs font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: GER_COLORS[ger] }} />
+                              {GER_LABELS[ger]} ({sub.length})
+                            </span>
+                          </td>
+                          {DIMENSOES.map(dim => {
+                            const m = Math.round(sub.reduce((a, p) => a + p.scores[dim], 0) / sub.length * 100) / 100;
+                            return <HeatmapCell key={dim} value={m.toFixed(2)} max={4} color={DIM_COLORS[dim]} />;
+                          })}
+                          <td className="text-center text-xs font-bold p-2">
+                            {(sub.reduce((a, p) => a + p.scoreGeral, 0) / sub.length).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Por cluster */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-4">Execução vs Gestão</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['Execucao','Gestao'].map(cl => {
+                  const sub = filtrados.filter(p => p.cluster === cl);
+                  const d = [0, 0, 0, 0];
+                  sub.forEach(p => d[p.nivelGeral]++);
+                  const m = sub.length > 0 ? (sub.reduce((a, p) => a + p.scoreGeral, 0) / sub.length).toFixed(2) : '—';
+                  return (
+                    <Histogram key={cl}
+                      data={d} labels={NIVEL_LABELS} colors={NIVEL_COLORS}
+                      title={`Cluster ${CLUSTERS[cl]} (n=${sub.length})`}
+                      subtitle={`Média: ${m}`}
+                      showPct height={180} />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── HEATMAP ── */}
+        {activeTab === 'heatmap' && (
+          <div className="fade-in space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-1">Heatmap — Cargo × Dimensão</div>
+              <div className="text-xs text-gray-400 mb-4">Score médio por combinação. Cores mais intensas = scores mais altos.</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left p-2 text-xs text-gray-500">Cargo</th>
+                      {DIMENSOES.map(d => (
+                        <th key={d} className="text-center p-2 text-xs font-medium" style={{ color: DIM_COLORS[d] }}>{DIM_LABELS[d]}</th>
+                      ))}
+                      <th className="text-center p-2 text-xs text-gray-500 font-bold">Geral</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CARGOS.map(c => {
+                      const sub = filtrados.filter(p => p.cargo === c.nome);
+                      if (sub.length === 0) return null;
+                      const geralM = (sub.reduce((a, p) => a + p.scoreGeral, 0) / sub.length).toFixed(2);
+                      return (
+                        <tr key={c.nome} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="p-2 text-xs font-medium">{c.nome} <span className="text-gray-400">({sub.length})</span></td>
+                          {DIMENSOES.map(dim => (
+                            <HeatmapCell key={dim} value={heatmap.data[c.nome]?.[dim]?.toFixed(2) || '—'} max={4} color={DIM_COLORS[dim]} />
+                          ))}
+                          <td className="text-center text-xs font-bold p-2 bg-gray-50 dark:bg-gray-900">{geralM}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Heatmap Geração × Dimensão */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+              <div className="font-semibold text-sm mb-1">Heatmap — Geração × Dimensão</div>
+              <div className="text-xs text-gray-400 mb-4">Score médio por combinação.</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left p-2 text-xs text-gray-500">Geração</th>
+                      {DIMENSOES.map(d => (
+                        <th key={d} className="text-center p-2 text-xs font-medium" style={{ color: DIM_COLORS[d] }}>{DIM_LABELS[d]}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GERACOES.map(ger => {
+                      const sub = filtrados.filter(p => p.geracao === ger);
+                      if (sub.length === 0) return null;
+                      return (
+                        <tr key={ger} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="p-2 text-xs font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: GER_COLORS[ger] }} />
+                              {GER_LABELS[ger]} ({sub.length})
+                            </span>
+                          </td>
+                          {DIMENSOES.map(dim => {
+                            const m = Math.round(sub.reduce((a, p) => a + p.scores[dim], 0) / sub.length * 100) / 100;
+                            return <HeatmapCell key={dim} value={m.toFixed(2)} max={4} color={DIM_COLORS[dim]} />;
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── INSIGHTS ── */}
+        {activeTab === 'insights' && (
+          <div className="fade-in space-y-6">
+            {/* Validação de suposições */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="font-bold text-lg mb-4">Validação de Suposições (Simulação)</h2>
+              <div className="space-y-4">
+                {[
+                  {
+                    id: 'S1', titulo: 'Maioria já usa IA de forma rasa',
+                    metrica: `${Math.round((stats.porDim.Utilizacao?.dist[1] || 0) / stats.n * 100)}% no nível Básico em Utilização`,
+                    status: (stats.porDim.Utilizacao?.dist[1] || 0) / stats.n > 0.35 ? 'confirmada' : 'refutada',
+                    detalhe: `Distribuição Utilização: ${NIVEL_LABELS.map((l, i) => `${l}: ${stats.porDim.Utilizacao?.dist[i] || 0}`).join(' · ')}`
+                  },
+                  {
+                    id: 'S10', titulo: 'Governança muito baixa',
+                    metrica: `${Math.round(((stats.porDim.Governanca?.dist[0] || 0) + (stats.porDim.Governanca?.dist[1] || 0)) / stats.n * 100)}% Iniciante+Básico em Governança`,
+                    status: ((stats.porDim.Governanca?.dist[0] || 0) + (stats.porDim.Governanca?.dist[1] || 0)) / stats.n > 0.6 ? 'confirmada' : 'refutada',
+                    detalhe: `Média Governança: ${stats.porDim.Governanca?.media.toFixed(2)} — a mais baixa entre as dimensões`
+                  },
+                  {
+                    id: 'S6', titulo: 'Gestores não formulam hipóteses',
+                    metrica: (() => {
+                      const gest = filtrados.filter(p => ['Gerente','Diretor','Coordenador'].includes(p.cargo));
+                      const m = gest.length > 0 ? (gest.reduce((a, p) => a + p.scores.Impacto, 0) / gest.length).toFixed(2) : '—';
+                      return `Média Impacto (Gestão): ${m}`;
+                    })(),
+                    status: (() => {
+                      const gest = filtrados.filter(p => ['Gerente','Diretor','Coordenador'].includes(p.cargo));
+                      const m = gest.length > 0 ? gest.reduce((a, p) => a + p.scores.Impacto, 0) / gest.length : 0;
+                      return m < 2.5 ? 'confirmada' : 'refutada';
+                    })(),
+                    detalhe: 'Se a média de Impacto nos cargos de gestão é < 2.5, o gargalo da esteira está na formulação de hipóteses.'
+                  },
+                  {
+                    id: 'S11', titulo: '15-20% early adopters',
+                    metrica: `${earlyAdopters.length} early adopters (${Math.round(earlyAdopters.length / stats.n * 100)}%)`,
+                    status: earlyAdopters.length / stats.n >= 0.12 && earlyAdopters.length / stats.n <= 0.25 ? 'confirmada' : 'refutada',
+                    detalhe: `Score >= 3.0: ${earlyAdopters.length} pessoas. Esses são candidatos prioritários para a Germinare.`
+                  },
+                  {
+                    id: 'S4', titulo: 'Gen Z usa mais, profundidade igual',
+                    metrica: (() => {
+                      const gz = filtrados.filter(p => p.geracao === 'GenZ');
+                      const gy = filtrados.filter(p => p.geracao === 'GenY');
+                      const mz = gz.length > 0 ? (gz.reduce((a, p) => a + p.scores.Utilizacao, 0) / gz.length).toFixed(2) : '—';
+                      const my = gy.length > 0 ? (gy.reduce((a, p) => a + p.scores.Utilizacao, 0) / gy.length).toFixed(2) : '—';
+                      return `Gen Z Utilização: ${mz} · Millennial: ${my}`;
+                    })(),
+                    status: (() => {
+                      const gz = filtrados.filter(p => p.geracao === 'GenZ');
+                      const gy = filtrados.filter(p => p.geracao === 'GenY');
+                      const mz = gz.length > 0 ? gz.reduce((a, p) => a + p.scores.Dados, 0) / gz.length : 0;
+                      const my = gy.length > 0 ? gy.reduce((a, p) => a + p.scores.Dados, 0) / gy.length : 0;
+                      return Math.abs(mz - my) < 0.3 ? 'confirmada' : 'refutada';
+                    })(),
+                    detalhe: 'Se Gen Z tem score maior em Utilização mas similar em Dados, confirma que frequência ≠ profundidade.'
+                  }
+                ].map(s => (
+                  <div key={s.id} className={`p-4 rounded-xl border ${
+                    s.status === 'confirmada'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                      : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold">{s.id}: {s.titulo}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        s.status === 'confirmada' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                      }`}>
+                        {s.status === 'confirmada' ? '✅ Confirmada' : '❌ Refutada'}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{s.metrica}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{s.detalhe}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Gaps críticos */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="font-bold text-lg mb-4">Ranking de Gaps (da mais fraca para a mais forte)</h2>
+              <div className="space-y-3">
+                {gaps.map((g, i) => (
+                  <div key={g.dim} className="flex items-center gap-4">
+                    <span className="text-lg font-black text-gray-300 w-8">{i + 1}.</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold" style={{ color: DIM_COLORS[g.dim] }}>{DIM_LABELS[g.dim]}</span>
+                        <span className="text-sm font-bold">{g.media.toFixed(2)}</span>
+                      </div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${(g.media / 4) * 100}%`, backgroundColor: DIM_COLORS[g.dim] }} />
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{g.pctIniciante}% no nível Iniciante</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recomendações */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+              <h2 className="font-bold text-lg mb-4">Recomendações Baseadas na Simulação</h2>
+              <div className="space-y-3">
+                {[
+                  {
+                    icon: '🚨', titulo: 'Governança como primeira intervenção',
+                    desc: `Com ${Math.round(((stats.porDim.Governanca?.dist[0] || 0)) / stats.n * 100)}% no nível Iniciante, o módulo de governança precisa ser obrigatório e transversal antes de ampliar uso.`,
+                    prioridade: 'Crítica'
+                  },
+                  {
+                    icon: '🎯', titulo: 'Trilha Estratégica focada em Impacto',
+                    desc: 'Gestores precisam aprender a formular hipóteses antes de alimentar a esteira. Framework de priorização é pré-requisito.',
+                    prioridade: 'Alta'
+                  },
+                  {
+                    icon: '🌱', titulo: `Ativar ${earlyAdopters.length} early adopters via Germinare`,
+                    desc: `${Math.round(earlyAdopters.length / stats.n * 100)}% já estão no nível Intermediário+. São os multiplicadores naturais para o modelo train-the-trainer.`,
+                    prioridade: 'Alta'
+                  },
+                  {
+                    icon: '📊', titulo: 'Dados antes de Vibe Coding na trilha de Execução',
+                    desc: `Média em Dados (${stats.porDim.Dados?.media.toFixed(2)}) abaixo de Utilização (${stats.porDim.Utilizacao?.media.toFixed(2)}). Priorizar letramento em dados antes de automação.`,
+                    prioridade: 'Média'
+                  },
+                  {
+                    icon: '💬', titulo: 'Comunicação: IA como copiloto',
+                    desc: `Cultura é a dimensão mais forte (${stats.porDim.Cultura?.media.toFixed(2)}). O interesse existe — a comunicação deve canalizar, não evangelizar.`,
+                    prioridade: 'Média'
+                  }
+                ].map((r, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700">
+                    <span className="text-xl">{r.icon}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-semibold">{r.titulo}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          r.prioridade === 'Crítica' ? 'bg-red-100 text-red-700' :
+                          r.prioridade === 'Alta' ? 'bg-orange-100 text-orange-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>{r.prioridade}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{r.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-gray-200 dark:border-gray-800 mt-12 py-6 text-center text-xs text-gray-400">
+        Simulação de Resultados · Pesquisa de Maturidade em IA · Swift × IONIX · Dados simulados, não reais
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

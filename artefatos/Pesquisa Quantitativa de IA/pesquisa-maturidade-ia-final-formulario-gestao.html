@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pesquisa de Maturidade em IA — Final</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] }
+    }
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; margin: 0; background: #F8FAFC; }
+.fade-in { animation: fadeIn 0.35s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.pulse { animation: pulse 0.3s ease; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+html { overflow-y: scroll; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useEffect, useMemo, useRef } = React;
+
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+// Cole aqui a URL do Google Apps Script (Web App) após publicar:
+const SHEETS_URL = 'COLE_SUA_URL_AQUI';
+const FORMULARIO = 'gestao-final';
+
+const STORAGE_KEY = 'swift-ia-pesquisa-final-gestao';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, savedAt: new Date().toISOString() }));
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+const o = (t, s) => ({ text: t, score: s });
+// Embaralha array uma vez no carregamento (Fisher-Yates)
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const s = (arr) => shuffle(arr);
+
+// ═══════════════════════════════════════════
+// QUESTION DATA (5 Dimensões da Matriz de Letramento)
+// ═══════════════════════════════════════════
+const PAGES = [
+  // PAGE 0: Boas-vindas
+  {
+    id: 'boas-vindas',
+    titulo: 'Pesquisa de Maturidade em IA — Final',
+    subtitulo: 'Swift × IONIX — Programa de Transformação em IA Escalável',
+    cor: '#3B82F6',
+    icon: '👋',
+    isWelcome: true,
+    perguntas: []
+  },
+  // PAGE 1: Identificação (CPF sozinho)
+  {
+    id: 'identificacao',
+    titulo: 'Identificação',
+    subtitulo: 'Seus dados são confidenciais e serão usados apenas para cruzamento com a base de RH.',
+    cor: '#3B82F6',
+    icon: '🔒',
+    perguntas: [
+      { id:'Q1', texto:'Informe seu CPF (apenas números, sem pontos ou traços)', tipo:'cpf', obrigatoria: true }
+    ]
+  },
+  // PAGE 2: Utilização
+  {
+    id: 'utilizacao',
+    titulo: 'Utilização de IA',
+    subtitulo: 'Avalie suas práticas no uso de ferramentas de IA.',
+    cor: '#3B82F6',
+    icon: '⚡',
+    perguntas: [
+      { id:'U1', texto:'Com que frequência você usa ferramentas de IA (ChatGPT, Copilot, Gemini etc.) no seu trabalho?', tipo:'radio', opcoes:[
+        o('Uso pelo menos 1× por semana', 3),
+        o('Nunca usei', 1),
+        o('É parte essencial do meu fluxo de trabalho', 5),
+        o('Já experimentei, mas não uso no dia a dia', 2),
+        o('Uso diariamente em tarefas específicas', 4),
+      ]},
+      { id:'Q2', texto:'Você está fazendo ou já fez algum curso ou capacitação sobre Inteligência Artificial?', tipo:'radio', opcoes:[
+        o('Sim, fiz um curso online (ex: Coursera, Udemy, Alura)', 3),
+        o('Não, nunca fiz', 1),
+        o('Sim, já fiz mais de um curso e continuo me atualizando', 5),
+        o('Estou aprendendo por conta própria (vídeos, artigos, tutoriais)', 2),
+        o('Sim, fiz um curso formal presencial ou da empresa', 4),
+      ]},
+      { id:'U2', texto:'Quando você usa IA para gerar um texto, análise ou resposta, como você lida com o resultado?', tipo:'radio', opcoes:[
+        o('Leio e faço pequenos ajustes', 3),
+        o('Não uso IA para isso', 1),
+        o('Itero com novos prompts até chegar num resultado de alta qualidade', 5),
+        o('Aceito o resultado como está', 2),
+        o('Avalio criticamente e reformulo o que for necessário', 4),
+      ]},
+      { id:'U3', texto:'O quão familiarizado você está com o conceito de prompt e as práticas envolvidas?', tipo:'radio', opcoes:[
+        o('Consigo dar contexto, especificar formato e usar exemplos', 3),
+        o('Não sei o que é um prompt', 1),
+        o('Construo prompts complexos e ensino colegas a fazer o mesmo', 5),
+        o('Sei o que é, mas só escrevo instruções simples', 2),
+        o('Uso técnicas como persona, restrições e cadeia de raciocínio', 4),
+      ]},
+      { id:'U4', texto:'Na sua equipe, que percentual dos colaboradores você estima que usa IA regularmente no trabalho?', tipo:'radio', opcoes:[
+        o('25-50%', 3),
+        o('Menos de 10%', 1),
+        o('Mais de 75%', 5),
+        o('10-25%', 2),
+        o('50-75%', 4),
+      ]},
+      { id:'U5', texto:'Qual é a sua maior barreira para usar mais IA no trabalho?', tipo:'radio', opcoes:[
+        'Não vejo aplicação no que faço',
+        'Não sei por onde começar',
+        'Não sei se posso usar (dúvida sobre permissão/política)',
+        'Falta de ferramentas aprovadas pela empresa',
+        'Medo de errar ou gerar problemas',
+        'Falta de tempo',
+        'Já uso bastante, não tenho barreiras'
+      ]}
+    ]
+  },
+  // PAGE 3: Dados
+  {
+    id: 'dados',
+    titulo: 'Dados e IA',
+    subtitulo: 'Sua relação com dados no contexto de ferramentas de IA.',
+    cor: '#10B981',
+    icon: '📊',
+    perguntas: [
+      { id:'D1', texto:'Qual afirmação melhor descreve seu entendimento sobre como a IA funciona?', tipo:'radio', opcoes:[
+        o('Entendo que a IA aprende a partir de dados e reconhece padrões', 3),
+        o('Não sei como funciona', 1),
+        o('Consigo avaliar quando um resultado da IA pode estar enviesado por limitações nos dados', 5),
+        o('Sei que tem algo a ver com dados, mas não entendo como', 2),
+        o('Compreendo a diferença entre dados de treinamento e dados de entrada, e como isso afeta resultados', 4),
+      ]},
+      { id:'D2', texto:'Sua área tem dados organizados e acessíveis o suficiente para alimentar soluções de IA?', tipo:'radio', opcoes:[
+        o('Dados estão parcialmente organizados, com gaps conhecidos', 3),
+        o('Não sei dizer', 1),
+        o('Temos dados prontos e já alimentam soluções analíticas ou de IA', 5),
+        o('Dados existem mas são desorganizados e dispersos', 2),
+        o('Dados estão bem organizados e acessíveis para análises', 4),
+      ]},
+      { id:'D3', texto:'Você consegue identificar problemas de qualidade nos dados que sua área gera ou utiliza?', tipo:'radio', opcoes:[
+        o('Identifico problemas óbvios como campos vazios ou duplicados', 3),
+        o('Nunca pensei sobre isso', 1),
+        o('Proponho melhorias na coleta e organização de dados da minha área', 5),
+        o('Sei que dados podem ter problemas, mas não sei identificá-los', 2),
+        o('Consigo avaliar consistência, atualização e confiabilidade dos dados', 4),
+      ]},
+      { id:'D4', texto:'Quando uma ferramenta de IA gera um resultado diferente do que você esperava, qual costuma ser sua primeira reação?', tipo:'radio', opcoes:[
+        o('Penso se eu poderia ter dado uma instrução mais clara', 3),
+        o('Não costumo pensar sobre isso', 1),
+        o('Analiso o que pode ter influenciado — minha instrução, os dados, o modelo ou o contexto — antes de tentar de novo', 5),
+        o('Geralmente acho que a ferramenta não funcionou bem', 2),
+        o('Considero que pode ter relação com os dados ou limitações do modelo', 4),
+      ]}
+    ]
+  },
+  // PAGE 4: Governança
+  {
+    id: 'governanca',
+    titulo: 'Governança e Ética',
+    subtitulo: 'Uso responsável, riscos e compliance no contexto de IA.',
+    cor: '#8B5CF6',
+    icon: '🛡️',
+    perguntas: [
+      { id:'G1', texto:'Se você precisasse usar IA para analisar dados de clientes da Swift, qual seria sua primeira preocupação?', tipo:'radio', opcoes:[
+        o('Se os dados poderiam ser expostos ou usados para treinar o modelo', 3),
+        o('Não saberia por onde começar', 1),
+        o('Verificaria a política interna E avaliaria o risco de privacidade antes de prosseguir', 5),
+        o('Se a IA daria a resposta certa', 2),
+        o('Se existe uma política interna aprovada para esse tipo de uso', 4),
+      ]},
+      { id:'G2', texto:'Você sabe dizer quais tipos de informação da Swift NÃO devem ser inseridos em ferramentas de IA públicas?', tipo:'radio', opcoes:[
+        o('Sei que dados pessoais e financeiros não devem ser compartilhados', 3),
+        o('Nunca pensei sobre isso', 1),
+        o('Conheço as diretrizes da empresa e oriento colegas sobre o tema', 5),
+        o('Imagino que dados de clientes não devem, mas não tenho certeza', 2),
+        o('Conheço as categorias de dados sensíveis e sei distinguir o que pode ou não ser usado', 4),
+      ]},
+      { id:'G3', texto:'Se alguém te pedisse para explicar como a IA chegou em determinado resultado, você conseguiria?', tipo:'radio', opcoes:[
+        o('Explicaria de forma geral o que pedi e o que recebi', 3),
+        o('Não, não saberia explicar', 1),
+        o('Explicaria com rastreabilidade completa e saberia apontar limitações do resultado', 5),
+        o('Diria apenas que "a IA gerou"', 2),
+        o('Explicaria o processo: qual dado usei, que prompt fiz e por que confio no resultado', 4),
+      ]},
+      { id:'G4', texto:'Qual frase melhor descreve sua consciência sobre os mecanismos de governança de IA na Swift?', tipo:'radio', opcoes:[
+        o('Conheço algumas diretrizes gerais da empresa sobre o tema', 3),
+        o('Não sei se existem mecanismos de governança para IA', 1),
+        o('Conheço profundamente, ajudo a definir e oriento minha equipe sobre eles', 5),
+        o('Sei que deve existir algo, mas nunca procurei saber', 2),
+        o('Tenho plena consciência dos mecanismos e sei como se aplicam ao meu trabalho', 4),
+      ]},
+      { id:'G5', texto:'Na sua área, você já definiu orientações específicas sobre como a equipe deve usar ferramentas de IA?', tipo:'radio', opcoes:[
+        o('Sim, orientações informais/verbais', 3),
+        o('Não', 1),
+        o('Sim, com diretrizes documentadas e monitoramento de conformidade', 5),
+        o('Não, mas pretendo fazer', 2),
+        o('Sim, com diretrizes documentadas', 4),
+      ]}
+    ]
+  },
+  // PAGE 5: Impacto
+  {
+    id: 'impacto',
+    titulo: 'Impacto e Valor',
+    subtitulo: 'Como você enxerga o potencial da IA no seu trabalho.',
+    cor: '#F59E0B',
+    icon: '🎯',
+    perguntas: [
+      { id:'I1', texto:'Você consegue identificar processos da sua área que poderiam ser melhorados com IA?', tipo:'radio', opcoes:[
+        o('Sim, consigo descrever o processo e o ganho esperado', 3),
+        o('Não consigo pensar em nenhum', 1),
+        o('Já estruturei um caso de uso com métricas de impacto', 5),
+        o('Tenho uma ideia vaga, mas não saberia explicar', 2),
+        o('Sim, e já sugeri ou implementei uma melhoria com IA', 4),
+      ]},
+      { id:'I2', texto:'Você é capaz de avaliar indicadores e variáveis que justifiquem o investimento em uma iniciativa de IA?', tipo:'radio', opcoes:[
+        o('Consigo identificar os indicadores relevantes (tempo, custo, qualidade)', 3),
+        o('Não, nunca pensei nisso', 1),
+        o('Estruturo business cases completos com ROI, riscos e critérios de sucesso', 5),
+        o('Tenho noção intuitiva mas não sei estruturar', 2),
+        o('Sei montar um business case básico com métricas de antes e depois', 4),
+      ]},
+      { id:'I3', texto:'Você consegue estimar o impacto (tempo economizado, custo reduzido, qualidade melhorada) de usar IA em uma atividade?', tipo:'radio', opcoes:[
+        o('Consigo estimar de forma aproximada (ex: "economiza umas 2h por semana")', 3),
+        o('Não, nunca pensei em medir isso', 1),
+        o('Já meço o impacto e uso os dados para justificar novas iniciativas', 5),
+        o('Tenho noção intuitiva, mas não sei quantificar', 2),
+        o('Sei medir antes e depois com indicadores concretos', 4),
+      ]},
+      { id:'I4', texto:'Qual frase melhor descreve como você enxerga a IA em relação ao seu trabalho?', tipo:'radio', opcoes:[
+        o('Pode melhorar a eficiência de várias atividades da minha área', 3),
+        o('Não vejo relação com o que eu faço', 1),
+        o('É uma vantagem competitiva estratégica para a Swift', 5),
+        o('Pode ajudar em coisas pequenas, mas nada essencial', 2),
+        o('Pode transformar a forma como minha área opera', 4),
+      ]},
+      { id:'I5', texto:'Se você pudesse escolher projetos de IA para sua área, quais critérios usaria para priorizar?', tipo:'checkbox', opcoes:[
+        'Eficiência operacional / produtividade',
+        'Economia de custo imediata',
+        'Melhoria da experiência do cliente',
+        'Geração de receita nova ou diferenciação',
+        'O que o time mais pede',
+        'Pedido ou direcionamento da diretoria',
+        'Não saberia como priorizar'
+      ], exclusive: 'Não saberia como priorizar'}
+    ]
+  },
+  // PAGE 6: Cultura
+  {
+    id: 'cultura',
+    titulo: 'Cultura e Engajamento',
+    subtitulo: 'Seu envolvimento com IA além do uso individual.',
+    cor: '#EC4899',
+    icon: '🌱',
+    perguntas: [
+      { id:'C1', texto:'Nos últimos 30 dias, você compartilhou algum aprendizado, dica ou caso de uso de IA com colegas?', tipo:'radio', opcoes:[
+        o('Sim, em conversa informal', 3),
+        o('Não, e o tema não surgiu', 1),
+        o('Sim, e ajudei um colega a usar IA em uma tarefa concreta', 5),
+        o('Não, mas já vi colegas comentando', 2),
+        o('Sim, em reunião de equipe ou canal oficial', 4),
+      ]},
+      { id:'C2', texto:'Se a Swift oferecesse uma capacitação avançada em IA, qual seria sua reação?', tipo:'radio', opcoes:[
+        o('Participaria se fosse curto e prático', 3),
+        o('Não participaria', 1),
+        o('Participaria e ainda incentivaria colegas a ir', 5),
+        o('Pensaria sobre, mas provavelmente não iria', 2),
+        o('Participaria com interesse', 4),
+      ]},
+      { id:'C3', texto:'Como você reage quando descobre uma nova ferramenta ou funcionalidade de IA?', tipo:'radio', opcoes:[
+        o('Testo por curiosidade quando tenho tempo', 3),
+        o('Não costumo ficar sabendo dessas novidades', 1),
+        o('Testo, avalio e compartilho com a equipe se for útil', 5),
+        o('Vejo, mas não testo', 2),
+        o('Testo e avalio se serve para alguma tarefa minha', 4),
+      ]},
+      { id:'C4', texto:'Qual papel você sente que exerce hoje na adoção de IA dentro da Swift?', tipo:'radio', opcoes:[
+        o('Participante — uso quando aparece oportunidade', 3),
+        o('Nenhum, não é meu tema', 1),
+        o('Multiplicador — atuo ativamente para disseminar o uso de IA na minha área', 5),
+        o('Observador — acompanho de longe', 2),
+        o('Incentivador — recomendo e ajudo colegas', 4),
+      ]}
+    ]
+  },
+  // PAGE 7: Abertas
+  {
+    id: 'abertas',
+    titulo: 'Perguntas Abertas',
+    subtitulo: 'Suas percepções e sugestões em formato livre.',
+    cor: '#6366F1',
+    icon: '💬',
+    perguntas: [
+      { id:'A1', texto:'Qual tarefa do seu trabalho você mais gostaria de nunca mais ter que fazer manualmente?', tipo:'aberta', obrigatoria: true },
+      { id:'A2', texto:'Conta uma vez que você tentou usar IA e não deu certo — o que aconteceu?', tipo:'aberta', obrigatoria: false },
+      { id:'A3', texto:'Compartilhe livremente: uma experiência com IA (boa ou ruim), uma preocupação, uma sugestão, ou qualquer coisa que gostaria de dizer.', tipo:'aberta', obrigatoria: false }
+    ]
+  }
+];
+
+// Embaralha opções scored (objetos {text,score}) uma vez ao carregar
+// Opções sem score (strings) são mantidas na ordem original
+PAGES.forEach(page => {
+  page.perguntas.forEach(p => {
+    if (p.tipo === 'radio' && Array.isArray(p.opcoes) && p.opcoes.length > 0 &&
+        typeof p.opcoes[0] === 'object' && 'score' in p.opcoes[0]) {
+      p.opcoes = shuffle(p.opcoes);
+    }
+  });
+});
+
+const LIKERT_LABELS = [
+  { value: 1, label: 'Discordo totalmente' },
+  { value: 2, label: 'Discordo parcialmente' },
+  { value: 3, label: 'Neutro' },
+  { value: 4, label: 'Concordo parcialmente' },
+  { value: 5, label: 'Concordo totalmente' }
+];
+
+// ═══════════════════════════════════════════
+// COMPONENTS
+// ═══════════════════════════════════════════
+
+function ProgressBar({ current, total }) {
+  const pct = Math.round((current / total) * 100);
+  return (
+    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-500 ease-out"
+        style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)' }}
+      />
+    </div>
+  );
+}
+
+function LikertQuestion({ value, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-3">
+      {LIKERT_LABELS.map(l => (
+        <button
+          key={l.value}
+          onClick={() => onChange(l.value)}
+          className={`flex-1 min-w-[100px] py-3 px-2 rounded-xl text-center transition-all border-2 ${
+            value === l.value
+              ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+          }`}
+        >
+          <div className="text-lg font-bold">{l.value}</div>
+          <div className="text-[10px] leading-tight mt-0.5">{l.label}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RadioQuestion({ opcoes, value, onChange }) {
+  return (
+    <div className="space-y-2 mt-3">
+      {opcoes.map((op, i) => {
+        const isObj = op && typeof op === 'object' && 'text' in op;
+        const label = isObj ? op.text : op;
+        const isSelected = isObj
+          ? (value && typeof value === 'object' ? value.text === op.text : false)
+          : value === op;
+        return (
+          <button
+            key={i}
+            onClick={() => onChange(isObj ? { text: op.text, score: op.score } : op)}
+            className={`w-full text-left p-3 rounded-xl transition-all border-2 flex items-center gap-3 ${
+              isSelected
+                ? 'bg-blue-50 border-blue-500 text-blue-800'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50/50'
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+              isSelected ? 'border-blue-500' : 'border-gray-300'
+            }`}>
+              {isSelected && <div className="w-3 h-3 rounded-full bg-blue-500"/>}
+            </div>
+            <span className="text-sm">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CenarioQuestion({ opcoes, value, onChange }) {
+  return (
+    <div className="space-y-2 mt-3">
+      {opcoes.map((op, i) => {
+        const isSelected = value === op;
+        return (
+          <button
+            key={i}
+            onClick={() => onChange(op)}
+            className={`w-full text-left p-3.5 rounded-xl transition-all border-2 ${
+              isSelected
+                ? 'bg-purple-50 border-purple-500 text-purple-800'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-purple-300 hover:bg-purple-50/50'
+            }`}
+          >
+            <span className="text-sm">{op}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CheckboxQuestion({ opcoes, value, onChange, exclusive }) {
+  const selected = value || [];
+  function toggle(op) {
+    if (op === exclusive) {
+      // Clicking exclusive option: deselect everything else
+      if (selected.includes(op)) {
+        onChange([]);
+      } else {
+        onChange([op]);
+      }
+    } else {
+      // Clicking normal option: remove exclusive if present
+      let next = selected.filter(v => v !== exclusive);
+      if (next.includes(op)) {
+        next = next.filter(v => v !== op);
+      } else {
+        next = [...next, op];
+      }
+      onChange(next);
+    }
+  }
+  return (
+    <div className="space-y-2 mt-3">
+      <div className="text-xs text-gray-400 mb-1">Selecione todas que se aplicam</div>
+      {opcoes.map((op, i) => {
+        const isSelected = selected.includes(op);
+        return (
+          <button
+            key={i}
+            onClick={() => toggle(op)}
+            className={`w-full text-left p-3 rounded-xl transition-all border-2 flex items-center gap-3 ${
+              isSelected
+                ? 'bg-blue-50 border-blue-500 text-blue-800'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
+            }`}
+          >
+            <div className={`w-5 h-5 rounded shrink-0 flex items-center justify-center border-2 text-white text-xs ${
+              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+            }`}>
+              {isSelected && '✓'}
+            </div>
+            <span className="text-sm">{op}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CpfQuestion({ value, onChange }) {
+  function handleChange(e) {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+    onChange(raw);
+  }
+  function formatCpf(v) {
+    if (!v) return '';
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return v.slice(0,3) + '.' + v.slice(3);
+    if (v.length <= 9) return v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6);
+    return v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6,9) + '-' + v.slice(9);
+  }
+  const isValid = value && value.length === 11;
+  return (
+    <div className="mt-3">
+      <input
+        type="text"
+        inputMode="numeric"
+        value={formatCpf(value || '')}
+        onChange={handleChange}
+        placeholder="000.000.000-00"
+        className={`w-full max-w-xs text-center text-2xl font-mono tracking-wider py-4 px-4 rounded-xl border-2 focus:outline-none transition-all ${
+          isValid
+            ? 'border-green-400 bg-green-50 focus:ring-2 focus:ring-green-300'
+            : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-300 focus:border-blue-400'
+        }`}
+      />
+      {value && value.length > 0 && !isValid && (
+        <p className="text-xs text-amber-600 mt-2">CPF deve ter 11 dígitos</p>
+      )}
+      {isValid && (
+        <p className="text-xs text-green-600 mt-2">CPF válido</p>
+      )}
+    </div>
+  );
+}
+
+function AbertaQuestion({ value, onChange, obrigatoria }) {
+  return (
+    <div className="mt-3">
+      <textarea
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={obrigatoria ? 'Sua resposta (obrigatória)...' : 'Sua resposta (opcional)...'}
+        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 resize-none bg-white"
+        rows={3}
+      />
+    </div>
+  );
+}
+
+function QuestionCard({ pergunta, answer, onAnswer, visible }) {
+  if (!visible) return null;
+
+  return (
+    <div className={`bg-white rounded-2xl shadow-sm border-2 p-5 transition-all fade-in border-gray-100`}>
+      <div className="flex items-start gap-3">
+        <span className="text-xs font-mono font-bold text-gray-300 mt-1 shrink-0">{pergunta.id !== 'ROUTE' ? pergunta.id : ''}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-800 leading-relaxed">{pergunta.texto}</p>
+
+          {pergunta.tipo === 'cpf' && <CpfQuestion value={answer} onChange={v => onAnswer(pergunta.id, v)}/>}
+          {pergunta.tipo === 'likert' && <LikertQuestion value={answer} onChange={v => onAnswer(pergunta.id, v)}/>}
+          {pergunta.tipo === 'radio' && <RadioQuestion opcoes={pergunta.opcoes} value={answer} onChange={v => onAnswer(pergunta.id, v)}/>}
+          {pergunta.tipo === 'routing' && <RadioQuestion opcoes={pergunta.opcoes} value={answer} onChange={v => onAnswer(pergunta.id, v)}/>}
+          {pergunta.tipo === 'cenario' && <CenarioQuestion opcoes={pergunta.opcoes} value={answer} onChange={v => onAnswer(pergunta.id, v)}/>}
+          {pergunta.tipo === 'checkbox' && <CheckboxQuestion opcoes={pergunta.opcoes} value={answer} onChange={v => onAnswer(pergunta.id, v)} exclusive={pergunta.exclusive}/>}
+          {pergunta.tipo === 'aberta' && <AbertaQuestion value={answer} onChange={v => onAnswer(pergunta.id, v)} obrigatoria={pergunta.obrigatoria}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// SUBMIT TO GOOGLE SHEETS
+// ═══════════════════════════════════════════
+async function submitToSheets(answers) {
+  const flat = {};
+  for (const [k, v] of Object.entries(answers)) {
+    if (v && typeof v === 'object' && 'text' in v) {
+      flat[k] = v.text;
+      flat[k + '_score'] = v.score;
+    } else if (Array.isArray(v)) {
+      flat[k] = v.join('; ');
+    } else {
+      flat[k] = v;
+    }
+  }
+  if (!SHEETS_URL || SHEETS_URL === 'COLE_SUA_URL_AQUI') {
+    console.warn('SHEETS_URL não configurada. Respostas salvas apenas localmente.');
+    return { status: 'skip' };
+  }
+  const payload = { formulario: FORMULARIO, answers: flat };
+  const res = await fetch(SHEETS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
+}
+
+// ═══════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════
+function App() {
+  const saved = useMemo(() => loadState(), []);
+
+  const [page, setPage] = useState(saved?.page || 0);
+  const [answers, setAnswers] = useState(saved?.answers || {});
+  const [completed, setCompleted] = useState(saved?.completed || false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [showResume, setShowResume] = useState(saved && saved.page > 0 && !saved.completed);
+  const topRef = useRef(null);
+
+  const activePages = PAGES;
+
+  const currentPage = activePages[page] || activePages[0];
+  const totalPages = activePages.length;
+
+  // Save on every change
+  useEffect(() => {
+    saveState({ page, answers, completed });
+  }, [page, answers, completed]);
+
+  function handleAnswer(qId, value) {
+    setAnswers(prev => ({ ...prev, [qId]: value }));
+  }
+
+  function isQuestionVisible(pergunta) {
+    if (pergunta.dependeDe) {
+      const depAnswer = answers[pergunta.dependeDe.q];
+      if (depAnswer !== pergunta.dependeDe.valor) return false;
+    }
+    return true;
+  }
+
+  function getVisibleQuestions() {
+    if (!currentPage) return [];
+    return currentPage.perguntas.filter(p => isQuestionVisible(p));
+  }
+
+  // Auto-skip pages with no visible questions
+  useEffect(() => {
+    if (currentPage && !currentPage.isWelcome) {
+      const visible = getVisibleQuestions();
+      if (visible.length === 0 && page > 0 && page < totalPages - 1) {
+        setPage(page + 1);
+      }
+    }
+  }, [page, answers]);
+
+  function isPageComplete() {
+    if (currentPage.isWelcome) return true;
+    const visible = getVisibleQuestions();
+    if (visible.length === 0) return true;
+    return visible.every(p => {
+      const ans = answers[p.id];
+      const hasAnswer = ans !== undefined && ans !== null && ans !== '' && (Array.isArray(ans) ? ans.length > 0 : true);
+
+      // CPF must be 11 digits
+      if (p.tipo === 'cpf') return ans && ans.length === 11;
+
+      // Optional open questions are always "complete"
+      if (p.tipo === 'aberta' && !p.obrigatoria) return true;
+
+      // Routing just needs answer
+      if (p.id === 'ROUTE') return hasAnswer;
+
+      // All other questions: just need answer
+      return hasAnswer;
+    });
+  }
+
+  async function goNext() {
+    if (page < totalPages - 1) {
+      setPage(page + 1);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      setSubmitting(true);
+      setSubmitError(false);
+      try {
+        await submitToSheets(answers);
+        setCompleted(true);
+      } catch (err) {
+        console.error('Erro ao enviar:', err);
+        setSubmitError(true);
+        // Completa mesmo com erro — dados estão no localStorage
+        setCompleted(true);
+      } finally {
+        setSubmitting(false);
+      }
+    }
+  }
+
+  function goPrev() {
+    if (page > 0) {
+      // Skip back over empty pages
+      let target = page - 1;
+      while (target > 0) {
+        const targetPage = activePages[target];
+        if (targetPage && !targetPage.isWelcome) {
+          const vis = targetPage.perguntas.filter(p => {
+            if (p.dependeDe) return answers[p.dependeDe.q] === p.dependeDe.valor;
+            return true;
+          });
+          if (vis.length === 0) { target--; continue; }
+        }
+        break;
+      }
+      setPage(target);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }
+
+  function handleResume(resume) {
+    if (!resume) {
+      setPage(0);
+      setAnswers({});
+      setCompleted(false);
+    }
+    setShowResume(false);
+  }
+
+  function handleReset() {
+    localStorage.removeItem(STORAGE_KEY);
+    setPage(0);
+    setAnswers({});
+    setCompleted(false);
+  }
+
+  // Resume dialog
+  if (showResume) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center fade-in">
+          <div className="text-4xl mb-4">🔄</div>
+          <h2 className="text-xl font-bold mb-2">Você tem respostas salvas</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Encontramos suas respostas anteriores. Deseja continuar de onde parou ou começar do zero?
+          </p>
+          <div className="space-y-3">
+            <button onClick={() => handleResume(true)} className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">
+              Continuar de onde parei
+            </button>
+            <button onClick={() => handleResume(false)} className="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition">
+              Começar do zero
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Submitting screen
+  if (submitting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center fade-in">
+          <div className="text-5xl mb-4 animate-spin" style={{display:'inline-block'}}>⏳</div>
+          <h2 className="text-xl font-bold mb-2 text-gray-700">Enviando suas respostas...</h2>
+          <p className="text-sm text-gray-400">Aguarde um momento.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Thank you screen
+  if (completed) {
+    const totalAnswered = Object.keys(answers).filter(k => k !== 'ROUTE' && answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length;
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center fade-in">
+          <div className="text-5xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold mb-2">Obrigado!</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Suas {totalAnswered} respostas foram {submitError ? 'salvas localmente' : 'enviadas com sucesso'}.
+          </p>
+          {submitError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+              <p className="text-xs text-amber-700">Houve um problema no envio, mas suas respostas estão salvas no navegador. A equipe de pesquisa será notificada.</p>
+            </div>
+          )}
+          <p className="text-xs text-gray-400 mb-6">
+            Seus dados são confidenciais e serão usados exclusivamente para mapear a maturidade em IA da Swift e personalizar o programa de capacitação.
+          </p>
+          <div className="bg-blue-50 rounded-xl p-4 mb-6">
+            <p className="text-sm text-blue-700 font-medium">Programa de Transformação em IA</p>
+            <p className="text-xs text-blue-500 mt-1">Swift × IONIX</p>
+          </div>
+          <button onClick={handleReset} className="text-xs text-gray-400 hover:text-gray-600 transition underline">
+            Refazer pesquisa
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const visibleQuestions = getVisibleQuestions();
+  const canProceed = isPageComplete();
+
+  // Count answered questions for progress
+  const totalQuestionsAll = activePages.reduce((acc, p) => acc + p.perguntas.filter(q => q.id !== 'ROUTE').length, 0);
+  const answeredCount = Object.keys(answers).filter(k => {
+    if (k === 'ROUTE') return false;
+    const v = answers[k];
+    if (v === undefined || v === null || v === '') return false;
+    if (typeof v === 'object' && 'text' in v) return true;
+    if (Array.isArray(v)) return v.length > 0;
+    return typeof v === 'string' && v.trim() !== '';
+  }).length;
+
+  return (
+    <div className="min-h-screen pb-32">
+      <div ref={topRef}/>
+
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Pesquisa de Maturidade em IA — Final
+              </h1>
+              <p className="text-[10px] text-gray-400">Swift × IONIX</p>
+            </div>
+            <div className="text-xs text-gray-400 text-right">
+              <span className="font-bold text-gray-600">{page + 1}</span>/{totalPages}
+            </div>
+          </div>
+          <ProgressBar current={page + 1} total={totalPages}/>
+        </div>
+      </header>
+
+      {/* Page Content */}
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        <div key={currentPage.id} className="fade-in">
+          {/* Welcome page */}
+          {currentPage.isWelcome ? (
+          <div className="text-center py-8 space-y-6">
+            <div className="text-5xl">👋</div>
+            <h2 className="text-2xl font-bold text-gray-900">Bem-vindo(a)!</h2>
+            <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              Esta pesquisa vai nos ajudar a <strong>mapear como a Swift usa IA</strong>, baseada nas <strong>5 dimensões da Matriz de Letramento em IA</strong>, para personalizar o programa de capacitação ao seu contexto real.<br/><span className="text-xs text-gray-400 mt-1 block">Formulário para Coordenadores, Gerentes e Diretores</span>
+            </p>
+            <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+              <div className="bg-blue-50 rounded-xl p-3 text-center">
+                <div className="text-xl font-bold text-blue-600">~7 min</div>
+                <div className="text-[10px] text-blue-500 mt-0.5">tempo estimado</div>
+              </div>
+              <div className="bg-purple-50 rounded-xl p-3 text-center">
+                <div className="text-xl font-bold text-purple-600">100%</div>
+                <div className="text-[10px] text-purple-500 mt-0.5">confidencial</div>
+              </div>
+              <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                <div className="text-xl font-bold text-emerald-600">individual</div>
+                <div className="text-[10px] text-emerald-500 mt-0.5">sem respostas certas</div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 max-w-sm mx-auto">
+              Suas respostas serão usadas exclusivamente para o programa de transformação em IA da Swift. O CPF serve apenas para cruzamento com dados de RH — nenhuma resposta será associada ao seu nome.
+            </p>
+          </div>
+          ) : (
+          <>
+          {/* Page header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-3xl">{currentPage.icon}</div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{currentPage.titulo}</h2>
+                <p className="text-sm text-gray-500">{currentPage.subtitulo}</p>
+              </div>
+            </div>
+            {visibleQuestions.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: currentPage.cor + '15', color: currentPage.cor }}>
+                {visibleQuestions.length} {visibleQuestions.length === 1 ? 'pergunta' : 'perguntas'}
+              </span>
+            </div>
+            )}
+          </div>
+
+          {/* Questions */}
+          <div className="space-y-4">
+            {currentPage.perguntas.map(p => (
+              <QuestionCard
+                key={p.id}
+                pergunta={p}
+                answer={answers[p.id]}
+                onAnswer={handleAnswer}
+                visible={isQuestionVisible(p)}
+              />
+            ))}
+          </div>
+          </>
+          )}
+        </div>
+      </main>
+
+      {/* Footer Navigation */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-40">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={goPrev}
+            disabled={page === 0}
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              page === 0
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            Voltar
+          </button>
+
+          <div className="text-xs text-center max-w-[160px]">
+            {!canProceed && answeredCount > 0 ? (
+              <span className="text-amber-600 font-medium">Responda todas as perguntas para avançar</span>
+            ) : (
+              <span className="text-gray-400">{answeredCount} respondidas</span>
+            )}
+          </div>
+
+          <button
+            onClick={goNext}
+            disabled={!canProceed || submitting}
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              canProceed && !submitting
+                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {submitting ? 'Enviando...' : page === totalPages - 1 ? 'Finalizar' : currentPage.isWelcome ? 'Começar' : 'Próximo'}
+          </button>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

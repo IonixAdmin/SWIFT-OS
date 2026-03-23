@@ -48,13 +48,13 @@ const DIM_COLORS = {
   Impacto: '#F59E0B',
   Cultura: '#EC4899'
 };
-const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316' };
+const LEVEL_COLORS = { N1: '#94A3B8', N2: '#22C55E', N3: '#EAB308', N4: '#F97316', N5: '#EF4444' };
 const PRIO_COLORS = { Critica: '#EF4444', Alta: '#F97316', Media: '#EAB308' };
 const CLUSTER_COLORS = { Execucao: '#3B82F6', Gestao: '#8B5CF6', Transversal: '#6B7280' };
 
 const DIMENSIONS = ['Utilizacao','Dados','Governanca','Impacto','Cultura'];
-const LEVELS = ['Iniciante','Básico','Intermediário','Avançado'];
-const LEVEL_KEYS = ['N1','N2','N3','N4'];
+const LEVELS = ['Iniciante','Básico','Intermediário','Avançado','Expert'];
+const LEVEL_KEYS = ['N1','N2','N3','N4','N5'];
 
 // ─── MATRIX DESCRIPTORS ───
 const MATRIX = {
@@ -62,43 +62,49 @@ const MATRIX = {
     N1: 'Não usa IA',
     N2: 'Uso pontual e operacional',
     N3: 'Uso regular com prompts eficientes',
-    N4: 'Uso estratégico para decisões complexas'
+    N4: 'Uso estratégico para decisões complexas',
+    N5: 'IA como fluxo essencial — constrói, itera e ensina'
   },
   Dados: {
     N1: 'Desconhece a relação dados e IA',
     N2: 'Sabe que dados são importantes',
     N3: 'Compreende qualidade e organização',
-    N4: 'Domina preparação e aplicação em modelos'
+    N4: 'Domina preparação e aplicação em modelos',
+    N5: 'Avalia viés e melhora infraestrutura de dados da área'
   },
   Governanca: {
     N1: 'Sem conhecimento',
     N2: 'Noções básicas de uso responsável',
     N3: 'Entende princípios e boas práticas',
-    N4: 'Aplica governança, ética e compliance'
+    N4: 'Aplica governança, ética e compliance',
+    N5: 'Define políticas, garante rastreabilidade e orienta a equipe'
   },
   Impacto: {
     N1: 'Não identifica oportunidades',
     N2: 'Identifica casos simples',
     N3: 'Sugere melhorias em processos',
-    N4: 'Estrutura business cases'
+    N4: 'Estrutura business cases',
+    N5: 'Visão estratégica — IA como vantagem competitiva da Swift'
   },
   Cultura: {
     N1: 'Curiosidade inicial',
     N2: 'Interesse ativo em aprender',
     N3: 'Incentivador na equipe',
-    N4: 'Agente de transformação'
+    N4: 'Agente de transformação',
+    N5: 'Multiplicador ativo — dissemina e lidera a adoção em IA'
   }
 };
 
 // ─── PROGRESSIVE SCALE ───
-const PROGRESSIVE_SCALE = [{r:1,s:1.0},{r:2,s:1.5},{r:3,s:2.5},{r:4,s:3.5},{r:5,s:4.0}];
+const PROGRESSIVE_SCALE = [{r:1,s:1},{r:2,s:2},{r:3,s:3},{r:4,s:4},{r:5,s:5}];
 
 // ─── FAIXAS DE CORTE ───
 const FAIXAS = [
-  { nivel: 'Iniciante', min: 1.0, max: 1.49, cor: '#94A3B8' },
-  { nivel: 'Básico', min: 1.5, max: 2.49, cor: '#22C55E' },
+  { nivel: 'Iniciante',     min: 1.0, max: 1.49, cor: '#94A3B8' },
+  { nivel: 'Básico',        min: 1.5, max: 2.49, cor: '#22C55E' },
   { nivel: 'Intermediário', min: 2.5, max: 3.49, cor: '#EAB308' },
-  { nivel: 'Avançado', min: 3.5, max: 4.0, cor: '#F97316' }
+  { nivel: 'Avançado',      min: 3.5, max: 4.49, cor: '#F97316' },
+  { nivel: 'Expert',        min: 4.5, max: 5.0,  cor: '#EF4444' }
 ];
 
 function getNivel(score) {
@@ -679,7 +685,7 @@ function MatrizView({ onOpenDrawer }) {
       <div className="overflow-x-auto">
         <div className="min-w-[700px]">
           {/* Header row */}
-          <div className="grid grid-cols-5 gap-2 mb-2">
+          <div className="grid grid-cols-6 gap-2 mb-2">
             <div/>
             {LEVEL_KEYS.map((k,i) => (
               <div key={k} className="text-center text-xs font-bold py-2 rounded-lg text-white" style={{backgroundColor:LEVEL_COLORS[k]}}>
@@ -689,7 +695,7 @@ function MatrizView({ onOpenDrawer }) {
           </div>
           {/* Rows */}
           {DIMENSIONS.map(dim => (
-            <div key={dim} className="grid grid-cols-5 gap-2 mb-2">
+            <div key={dim} className="grid grid-cols-6 gap-2 mb-2">
               <div
                 className="flex items-center px-3 py-3 rounded-lg text-white text-sm font-bold"
                 style={{backgroundColor:DIM_COLORS[dim]}}
@@ -984,7 +990,7 @@ function PerguntasView({ onOpenDrawer }) {
     if (q.tipo === 'Likert' && q.scoring === 'Scored') {
       return (
         <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Escala progressiva (1→5 = 1.0→4.0)</div>
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Escala progressiva (1→5)</div>
           <div className="space-y-1.5">
             {q.opcoes.map((op, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
@@ -1228,7 +1234,7 @@ function ScoringView() {
             <div className="flex flex-col md:flex-row items-stretch gap-0">
               {[
                 { icon:'1', title:'Resposta bruta', desc:'Likert 1-5', cor:'#3B82F6' },
-                { icon:'2', title:'Conversão progressiva', desc:'1=1.0, 2=1.5, 3=2.5, 4=3.5, 5=4.0', cor:'#8B5CF6' },
+                { icon:'2', title:'Conversão progressiva', desc:'1=1, 2=2, 3=3, 4=4, 5=5 (escala linear)', cor:'#8B5CF6' },
                 { icon:'3', title:'Score dimensão', desc:'Média dos 4 itens', cor:'#10B981' },
                 { icon:'4', title:'Nível Matriz', desc:'Faixas de corte', cor:'#F59E0B' },
                 { icon:'5', title:'Score geral', desc:'Média das 5 dimensões', cor:'#EC4899' },
@@ -1315,7 +1321,7 @@ function ScoringView() {
           </div>
 
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
-            <strong>Por que não é linear?</strong> A Matriz tem 4 níveis, a escala tem 5 pontos. O ponto 3 ("neutro/intermediário") mapeia para 2.5 (início do nível Intermediário). O salto de 1.0 para 1.5 é rápido porque sair de "não sei nada" para "algo básico" é uma transição pequena.
+            <strong>Escala linear 1–5.</strong> A Matriz tem 5 níveis, e cada resposta corresponde diretamente a um nível: 1=Iniciante, 2=Básico, 3=Intermediário, 4=Avançado, 5=Expert. A média das respostas de uma dimensão define em qual faixa o respondente se encontra.
           </div>
         </div>
       )}
@@ -1422,28 +1428,42 @@ function ScoringView() {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               {simQuestions.map(q => (
-                <div key={q.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-gray-100 dark:border-gray-700/50">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-xs font-mono font-bold text-gray-400 shrink-0">{q.id}</span>
-                    <span className="text-sm truncate">{q.texto}</span>
-                    {q.cluster && <Badge text="Cluster" color="#8B5CF6" small/>}
+                <div key={q.id} className="border border-gray-100 dark:border-gray-700 rounded-xl p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <span className="text-xs font-mono font-bold text-gray-400 shrink-0 mt-0.5">{q.id}</span>
+                    <div className="flex-1 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{q.texto}</span>
+                      {q.cluster && <Badge text="Cluster" color="#8B5CF6" small/>}
+                    </div>
+                    {simAnswers[q.id] !== undefined && (
+                      <div className="text-xs font-bold shrink-0 px-2 py-1 rounded-lg font-mono"
+                        style={{backgroundColor: LEVEL_COLORS[`N${simAnswers[q.id]}`]+'25', color: LEVEL_COLORS[`N${simAnswers[q.id]}`]}}>
+                        N{simAnswers[q.id]} = {simAnswers[q.id]}
+                      </div>
+                    )}
                   </div>
-                  <div className="shrink-0 flex gap-1">
-                    {[1,2,3,4,5].map(o => (
-                      <button
-                        key={o}
-                        onClick={() => setSimAnswers(prev => ({...prev, [q.id]:o}))}
-                        className={`w-8 h-8 rounded-lg text-xs font-bold transition ${simAnswers[q.id]===o ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                      >
-                        {o}
-                      </button>
-                    ))}
-                  </div>
-                  {simAnswers[q.id] !== undefined && (
-                    <div className="text-xs text-gray-500 shrink-0 w-16 text-right font-mono">
-                      = {PROGRESSIVE_SCALE.find(c=>c.r===simAnswers[q.id])?.s.toFixed(1) || '?'}
+                  {q.opcoes && (
+                    <div className="space-y-1">
+                      {q.opcoes.map((op, i) => {
+                        const val = i + 1;
+                        const isSelected = simAnswers[q.id] === val;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => setSimAnswers(prev => ({...prev, [q.id]: val}))}
+                            className={`w-full text-left text-xs px-3 py-2 rounded-lg transition flex items-center gap-2 border ${
+                              isSelected
+                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 text-blue-800 dark:text-blue-300'
+                                : 'bg-gray-50 dark:bg-gray-700/50 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300 dark:border-gray-500 text-gray-400'}`}>{val}</span>
+                            <span>{op}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
