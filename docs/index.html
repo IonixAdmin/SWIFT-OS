@@ -87,14 +87,15 @@ a{color:var(--ac);text-decoration:none}
 .btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r2);color:var(--tx2)}.btn-icon:hover{background:var(--bg3)}
 
 /* KANBAN */
-.kanban-lanes{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 68px - 40px);overflow-y:auto}
-.kanban-lane{border:1px solid var(--bd2);border-radius:var(--r);display:flex;flex-direction:column;overflow:visible}
+.kanban-lanes{height:calc(100vh - 68px - 40px);overflow-x:auto;overflow-y:auto}
+.kanban-lanes-inner{display:inline-flex;flex-direction:column;gap:12px;min-width:100%}
+.kanban-lane{border:1px solid var(--bd2);border-radius:var(--r);display:flex;flex-direction:column}
 .kanban-lane-high{flex-shrink:0}
 .kanban-lane-other{flex:1;min-height:200px}
 .kanban-lane-header{padding:8px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);background:var(--bg3);border-bottom:1px solid var(--bd2);display:flex;align-items:center;gap:8px;border-radius:var(--r) var(--r) 0 0}
 .kanban-lane-high .kanban-lane-header{background:var(--dg2);color:var(--dg)}
 .kanban-lane-count{font-size:11px;font-weight:600;background:var(--bg);padding:1px 8px;border-radius:10px}
-.kanban{display:flex;gap:12px;padding:8px;overflow-x:auto}
+.kanban{display:flex;gap:12px;padding:8px}
 .kanban-col{min-width:280px;width:280px;background:var(--bg3);border-radius:var(--r);display:flex;flex-direction:column;max-height:100%}
 .kanban-col-header{padding:10px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .kanban-col-count{background:var(--bg);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
@@ -499,10 +500,10 @@ function kanbanView() {
     </div>`;
   }
 
-  return `<div class="kanban-lanes">
+  return `<div class="kanban-lanes"><div class="kanban-lanes-inner">
     ${renderLane(highActs, 'high', '\u{1F525} Prioridade Alta', 'kanban-lane-high')}
     ${renderLane(otherActs, 'other', 'Demais Atividades', 'kanban-lane-other')}
-  </div>`;
+  </div></div>`;
 }
 
 function findMilestoneForActivity(actId) {
@@ -522,7 +523,6 @@ function kanbanCard(a) {
       ${a.prioridade ? `<span class="card-tag card-tag-priority-${a.prioridade}">${PRIORITIES[a.prioridade]}</span>` : ''}
       ${marco ? `<span class="card-tag" style="background:var(--bl2);color:var(--bl)">\u2691 ${esc(marco.titulo)}</span>` : ''}
     </div>
-    ${a.criteriosAceite ? `<div class="card-criterios">\u2611 ${esc(a.criteriosAceite).split('\\n').filter(l=>l.trim()).length} criterio${esc(a.criteriosAceite).split('\\n').filter(l=>l.trim()).length!==1?'s':''} de aceite</div>` : ''}
     <div class="kanban-card-meta" style="margin-top:4px">
       ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
       ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
