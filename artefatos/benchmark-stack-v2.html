@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stack IA — Por que o Copilot não é suficiente</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a2e;
+  --ink2: #2d2d4e;
+  --body: #444466;
+  --muted: #8888aa;
+  --light: #c8c8dd;
+  --rule: #e8e8f2;
+  --bg: #fafaf8;
+  --white: #ffffff;
+  --surface: #f4f4f0;
+  --surface2: #eeeeea;
+
+  --indigo: #3730a3;
+  --indigo-mid: #4f46e5;
+  --indigo-light: #e0e7ff;
+  --indigo-pale: #f0f0ff;
+
+  --amber: #d97706;
+  --amber-light: #fef3c7;
+  --amber-pale: #fffbeb;
+
+  --red: #dc2626;
+  --red-light: #fee2e2;
+
+  --green: #059669;
+  --green-light: #d1fae5;
+
+  --shadow-sm: 0 1px 3px rgba(26,26,46,0.06), 0 1px 2px rgba(26,26,46,0.04);
+  --shadow-md: 0 4px 16px rgba(26,26,46,0.08), 0 2px 6px rgba(26,26,46,0.04);
+  --shadow-lg: 0 12px 40px rgba(26,26,46,0.10), 0 4px 12px rgba(26,26,46,0.06);
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-xs: 5px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--body);
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NAV ── */
+.nav {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(250,250,248,0.94);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center;
+  padding: 0 40px; height: 58px; gap: 6px;
+}
+.nav-brand {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--indigo); margin-right: auto;
+}
+.nav-tab {
+  background: none; border: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--muted);
+  padding: 6px 14px; border-radius: 20px;
+  cursor: pointer; transition: all .18s;
+}
+.nav-tab:hover { background: var(--surface); color: var(--ink2); }
+.nav-tab.active { background: var(--indigo); color: #fff; }
+
+/* ── PAGE SECTIONS ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  max-width: 1080px; margin: 0 auto;
+  padding: 72px 40px 56px;
+  display: grid; grid-template-columns: 1fr 340px; gap: 60px; align-items: start;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--indigo-mid); margin-bottom: 22px;
+}
+.hero-eyebrow::before { content:''; display:block; width:22px; height:2px; background:var(--indigo-mid); }
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.4rem, 4.5vw, 3.6rem);
+  line-height: 1.12; color: var(--ink);
+  margin-bottom: 20px;
+}
+.hero h1 em { color: var(--indigo-mid); font-style: italic; }
+.hero-lead {
+  font-size: 16px; color: var(--body); line-height: 1.75; max-width: 520px;
+}
+.hero-stat-box {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 28px;
+  box-shadow: var(--shadow-md);
+  display: flex; flex-direction: column; gap: 20px;
+}
+.hero-stat {
+  display: flex; flex-direction: column; gap: 3px;
+  padding-bottom: 20px; border-bottom: 1px solid var(--rule);
+}
+.hero-stat:last-child { padding-bottom: 0; border-bottom: none; }
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem; font-weight: 900; color: var(--ink);
+  line-height: 1;
+}
+.stat-num span { font-size: 1rem; color: var(--muted); font-weight: 400; font-family: 'Syne', sans-serif; }
+.stat-label { font-size: 12px; font-weight: 600; color: var(--body); }
+.stat-sub { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+/* ── SECTION WRAPPER ── */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 40px 72px; }
+
+/* ── DIVIDER ── */
+.hr { border: none; border-top: 1px solid var(--rule); margin: 48px 0; }
+
+/* ── SECTION HEADER ── */
+.sec-header { margin-bottom: 36px; }
+.sec-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--indigo-mid); margin-bottom: 10px;
+}
+.sec-tag::before { content:''; display:block; width:18px; height:2px; background:var(--indigo-mid); }
+.sec-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.9rem; color: var(--ink); margin-bottom: 8px;
+}
+.sec-sub { font-size: 14px; color: var(--muted); max-width: 560px; }
+
+/* ── ALERT BOX ── */
+.alert {
+  border-radius: var(--radius);
+  padding: 22px 26px;
+  margin-bottom: 36px;
+  display: flex; gap: 16px; align-items: flex-start;
+}
+.alert-amber { background: var(--amber-pale); border: 1px solid #fcd34d; }
+.alert-indigo { background: var(--indigo-pale); border: 1px solid #c7d2fe; }
+.alert-red { background: var(--red-light); border: 1px solid #fca5a5; }
+.alert-green { background: var(--green-light); border: 1px solid #6ee7b7; }
+.alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.alert h4 {
+  font-size: 14px; font-weight: 700; margin-bottom: 5px;
+}
+.alert-amber h4 { color: #92400e; }
+.alert-indigo h4 { color: var(--indigo); }
+.alert-red h4 { color: #991b1b; }
+.alert-green h4 { color: #065f46; }
+.alert p { font-size: 13px; line-height: 1.6; }
+.alert-amber p { color: #78350f; }
+.alert-indigo p { color: #3730a3; }
+.alert-red p { color: #7f1d1d; }
+.alert-green p { color: #064e3b; }
+
+/* ── 3-COL SUMMARY ── */
+.summary-3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  margin-bottom: 48px;
+}
+.s3-card {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 12px;
+  transition: box-shadow .2s, transform .2s;
+}
+.s3-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.s3-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 20px;
+  width: fit-content;
+}
+.badge-cop { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.badge-exp { background: var(--indigo-light); color: var(--indigo); border: 1px solid #c7d2fe; }
+.badge-gap { background: var(--amber-light); color: var(--amber); border: 1px solid #fcd34d; }
+.s3-card h3 { font-size: 14px; font-weight: 700; color: var(--ink2); }
+.s3-card p { font-size: 13px; color: var(--body); line-height: 1.6; }
+
+/* ── COMPARISON TABLE ── */
+.ctable-wrap {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow-sm); margin-bottom: 36px;
+}
+.ctable { width: 100%; border-collapse: collapse; }
+.ctable thead th {
+  padding: 14px 20px; text-align: left;
+  background: var(--surface); border-bottom: 1px solid var(--rule);
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+}
+.ctable thead th:nth-child(1) { color: var(--body); width: 230px; }
+.ctable thead th:nth-child(2) { color: #0369a1; }
+.ctable thead th:nth-child(3) { color: var(--indigo); }
+.ctable thead th:nth-child(4) { color: var(--amber); }
+.ctable tbody tr { border-bottom: 1px solid var(--rule); transition: background .12s; }
+.ctable tbody tr:last-child { border-bottom: none; }
+.ctable tbody tr:hover { background: var(--surface); }
+.ctable td {
+  padding: 13px 20px; font-size: 13px; vertical-align: middle;
+}
+.ctable td:first-child { font-weight: 600; color: var(--ink2); }
+.ctable td .note { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+.ico-yes { color: var(--green); font-weight: 700; }
+.ico-no { color: var(--red); font-weight: 700; }
+.ico-par { color: var(--amber); font-size: 12px; }
+.ceil-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+}
+.ceil-fixed { background: var(--red-light); color: var(--red); }
+.ceil-open { background: var(--green-light); color: var(--green); }
+
+/* ── TOOL DEEP DIVE ── */
+.tool-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+.tool-card {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 26px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.tool-card-head { display: flex; flex-direction: column; gap: 8px; }
+.tool-logo {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.logo-cop { background: #e0f2fe; }
+.logo-lov { background: #ede9fe; }
+.logo-cow { background: var(--indigo-light); }
+.tool-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+.tool-tagline { font-size: 12px; color: var(--muted); }
+.tool-desc { font-size: 13px; color: var(--body); line-height: 1.65; }
+.tool-pros, .tool-cons, .tool-limit {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.tool-pros .label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--green); margin-bottom: 2px; }
+.tool-cons .label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); margin-bottom: 2px; }
+.tool-limit .label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--red); margin-bottom: 2px; }
+.tool-pros li, .tool-cons li, .tool-limit li {
+  list-style: none; font-size: 12px; color: var(--body); line-height: 1.5;
+  display: flex; gap: 6px; align-items: flex-start;
+}
+.tool-pros li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+.tool-cons li::before { content: '↗'; color: var(--amber); font-weight: 700; flex-shrink: 0; }
+.tool-limit li::before { content: '✗'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+.tool-ceil {
+  margin-top: auto; padding: 12px 14px;
+  border-radius: var(--radius-sm); border: 1px dashed;
+}
+.tool-ceil-fixed { border-color: #fca5a5; background: var(--red-light); }
+.tool-ceil-open { border-color: #6ee7b7; background: var(--green-light); }
+.tool-ceil .ceil-title { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+.tool-ceil-fixed .ceil-title { color: var(--red); }
+.tool-ceil-open .ceil-title { color: var(--green); }
+.tool-ceil p { font-size: 12px; line-height: 1.5; }
+.tool-ceil-fixed p { color: #7f1d1d; }
+.tool-ceil-open p { color: #064e3b; }
+
+/* ── OBJECTION BLOCK ── */
+.objection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+.obj-card {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.obj-q {
+  font-size: 13px; font-weight: 700; color: var(--ink2);
+  border-left: 3px solid var(--indigo-mid);
+  padding-left: 12px; margin-bottom: 14px;
+  font-style: italic;
+}
+.obj-a { font-size: 13px; color: var(--body); line-height: 1.65; }
+
+/* ── STAGES ── */
+.stages-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 36px;
+}
+.stage {
+  background: var(--white); padding: 24px 20px;
+  border-right: 1px solid var(--rule);
+  position: relative; transition: background .18s;
+}
+.stage:last-child { border-right: none; }
+.stage:hover { background: var(--surface); }
+.stage-top-bar { height: 4px; border-radius: 2px; margin-bottom: 18px; }
+.stage-0 .stage-top-bar { background: #bae6fd; }
+.stage-1 .stage-top-bar { background: var(--indigo-mid); }
+.stage-2 .stage-top-bar { background: var(--light); }
+.stage-3 .stage-top-bar { background: var(--rule); }
+.stage-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.stage-0 .stage-lbl { color: #0369a1; }
+.stage-1 .stage-lbl { color: var(--indigo-mid); }
+.stage-2 .stage-lbl, .stage-3 .stage-lbl { color: var(--muted); }
+.stage h4 { font-size: 14px; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.stage-time { font-size: 11px; color: var(--muted); margin-bottom: 14px; font-weight: 500; }
+.stage ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.stage ul li { font-size: 12px; color: var(--body); display: flex; gap: 5px; align-items: flex-start; line-height: 1.45; }
+.stage ul li::before { content: '·'; flex-shrink: 0; }
+.stage-badge-pill {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 20px; margin-bottom: 12px;
+}
+.s0pill { background: #e0f2fe; color: #0369a1; }
+.s1pill { background: var(--indigo-light); color: var(--indigo); }
+.s2pill, .s3pill { background: var(--surface); color: var(--muted); border: 1px solid var(--rule); }
+.stage-now-badge {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  background: var(--indigo); color: #fff;
+  padding: 2px 7px; border-radius: 10px;
+}
+
+/* ── COST OF STAYING ── */
+.cost-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+.cost-card {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 22px;
+  box-shadow: var(--shadow-sm);
+}
+.cost-icon { font-size: 28px; margin-bottom: 10px; }
+.cost-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 900; color: var(--red);
+  line-height: 1; margin-bottom: 4px;
+}
+.cost-lbl { font-size: 13px; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.cost-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+/* ── CASES ── */
+.filter-row { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+.f-btn {
+  background: none; border: 1px solid var(--rule);
+  color: var(--body); padding: 7px 16px;
+  border-radius: 20px; font-family: 'Syne', sans-serif;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .18s;
+}
+.f-btn:hover { background: var(--surface); border-color: var(--light); }
+.f-btn.on { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+
+.case-card {
+  background: var(--white); border: 1px solid var(--rule);
+  border-radius: var(--radius); margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden; transition: box-shadow .18s;
+}
+.case-card:hover { box-shadow: var(--shadow-md); }
+.case-head {
+  padding: 20px 24px; display: flex; align-items: flex-start;
+  gap: 14px; cursor: pointer; user-select: none;
+}
+.case-ico {
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.ico-rh { background: #ede9fe; }
+.ico-mkt { background: #e0f2fe; }
+.case-info { flex: 1; }
+.case-area-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.tag-rh { color: var(--indigo-mid); }
+.tag-mkt { color: #0369a1; }
+.case-title { font-size: 15px; font-weight: 700; color: var(--ink2); margin-bottom: 3px; }
+.case-sit { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.case-metrics {
+  display: flex; gap: 20px; align-items: center; flex-shrink: 0;
+}
+.case-metric {
+  text-align: center; min-width: 64px;
+}
+.case-metric .num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem; font-weight: 900; color: var(--indigo); line-height: 1;
+}
+.case-metric .lbl { font-size: 10px; color: var(--muted); font-weight: 600; }
+.case-chevron { color: var(--light); font-size: 18px; transition: transform .22s; flex-shrink: 0; margin-top: 6px; }
+.case-card.open .case-chevron { transform: rotate(180deg); }
+
+.case-body { display: none; padding: 0 24px 24px; }
+.case-card.open .case-body { display: block; }
+
+.sit-block {
+  background: var(--surface); border-radius: var(--radius-sm);
+  padding: 14px 18px; margin-bottom: 18px;
+  border-left: 3px solid var(--rule);
+}
+.sit-block .slbl { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.sit-block p { font-size: 13px; line-height: 1.65; color: var(--body); }
+
+.vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.vs-col {
+  border-radius: var(--radius-sm); padding: 18px; border: 1px solid;
+}
+.vs-cop { background: #f0f9ff; border-color: #bae6fd; }
+.vs-exp { background: var(--indigo-pale); border-color: #c7d2fe; }
+.vs-head {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+.vs-cop .vs-head { color: #0369a1; }
+.vs-exp .vs-head { color: var(--indigo); }
+.vs-col ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.vs-col ul li {
+  font-size: 12px; color: var(--body); line-height: 1.5;
+  display: flex; gap: 7px; align-items: flex-start;
+}
+.vs-col ul li .li-m { flex-shrink: 0; font-size: 12px; }
+.vs-cop li .li-m.y { color: var(--green); }
+.vs-cop li .li-m.n { color: var(--red); }
+.vs-cop li .li-m.p { color: var(--amber); }
+.vs-exp li .li-m.y { color: var(--green); }
+
+.outcome-bar {
+  background: var(--green-light); border: 1px solid #6ee7b7;
+  border-radius: var(--radius-sm); padding: 14px 18px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.outcome-bar .olbl { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin-bottom: 5px; }
+.outcome-bar p { font-size: 13px; color: #065f46; line-height: 1.6; }
+
+/* ── CTA ── */
+.cta-band {
+  background: var(--indigo); border-radius: var(--radius);
+  padding: 40px 40px; margin-bottom: 48px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 32px; align-items: center;
+  box-shadow: var(--shadow-lg);
+}
+.cta-band h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem; color: #fff; margin-bottom: 8px;
+}
+.cta-band p { font-size: 14px; color: #c7d2fe; line-height: 1.65; }
+.cta-steps {
+  display: flex; flex-direction: column; gap: 8px; min-width: 220px;
+}
+.cta-step {
+  background: rgba(255,255,255,.1); border-radius: var(--radius-sm);
+  padding: 10px 16px; display: flex; gap: 10px; align-items: flex-start;
+}
+.cta-step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(255,255,255,.2); color: #fff;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cta-step p { font-size: 12px; color: #e0e7ff; line-height: 1.45; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 20px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+footer span { font-size: 11px; color: var(--muted); }
+.foot-brand { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--indigo); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 820px) {
+  .nav { padding: 0 16px; overflow-x: auto; }
+  .hero { grid-template-columns: 1fr; padding: 40px 20px; }
+  .hero-stat-box { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .hero-stat { border-right: 1px solid var(--rule); padding-right: 16px; border-bottom: none; }
+  .wrap { padding: 0 20px 48px; }
+  .summary-3, .tool-3col, .cost-grid { grid-template-columns: 1fr; }
+  .stages-row { grid-template-columns: 1fr 1fr; }
+  .objection-grid { grid-template-columns: 1fr; }
+  .vs-grid { grid-template-columns: 1fr; }
+  .cta-band { grid-template-columns: 1fr; }
+  .case-metrics { display: none; }
+  footer { flex-direction: column; gap: 6px; }
+}
+
+/* ── ANIMATIONS ── */
+.fade-in {
+  animation: fadeUp .4s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-brand">Swift · Benchmark de Stack IA</span>
+  <button class="nav-tab active" onclick="nav('overview',this)">Visão Geral</button>
+  <button class="nav-tab" onclick="nav('benchmark',this)">Comparativo</button>
+  <button class="nav-tab" onclick="nav('journey',this)">Jornada</button>
+  <button class="nav-tab" onclick="nav('cases',this)">Casos de Uso</button>
+  <button class="nav-tab" onclick="nav('next',this)">Próximos Passos</button>
+</nav>
+
+<!-- ═══════════ PAGE: OVERVIEW ═══════════ -->
+<div class="page active" id="p-overview">
+
+  <div class="hero">
+    <div>
+      <div class="hero-eyebrow">Benchmark de Stack · RH & Marketing</div>
+      <h1>O Copilot tem valor.<br>Mas tem um <em>teto.</em></h1>
+      <p class="hero-lead">Este material mostra com clareza onde cada ferramenta chega — e onde para. O objetivo não é descartar o Copilot. É mostrar que depender só dele limita até onde a transformação pode chegar.</p>
+    </div>
+    <div class="hero-stat-box">
+      <div class="hero-stat">
+        <div class="stat-num">−70% <span>do tempo</span></div>
+        <div class="stat-label">em relatórios mensais</div>
+        <div class="stat-sub">Com stack expandido no Marketing</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num">+24h <span>/ mês</span></div>
+        <div class="stat-label">recuperadas por analista</div>
+        <div class="stat-sub">Para trabalho estratégico, não mecânico</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num">0 <span>horas</span></div>
+        <div class="stat-label">de triagem de CVs</div>
+        <div class="stat-sub">Processo automatizado no RH</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="alert alert-amber">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <h4>"Implantamos o Copilot. Por que nada parece diferente?"</h4>
+        <p>Porque o Copilot foi desenhado para otimizar o trabalho como ele é — mais rápido pra fazer o mesmo. Transformação de verdade exige reimaginar o que está sendo feito. E essa capacidade está além do que o Copilot foi desenhado para entregar.</p>
+      </div>
+    </div>
+
+    <div class="sec-header">
+      <div class="sec-tag">As três ferramentas</div>
+      <h2 class="sec-title">O que cada uma entrega</h2>
+      <p class="sec-sub">Entender os limites de cada ferramenta é o primeiro passo para escolher o stack certo.</p>
+    </div>
+
+    <div class="summary-3">
+      <div class="s3-card">
+        <div class="s3-badge badge-cop">⚡ Microsoft Copilot</div>
+        <h3>O ponto de partida</h3>
+        <p>Fácil de implantar, integrado ao Office. Acelera o trabalho como ele existe hoje — mas não questiona se o trabalho deveria existir dessa forma.</p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;"><strong style="color:var(--amber);">Teto:</strong> Limitado ao paradigma Office. A Microsoft decidiu o teto, não a Swift.</p>
+      </div>
+      <div class="s3-card">
+        <div class="s3-badge badge-exp">✦ Lovable</div>
+        <h3>Interface por função</h3>
+        <p>Cria ferramentas digitais feitas para cada área — não um chat genérico em cima do Excel. O analista de RH tem uma tela pensada para o trabalho de RH.</p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;"><strong style="color:var(--green);">Diferencial:</strong> A ferramenta se adapta ao trabalho, não o contrário.</p>
+      </div>
+      <div class="s3-card">
+        <div class="s3-badge badge-exp">✦ Claude Cowork</div>
+        <h3>IA que age — não só sugere</h3>
+        <p>Automatiza tarefas completas: coleta dados, transforma, envia, registra. Vai além de sugerir texto — executa o fluxo de ponta a ponta.</p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;"><strong style="color:var(--green);">Diferencial:</strong> Conecta com sistemas além do Office.</p>
+      </div>
+    </div>
+
+    <div class="sec-header">
+      <div class="sec-tag">Comparativo rápido</div>
+      <h2 class="sec-title">Capacidade a capacidade</h2>
+    </div>
+
+    <div class="ctable-wrap">
+      <table class="ctable">
+        <thead>
+          <tr>
+            <th>Capacidade</th>
+            <th>⚡ Copilot</th>
+            <th>✦ Stack Expandido</th>
+            <th>Veredito</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Implantação rápida <span class="note">Semanas, sem projeto</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td><span class="ico-par">Requer configuração</span></td>
+            <td style="font-size:12px;color:var(--muted);">Copilot vence</td>
+          </tr>
+          <tr>
+            <td>Resumos e rascunhos <span class="note">E-mail, texto, documentos</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td style="font-size:12px;color:var(--muted);">Equivalente</td>
+          </tr>
+          <tr>
+            <td>Interface por função <span class="note">Tela feita pra cada área</span></td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-yes">✓ Lovable</span></td>
+            <td><span class="ceil-pill ceil-open">Stack Expandido</span></td>
+          </tr>
+          <tr>
+            <td>Automação de tarefas reais <span class="note">Ações, arquivos, fluxos completos</span></td>
+            <td><span class="ico-par">Limitado ao Office</span></td>
+            <td><span class="ico-yes">✓ Cowork</span></td>
+            <td><span class="ceil-pill ceil-open">Stack Expandido</span></td>
+          </tr>
+          <tr>
+            <td>Conectar dados operacionais <span class="note">Sistemas além do Microsoft 365</span></td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td><span class="ceil-pill ceil-open">Stack Expandido</span></td>
+          </tr>
+          <tr>
+            <td>Redesenhar o trabalho em si <span class="note">Questionar o processo, não acelerar</span></td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td><span class="ceil-pill ceil-open">Stack Expandido</span></td>
+          </tr>
+          <tr>
+            <td>Teto de impacto</td>
+            <td><span class="ceil-pill ceil-fixed">🔒 Fixo — define a Microsoft</span></td>
+            <td><span class="ceil-pill ceil-open">↑ Cresce com o uso</span></td>
+            <td><span class="ceil-pill ceil-open">Stack Expandido</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: BENCHMARK ═══════════ -->
+<div class="page" id="p-benchmark">
+  <div class="wrap" style="padding-top:48px;">
+
+    <div class="sec-header">
+      <div class="sec-tag">Análise por ferramenta</div>
+      <h2 class="sec-title">O que cada uma faz — e onde para</h2>
+      <p class="sec-sub">Uma análise honesta. O Copilot tem pontos fortes reais. O ponto é saber onde ele para.</p>
+    </div>
+
+    <div class="tool-3col">
+      <!-- COPILOT -->
+      <div class="tool-card">
+        <div class="tool-card-head">
+          <div class="tool-logo logo-cop">⚡</div>
+          <div>
+            <div class="tool-name">Microsoft Copilot</div>
+            <div class="tool-tagline">Assistente integrado ao Office 365</div>
+          </div>
+        </div>
+        <p class="tool-desc">Assistente de IA nativo no ecossistema Microsoft. Funciona dentro do Word, Excel, PowerPoint, Teams e Outlook. Ideal para quem já usa Office intensamente e quer ganhos rápidos sem projeto.</p>
+        <div class="tool-pros">
+          <div class="label">Pontos fortes</div>
+          <ul>
+            <li>Zero atrito de adoção — já está no Office</li>
+            <li>Ótimo para rascunho, resumo e edição de texto</li>
+            <li>Funciona bem para tarefas dentro do Word/Excel</li>
+            <li>Suporte corporativo Microsoft (SLA, segurança)</li>
+          </ul>
+        </div>
+        <div class="tool-limit">
+          <div class="label">Onde para</div>
+          <ul>
+            <li>Não conecta com sistemas fora do Office</li>
+            <li>Não automatiza fluxos completos</li>
+            <li>Não cria interfaces customizadas por função</li>
+            <li>Teto definido pela Microsoft, não pela Swift</li>
+          </ul>
+        </div>
+        <div class="tool-ceil tool-ceil-fixed">
+          <div class="ceil-title">🔒 Teto fixo</div>
+          <p>Tudo que acontece, acontece dentro do Office. O Copilot pressupõe que o Office é o ambiente permanente — o que pode não ser o melhor interesse da Swift.</p>
+        </div>
+      </div>
+
+      <!-- LOVABLE -->
+      <div class="tool-card">
+        <div class="tool-card-head">
+          <div class="tool-logo logo-lov">🎨</div>
+          <div>
+            <div class="tool-name">Lovable</div>
+            <div class="tool-tagline">Interface por função, sem programação</div>
+          </div>
+        </div>
+        <p class="tool-desc">Cria ferramentas digitais customizadas para cada área da empresa — sem precisar de TI ou programação. O RH tem uma tela pensada para o RH. O Marketing tem a sua.</p>
+        <div class="tool-pros">
+          <div class="label">Pontos fortes</div>
+          <ul>
+            <li>Interface feita para o trabalho real da área</li>
+            <li>Não depende de chat genérico — tem ação direta</li>
+            <li>Pode ser ajustado pela área sem TI</li>
+            <li>Conecta com qualquer sistema via API</li>
+          </ul>
+        </div>
+        <div class="tool-cons">
+          <div class="label">Requer</div>
+          <ul>
+            <li>Configuração inicial pelo Pod (não plug-and-play)</li>
+            <li>Alguém que faça a ponte entre negócio e ferramenta</li>
+            <li>Entendimento do fluxo real da área</li>
+          </ul>
+        </div>
+        <div class="tool-ceil tool-ceil-open">
+          <div class="ceil-title">↑ Teto aberto</div>
+          <p>A interface evolui com o uso. Quanto mais a área utiliza e dá feedback, mais a ferramenta se ajusta ao trabalho real.</p>
+        </div>
+      </div>
+
+      <!-- COWORK -->
+      <div class="tool-card">
+        <div class="tool-card-head">
+          <div class="tool-logo logo-cow">🤖</div>
+          <div>
+            <div class="tool-name">Claude Cowork</div>
+            <div class="tool-tagline">IA que executa — não só sugere</div>
+          </div>
+        </div>
+        <p class="tool-desc">Automatiza tarefas completas de ponta a ponta. Coleta dados de sistemas externos, processa, toma ações e notifica — sem que o analista precise intervir em cada etapa.</p>
+        <div class="tool-pros">
+          <div class="label">Pontos fortes</div>
+          <ul>
+            <li>Executa ações reais: enviar, registrar, acionar</li>
+            <li>Conecta com APIs externas (não só Office)</li>
+            <li>Automatiza fluxos repetitivos end-to-end</li>
+            <li>Aprende o contexto do negócio ao longo do tempo</li>
+          </ul>
+        </div>
+        <div class="tool-cons">
+          <div class="label">Requer</div>
+          <ul>
+            <li>Mapeamento dos fluxos da área antes</li>
+            <li>Configuração inicial dos automações</li>
+            <li>Validação das primeiras execuções</li>
+          </ul>
+        </div>
+        <div class="tool-ceil tool-ceil-open">
+          <div class="ceil-title">↑ Teto aberto</div>
+          <p>Cada novo processo configurado amplia o que o sistema consegue fazer. A capacidade cresce com o uso, não tem limite predefinido.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-header">
+      <div class="sec-tag">Objeções comuns</div>
+      <h2 class="sec-title">As perguntas que surgem — respondidas</h2>
+    </div>
+
+    <div class="objection-grid">
+      <div class="obj-card">
+        <div class="obj-q">"Já pagamos o Copilot. Por que precisamos de mais?"</div>
+        <p class="obj-a">O Copilot é bom para o que faz. O ponto é que há trabalho nas suas áreas que o Copilot não consegue alcançar — não porque é ruim, mas porque não foi desenhado para isso. É como perguntar por que precisamos de Excel se já temos Word: são ferramentas diferentes para necessidades diferentes.</p>
+      </div>
+      <div class="obj-card">
+        <div class="obj-q">"E a segurança dos dados? Posso usar ferramentas fora do Microsoft?"</div>
+        <p class="obj-a">Lovable e Cowork operam com controle de acesso configurável. O que fica dentro da empresa fica dentro. O mapeamento de quais dados passam por qual ferramenta é parte do processo de configuração — não um risco, mas uma decisão deliberada.</p>
+      </div>
+      <div class="obj-card">
+        <div class="obj-q">"E se o time não quiser mudar? A curva de aprendizado vai travar."</div>
+        <p class="obj-a">O Lovable cria interfaces que parecem aplicativos simples, não ferramentas técnicas. A curva de adoção é menor do que parece — especialmente quando o usuário participa do desenho da interface. O time precisa enxergar valor logo nas primeiras semanas. É por isso que começamos pelos casos mais óbvios.</p>
+      </div>
+      <div class="obj-card">
+        <div class="obj-q">"Quanto tempo leva para ver resultado?"</div>
+        <p class="obj-a">Resultados mensuráveis nas primeiras 4 semanas — no processo específico que for escolhido como piloto. Não prometemos transformação total, prometemos um processo real rodando diferente. A partir daí, o time vê e decide como expandir.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: JOURNEY ═══════════ -->
+<div class="page" id="p-journey">
+  <div class="wrap" style="padding-top:48px;">
+
+    <div class="sec-header">
+      <div class="sec-tag">Maturidade em estágios</div>
+      <h2 class="sec-title">Não existe salto direto para AI-first</h2>
+      <p class="sec-sub">Cada estágio tem entrega real e sustenta o próximo. Nenhum é piloto — todos são operação.</p>
+    </div>
+
+    <div class="stages-row">
+      <div class="stage stage-0">
+        <div class="stage-top-bar"></div>
+        <div class="stage-lbl">Estágio 0 · Hoje</div>
+        <div class="stage-badge-pill s0pill">Copilot / Office</div>
+        <h4>Aceleração do existente</h4>
+        <div class="stage-time">Situação atual</div>
+        <ul>
+          <li>Otimiza processos atuais</li>
+          <li>E-mail e texto mais rápido</li>
+          <li>Não questiona o processo</li>
+          <li>Preso ao paradigma Office</li>
+          <li>Ganho de velocidade, sem evolução</li>
+        </ul>
+      </div>
+      <div class="stage stage-1">
+        <div class="stage-now-badge">Foco agora</div>
+        <div class="stage-top-bar"></div>
+        <div class="stage-lbl">Estágio 1 · Próximos 60 dias</div>
+        <div class="stage-badge-pill s1pill">✦ Stack Expandido</div>
+        <h4>Automação na mesa</h4>
+        <div class="stage-time">Agora → 60 dias</div>
+        <ul>
+          <li>Interface por função (Lovable)</li>
+          <li>Tarefas automatizadas (Cowork)</li>
+          <li>Primeiro processo completo</li>
+          <li>Velocidade operacional real</li>
+          <li>Fundação para o próximo estágio</li>
+        </ul>
+      </div>
+      <div class="stage stage-2">
+        <div class="stage-top-bar"></div>
+        <div class="stage-lbl">Estágio 2 · 60–180 dias</div>
+        <div class="stage-badge-pill s2pill">Captura de conhecimento</div>
+        <h4>IA aprende o negócio</h4>
+        <div class="stage-time">60 → 180 dias</div>
+        <ul>
+          <li>Base de conhecimento estruturada</li>
+          <li>IA deixa de ser "estranho inteligente"</li>
+          <li>Controle de acesso e LGPD</li>
+          <li>3 a 5 processos rodando</li>
+          <li>Conhecimento sobrevive à rotatividade</li>
+        </ul>
+      </div>
+      <div class="stage stage-3">
+        <div class="stage-top-bar"></div>
+        <div class="stage-lbl">Estágio 3 · Horizonte</div>
+        <div class="stage-badge-pill s3pill">Inteligência organizacional</div>
+        <h4>A org genuinamente AI-first</h4>
+        <div class="stage-time">180 dias em diante</div>
+        <ul>
+          <li>Conhecimento cresce com o uso</li>
+          <li>Padrões emergem automaticamente</li>
+          <li>Equipe redesenha o próprio trabalho</li>
+          <li>Vantagem competitiva que se acumula</li>
+          <li>A org sabe mais que qualquer pessoa</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert alert-red" style="margin-top:0;">
+      <span class="alert-icon">⏳</span>
+      <div>
+        <h4>O custo invisível de ficar no Estágio 0</h4>
+        <p>Ficar no Copilot enquanto o time faz o mesmo trabalho mais rápido não é uma posição neutra. É uma posição de desvantagem acumulada. Cada mês no Estágio 0 é um mês de menos construindo o que diferencia. Organizações que avançaram para o Estágio 1 há 6 meses já têm processos funcionando de forma que o Copilot não consegue reproduzir.</p>
+      </div>
+    </div>
+
+    <div class="sec-header">
+      <div class="sec-tag">Custo de não agir</div>
+      <h2 class="sec-title">O que fica na mesa se nada mudar</h2>
+    </div>
+
+    <div class="cost-grid">
+      <div class="cost-card">
+        <div class="cost-icon">📊</div>
+        <div class="cost-num">~40h</div>
+        <div class="cost-lbl">por mês, por analista</div>
+        <p class="cost-desc">Em trabalho mecânico que poderia ser automatizado — relatórios, triagem, consolidação, cópia e cola entre sistemas.</p>
+      </div>
+      <div class="cost-card">
+        <div class="cost-icon">🔄</div>
+        <div class="cost-num">0%</div>
+        <div class="cost-lbl">de redesenho de processos</div>
+        <p class="cost-desc">Com Copilot, os processos continuam os mesmos — só são executados mais rápido. A estrutura do trabalho permanece intacta.</p>
+      </div>
+      <div class="cost-card">
+        <div class="cost-icon">📉</div>
+        <div class="cost-num">Fixo</div>
+        <div class="cost-lbl">teto de impacto para sempre</div>
+        <p class="cost-desc">O teto do Copilot não cresce com o tempo. Daqui a 12 meses, o impacto máximo possível é o mesmo de hoje — definido pela Microsoft.</p>
+      </div>
+    </div>
+
+    <div class="ctable-wrap">
+      <table class="ctable">
+        <thead>
+          <tr>
+            <th>Pergunta que importa</th>
+            <th>Estágio 0 — Copilot</th>
+            <th>Estágio 1 — Stack Expandido</th>
+            <th>Estágio 2+</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>O trabalho foi redesenhado?</td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-yes">✓</span></td>
+            <td><span class="ico-yes">✓✓</span></td>
+          </tr>
+          <tr>
+            <td>A IA age ou só sugere?</td>
+            <td><span class="ico-par">Só sugere</span></td>
+            <td><span class="ico-yes">✓ Age</span></td>
+            <td><span class="ico-yes">Age em escala</span></td>
+          </tr>
+          <tr>
+            <td>A IA conhece o negócio?</td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-par">Em construção</span></td>
+            <td><span class="ico-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Gera vantagem competitiva?</td>
+            <td><span class="ico-no">✗</span></td>
+            <td><span class="ico-par">Começa aqui</span></td>
+            <td><span class="ico-yes">✓ Acumula</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: CASES ═══════════ -->
+<div class="page" id="p-cases">
+  <div class="wrap" style="padding-top:48px;">
+
+    <div class="sec-header">
+      <div class="sec-tag">Situações reais · RH & Marketing</div>
+      <h2 class="sec-title">O que muda na prática</h2>
+      <p class="sec-sub">Cada caso mostra a situação atual, o que o Copilot entrega, e o que o stack expandido transforma. Com números reais.</p>
+    </div>
+
+    <div class="filter-row">
+      <button class="f-btn on" onclick="filter('all',this)">Todos os casos</button>
+      <button class="f-btn" onclick="filter('rh',this)">👥 RH</button>
+      <button class="f-btn" onclick="filter('mkt',this)">📣 Marketing</button>
+    </div>
+
+    <!-- CASE 1 -->
+    <div class="case-card" data-area="rh">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-rh">📋</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-rh">RH</div>
+          <div class="case-title">Pesquisa de clima e NPS de cultura</div>
+          <div class="case-sit">Analista passa 2 dias consolidando respostas, calculando médias por área e montando o deck para a liderança</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">−14h</div><div class="lbl">por ciclo</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">2h</div><div class="lbl">com stack</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>Pesquisa trimestral de clima. Chegam respostas de 300+ colaboradores via formulário. O analista exporta, separa por área, calcula médias, analisa comentários abertos e monta um PowerPoint de 20 slides para a liderança. São 2 dias de trabalho para um relatório que dura 1 hora de reunião.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Resume comentários abertos no Word</li>
+              <li><span class="li-m y">✓</span>Ajuda a escrever o PowerPoint</li>
+              <li><span class="li-m p">⚠</span>Ainda precisa exportar e organizar a planilha manualmente</li>
+              <li><span class="li-m n">✗</span>Não consolida dados por área automaticamente</li>
+              <li><span class="li-m n">✗</span>Não compara com pesquisas anteriores</li>
+              <li><span class="li-m p">→</span>Resultado: de 16h para ~12h. Mesma natureza.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Dashboard da pesquisa por área, período e tema — sem abrir planilha</li>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Consolida automaticamente ao receber respostas</li>
+              <li><span class="li-m y">✓</span>Análise de sentimento dos comentários já categorizada</li>
+              <li><span class="li-m y">✓</span>Comparativo automático com trimestres anteriores</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: 2h de curadoria — não de construção</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>O analista passa de executor para intérprete. O trabalho de 16h se transforma em 2h de curadoria. Que é exatamente o valor que o RH deveria estar gerando para a liderança.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 2 -->
+    <div class="case-card" data-area="rh">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-rh">🚀</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-rh">RH</div>
+          <div class="case-title">Onboarding de novos colaboradores</div>
+          <div class="case-sit">Checklist manual, e-mails repetitivos e documentos enviados um a um a cada novo colaborador</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">−90%</div><div class="lbl">do esforço</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">Auto</div><div class="lbl">fluxo</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>A cada novo colaborador: e-mail de boas-vindas, coleta de documentos, criação de acessos, agendamento de treinamentos, check-ins de 30/60/90 dias. Dezenas de ações manuais e previsíveis que consomem horas de um processo completamente repetível.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Rascunha e-mails de boas-vindas mais rápido</li>
+              <li><span class="li-m y">✓</span>Sugere texto para documentos de orientação</li>
+              <li><span class="li-m n">✗</span>Cada e-mail ainda precisa ser enviado manualmente</li>
+              <li><span class="li-m n">✗</span>Não automatiza a sequência do fluxo</li>
+              <li><span class="li-m p">→</span>Resultado: textos melhores, processo igual.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Cada etapa do fluxo dispara automaticamente no momento certo</li>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Painel mostrando onde cada colaborador está no processo</li>
+              <li><span class="li-m y">✓</span>Coleta de documentos com notificação automática de pendências</li>
+              <li><span class="li-m y">✓</span>Check-ins agendados e lembrados automaticamente</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: analista só intervém quando algo foge do fluxo</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>O onboarding deixa de ser tarefa manual e vira processo que roda sozinho. O analista de RH para de "fazer o onboarding" e começa a "gerir a experiência de entrada" — que é o que importa.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 3 -->
+    <div class="case-card" data-area="rh">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-rh">🔍</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-rh">RH</div>
+          <div class="case-title">Triagem de candidatos e job descriptions</div>
+          <div class="case-sit">Triagem manual de dezenas de CVs, cada um aberto individualmente, ranqueado por feeling</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">80</div><div class="lbl">CVs em</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">30min</div><div class="lbl">triados</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>Vaga aberta: JD escrita do zero (ou copiada), publicação manual, dezenas de CVs recebidos, cada um aberto e avaliado individualmente, retornos enviados um a um. A triagem de 80 CVs leva 2 dias inteiros de trabalho.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Ajuda a redigir o JD com um briefing</li>
+              <li><span class="li-m y">✓</span>Resume CVs colados no Word</li>
+              <li><span class="li-m n">✗</span>Cada CV ainda precisa ser aberto e colado manualmente</li>
+              <li><span class="li-m n">✗</span>Não rankeia por critérios definidos</li>
+              <li><span class="li-m p">→</span>Resultado: JD fica bom, triagem continua manual.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Interface onde recrutador define critérios e vê candidatos ranqueados</li>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Lê os CVs recebidos, aplica critérios e gera ranking comentado automaticamente</li>
+              <li><span class="li-m y">✓</span>E-mails de status disparados por etapa automaticamente</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: 80 CVs triados em 30 minutos, com justificativa por candidato</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>2 dias de triagem → 30 minutos de revisão. O recrutador investe seu tempo em entrevistas e decisões, não em abrir arquivos. E toma decisões com mais informação — não por feeling.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 4 -->
+    <div class="case-card" data-area="mkt">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-mkt">📊</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-mkt">Marketing</div>
+          <div class="case-title">Relatório mensal de performance de campanhas</div>
+          <div class="case-sit">Analista exporta dados de 4 plataformas, consolida planilha e monta deck — 2 dias de trabalho toda virada de mês</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">−16h</div><div class="lbl">por mês</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">Tempo real</div><div class="lbl">sempre</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>Todo mês: exportar dados do Google Ads, Meta, LinkedIn e CRM. Consolidar planilha. Calcular CPL, CAC e ROAS por canal. Montar deck de 15 slides para a reunião de liderança. São ~16 horas de trabalho mecânico para 1 hora de decisão.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Resume e interpreta dados que já estão no Excel</li>
+              <li><span class="li-m y">✓</span>Ajuda a escrever o texto do relatório</li>
+              <li><span class="li-m n">✗</span>Exportação de cada plataforma ainda é manual</li>
+              <li><span class="li-m n">✗</span>Não conecta com Google Ads, Meta ou CRM diretamente</li>
+              <li><span class="li-m p">→</span>Resultado: de 16h para ~12h. Mesma natureza.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Conecta com APIs das plataformas — dados atualizados automaticamente</li>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Dashboard de performance sempre atualizado — sem relatório mensal</li>
+              <li><span class="li-m y">✓</span>Alertas automáticos quando campanha sai da faixa</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: o relatório mensal deixa de existir. Os dados são visíveis em tempo real.</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>O analista recupera ~16h/mês. A reunião de liderança passa a ser sobre decisão de investimento, não sobre ler números passados. E o gestor vê o que está acontecendo agora — não o que aconteceu há 30 dias.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 5 -->
+    <div class="case-card" data-area="mkt">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-mkt">✏️</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-mkt">Marketing</div>
+          <div class="case-title">Produção e adaptação de conteúdo para canais</div>
+          <div class="case-sit">1 conteúdo principal precisa virar 6 formatos diferentes — analista passa 60% do tempo adaptando, não criando</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">−70%</div><div class="lbl">tempo adaptação</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">×6</div><div class="lbl">formatos de uma vez</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>Uma campanha gera um artigo ou vídeo principal. Depois vem: post LinkedIn, carrossel Instagram, e-mail para a base, copy do Google Ads, post Twitter, SMS para clientes. Cada um tem tom, formato e limite de caracteres diferentes. O analista passa 60% do tempo "adaptando" — não criando conteúdo novo.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Reescreve para diferentes tons no Word</li>
+              <li><span class="li-m y">✓</span>Reduz e adapta textos longos</li>
+              <li><span class="li-m n">✗</span>Cada adaptação ainda precisa ser solicitada manualmente</li>
+              <li><span class="li-m n">✗</span>Não conhece o tom de voz e brand guidelines da Swift</li>
+              <li><span class="li-m p">→</span>Resultado: mais rápido, mas processo a processo.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Interface onde analista cola o conteúdo e recebe todas as versões de uma vez</li>
+              <li><span class="li-m y">✓</span>Sistema treinado com brand voice da Swift — não genérico</li>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Dispara aprovações e agendamentos automaticamente</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: analista foca 100% na criação — não na adaptação</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>Tempo de produção por campanha cai ~70%. O stack aprende o tom da Swift ao longo do tempo — ficando mais preciso a cada uso. O analista se torna criador, não adaptador.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 6 -->
+    <div class="case-card" data-area="mkt">
+      <div class="case-head" onclick="tog(this)">
+        <div class="case-ico ico-mkt">🔎</div>
+        <div class="case-info">
+          <div class="case-area-tag tag-mkt">Marketing</div>
+          <div class="case-title">Monitoramento de concorrentes e inteligência de mercado</div>
+          <div class="case-sit">Analista passa horas semanais pesquisando concorrentes manualmente para embasar decisões de posicionamento</div>
+        </div>
+        <div class="case-metrics">
+          <div class="case-metric"><div class="num">−5h</div><div class="lbl">por semana</div></div>
+          <div class="case-metric"><div class="num" style="color:var(--green);">Real time</div><div class="lbl">automático</div></div>
+        </div>
+        <div class="case-chevron">⌄</div>
+      </div>
+      <div class="case-body">
+        <div class="sit-block">
+          <div class="slbl">🔍 Situação real</div>
+          <p>Toda semana: visitar sites de concorrentes, comparar posicionamento, anotar mudanças em planilha, montar resumo para o gestor. 4–6 horas semanais em coleta que poderia ser automatizada quase inteiramente. O gestor recebe um snapshot semanal — não sinal em tempo real.</p>
+        </div>
+        <div class="vs-grid">
+          <div class="vs-col vs-cop">
+            <div class="vs-head">⚡ Com Copilot</div>
+            <ul>
+              <li><span class="li-m y">✓</span>Analisa e resume a planilha que o analista já montou</li>
+              <li><span class="li-m y">✓</span>Ajuda a escrever o relatório de análise</li>
+              <li><span class="li-m n">✗</span>Toda a coleta ainda é manual</li>
+              <li><span class="li-m n">✗</span>Não monitora sites ou fontes externas</li>
+              <li><span class="li-m p">→</span>Resultado: análise melhora, coleta continua igual.</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-exp">
+            <div class="vs-head">✦ Com Stack Expandido</div>
+            <ul>
+              <li><span class="li-m y">✓</span><strong>Cowork:</strong> Monitora preços e posicionamento de concorrentes automaticamente</li>
+              <li><span class="li-m y">✓</span><strong>Lovable:</strong> Dashboard de inteligência competitiva sempre atualizado</li>
+              <li><span class="li-m y">✓</span>Alertas quando concorrente muda posicionamento relevante</li>
+              <li><span class="li-m y">✓</span><strong>Resultado: analista interpreta sinais — não coleta dados</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="outcome-bar">
+          <div>
+            <div class="olbl">💡 Impacto real</div>
+            <p>De 5h semanais de coleta para 30 minutos de interpretação. O gestor toma decisões de posicionamento com informação em tempo real — não com snapshot de semana passada.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: NEXT STEPS ═══════════ -->
+<div class="page" id="p-next">
+  <div class="wrap" style="padding-top:48px;">
+
+    <div class="sec-header">
+      <div class="sec-tag">O caminho concreto</div>
+      <h2 class="sec-title">De onde partimos para os primeiros 45 dias</h2>
+      <p class="sec-sub">Não "tornar-se AI-first". Um processo real, completo, funcionando — entregue nas primeiras 4–6 semanas.</p>
+    </div>
+
+    <div class="cta-band">
+      <div>
+        <h2>O Estágio 1 cabe em 45 dias.</h2>
+        <p>Não estamos falando de transformação total. Estamos falando de um processo específico da sua área rodando de forma diferente — e mensurável — em até 45 dias. A partir daí, o time decide como expandir com base em evidência, não em promessa.</p>
+      </div>
+      <div class="cta-steps">
+        <div class="cta-step">
+          <div class="cta-step-num">1</div>
+          <p><strong>Dias 1–10:</strong> Escolher o processo certo — real, não demonstração</p>
+        </div>
+        <div class="cta-step">
+          <div class="cta-step-num">2</div>
+          <p><strong>Dias 11–25:</strong> Construir a interface (Lovable) para essa função</p>
+        </div>
+        <div class="cta-step">
+          <div class="cta-step-num">3</div>
+          <p><strong>Dias 26–40:</strong> Conectar dados e automatizar o fluxo (Cowork)</p>
+        </div>
+        <div class="cta-step">
+          <div class="cta-step-num">4</div>
+          <p><strong>Dias 41–45:</strong> Medir o antes e o depois — base para o Estágio 2</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-indigo">
+      <span class="alert-icon">💡</span>
+      <div>
+        <h4>Por onde começar?</h4>
+        <p>A escolha do primeiro processo é a decisão mais importante. Ele precisa ser real (não uma demonstração), ter carga de trabalho repetitivo visível, e ter alguém da área disposto a colaborar no desenho. O Pod entra exatamente aqui: para fazer essa escolha junto com o time.</p>
+      </div>
+    </div>
+
+    <div class="sec-header">
+      <div class="sec-tag">O que precisamos de vocês</div>
+      <h2 class="sec-title">Três coisas que desbloqueiam tudo</h2>
+    </div>
+
+    <div class="summary-3">
+      <div class="s3-card">
+        <div class="s3-badge badge-gap">① Permissão</div>
+        <h3>Líderes que dão espaço</h3>
+        <p>A transformação não acontece com meta imposta. O gestor precisa dar permissão real para o time repensar como faz o que faz — e tempo para que isso aconteça junto com o trabalho do dia a dia.</p>
+      </div>
+      <div class="s3-card">
+        <div class="s3-badge badge-gap">② Aprovação de stack</div>
+        <h3>Ferramentas homologadas</h3>
+        <p>O Lovable e o Cowork precisam estar aprovados para uso antes do lançamento do Pod. Sem isso, o time depende do Copilot por padrão — e o teto se mantém fixo.</p>
+      </div>
+      <div class="s3-card">
+        <div class="s3-badge badge-gap">③ Acesso ao trabalho real</div>
+        <h3>O analista no centro</h3>
+        <p>O Pod precisa sentar ao lado de quem faz o trabalho — não do gestor que descreve o trabalho. É na mesa do analista que está a oportunidade real. Isso requer acesso e disposição da área.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <span>Material interno confidencial · Swift × Ionix · Projeto de Transformação IA · 2025</span>
+  <span class="foot-brand">IONIX</span>
+</footer>
+
+<script>
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('p-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function tog(head) {
+  head.closest('.case-card').classList.toggle('open');
+}
+
+function filter(area, btn) {
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.case-card').forEach(c => {
+    c.style.display = (area === 'all' || c.dataset.area === area) ? 'block' : 'none';
+  });
+}
+</script>
+</body>
+</html>
