@@ -195,6 +195,47 @@ a{color:var(--ac);text-decoration:none}
 .roadmap-progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
 .roadmap-progress-fill{height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
 
+/* STATUS REPORT */
+.report{max-width:800px;margin:0 auto;font-size:13px}
+.report-cover{text-align:center;margin-bottom:32px;padding:32px 0;border-bottom:3px solid var(--ac)}
+.report-cover h1{font-size:28px;color:var(--ac);margin-bottom:4px}
+.report-cover h2{font-size:16px;color:var(--tx2);font-weight:400}
+.report-cover .report-date{font-size:13px;color:var(--tx3);margin-top:8px}
+.report-section{margin-bottom:28px;page-break-inside:avoid}
+.report-section-title{font-size:16px;font-weight:700;color:var(--ac);border-bottom:2px solid var(--ac);padding-bottom:4px;margin-bottom:12px}
+.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.report-kpi{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;text-align:center}
+.report-kpi-value{font-size:28px;font-weight:700;line-height:1}
+.report-kpi-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.report-table th{background:var(--bg3);padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--tx2);border-bottom:2px solid var(--bd)}
+.report-table td{padding:7px 10px;border-bottom:1px solid var(--bd2);vertical-align:top}
+.report-table tr:nth-child(even){background:var(--bg4)}
+.report-status{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.report-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;width:100%;margin-top:2px}
+.report-bar-fill{height:100%;border-radius:4px}
+.report-risk-matrix{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.report-risk-item{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r2);padding:10px}
+.report-risk-title{font-weight:600;font-size:13px;margin-bottom:4px}
+.report-risk-badges{display:flex;gap:4px;margin-bottom:6px}
+.report-footer{text-align:center;padding:16px 0;border-top:1px solid var(--bd2);font-size:11px;color:var(--tx3);margin-top:32px}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff!important;color:#1a1a2e!important}
+  .shell{display:block!important}
+  .sidebar,.topbar,.nav-item,.btn-icon,.gantt-row-actions,.card-delete{display:none!important}
+  .content{overflow:visible!important}
+  .view-body{padding:0!important;overflow:visible!important}
+  .report{max-width:100%}
+  .report-kpis{grid-template-columns:repeat(4,1fr)}
+  .report-section{page-break-inside:avoid}
+  .report-cover{page-break-after:avoid}
+  .report-table th{background:#f0f1f3!important}
+  .report-table tr:nth-child(even){background:#f8f9fa!important}
+  .report-kpi{border:1px solid #ddd!important}
+}
+
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .15s}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -362,7 +403,8 @@ function sidebar() {
     { id:'kanban', icon:'\u2630', label:'Kanban', count: Object.keys(S.activities).length },
     { id:'roadmap', icon:'\u2691', label:'Roadmap', count: Object.keys(S.milestones).length },
     { id:'riscos', icon:'\u26A0', label:'Riscos', count: Object.keys(S.risks).length },
-    { id:'dashboard', icon:'\u25A3', label:'Dashboard' }
+    { id:'dashboard', icon:'\u25A3', label:'Dashboard' },
+    { id:'report', icon:'\u2399', label:'Status Report' }
   ];
   const frentesHtml = Object.values(S.frentes).map(f =>
     `<div class="nav-item" style="padding-left:20px" data-frente="${f.id}">
@@ -393,12 +435,13 @@ function sidebar() {
 }
 
 function topbar() {
-  const titles = { kanban:'Kanban', roadmap:'Roadmap', riscos:'Riscos', dashboard:'Dashboard' };
+  const titles = { kanban:'Kanban', roadmap:'Roadmap', riscos:'Riscos', dashboard:'Dashboard', report:'Status Report' };
   const addBtns = {
     kanban: `<button class="btn btn-primary btn-sm" id="btn-add-act">+ Atividade</button>`,
     roadmap: `<button class="btn btn-primary btn-sm" id="btn-add-mile">+ Marco</button>`,
     riscos: `<button class="btn btn-primary btn-sm" id="btn-add-risk">+ Risco</button>`,
-    dashboard: ''
+    dashboard: '',
+    report: `<button class="btn btn-primary btn-sm" id="btn-print-pdf">\u2399 Gerar PDF</button>`
   };
   return `<div class="topbar"><div class="topbar-title">${titles[S.view]}</div>
     <div class="topbar-actions">
@@ -413,6 +456,7 @@ function viewBody() {
   if (S.view === 'roadmap') return roadmapView();
   if (S.view === 'riscos') return riscosView();
   if (S.view === 'dashboard') return dashboardView();
+  if (S.view === 'report') return reportView();
   return '';
 }
 
@@ -682,6 +726,169 @@ function dashboardView() {
   `;
 }
 
+// ---------- STATUS REPORT ----------
+function reportView() {
+  const acts = Object.values(S.activities);
+  const miles = Object.values(S.milestones);
+  const risks = Object.values(S.risks);
+  const today = new Date().toISOString().slice(0,10);
+  const dateLabel = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+  const total = acts.length;
+  const done = acts.filter(a => a.coluna === 'concluido').length;
+  const progress = acts.filter(a => a.coluna === 'em_andamento').length;
+  const overdue = acts.filter(a => a.prazo && a.prazo < today && a.coluna !== 'concluido').length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const risksOpen = risks.filter(r => r.status === 'aberto' || r.status === 'mitigando').length;
+
+  const statusColors = {backlog:'#97a0af',a_fazer:'#0052cc',em_andamento:'#ff991f',revisao:'#6554c0',concluido:'#00875a'};
+  const priColors = {alta:'#de350b',media:'#ff991f',baixa:'#00875a'};
+
+  // By frente
+  const frenteIds = [...new Set(acts.map(a => a.frente).filter(Boolean))];
+  const byFrente = frenteIds.map(fid => {
+    const f = S.frentes[fid];
+    const fa = acts.filter(a => a.frente === fid);
+    const fd = fa.filter(a => a.coluna === 'concluido').length;
+    return { nome: f ? f.nome : fid, cor: f ? f.cor : '#0052cc', total: fa.length, done: fd, pct: fa.length ? Math.round((fd / fa.length) * 100) : 0 };
+  });
+
+  // Milestones sorted
+  const milesSorted = [...miles].sort((a,b) => (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+
+  // Recent activities (em andamento or concluido recently)
+  const activeActs = acts.filter(a => a.coluna === 'em_andamento' || a.coluna === 'revisao').sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+  const overdueActs = acts.filter(a => a.prazo && a.prazo < today && a.coluna !== 'concluido');
+  const doneActs = acts.filter(a => a.coluna === 'concluido');
+
+  let html = `<div class="report" id="report-content">`;
+
+  // Cover
+  html += `<div class="report-cover">
+    <h1>SWIFT OS</h1>
+    <h2>Status Report do Projeto</h2>
+    <div class="report-date">${dateLabel}</div>
+    <div style="font-size:12px;color:var(--tx3);margin-top:4px">Gerado por ${esc(S.user)}</div>
+  </div>`;
+
+  // KPIs
+  html += `<div class="report-kpis">
+    <div class="report-kpi"><div class="report-kpi-value">${total}</div><div class="report-kpi-label">Atividades</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#00875a">${pct}%</div><div class="report-kpi-label">Concluido</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#ff991f">${progress}</div><div class="report-kpi-label">Em Andamento</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#de350b">${overdue}</div><div class="report-kpi-label">Atrasadas</div></div>
+  </div>`;
+
+  // Progress by frente
+  if (byFrente.length) {
+    html += `<div class="report-section"><div class="report-section-title">Progresso por Frente</div>
+      <table class="report-table"><thead><tr><th>Frente</th><th>Progresso</th><th>Concluidas</th><th>Total</th></tr></thead><tbody>
+      ${byFrente.map(f => `<tr>
+        <td><span style="color:${f.cor}">\u25CF</span> ${esc(f.nome)}</td>
+        <td><div class="report-bar"><div class="report-bar-fill" style="width:${f.pct}%;background:${f.cor}"></div></div><span style="font-size:11px;color:var(--tx3)">${f.pct}%</span></td>
+        <td>${f.done}</td><td>${f.total}</td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Roadmap / Milestones
+  if (milesSorted.length) {
+    html += `<div class="report-section"><div class="report-section-title">Roadmap — Marcos</div>
+      <table class="report-table"><thead><tr><th>Marco</th><th>Periodo</th><th>Status</th><th>Progresso</th></tr></thead><tbody>
+      ${milesSorted.map(m => {
+        const linkedIds = m.atividades || [];
+        const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
+        const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
+        const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
+        const frente = S.frentes[m.frente];
+        const stColor = m.status==='concluido'?'#00875a':m.status==='em_andamento'?'#ff991f':'#97a0af';
+        const stLabel = m.status==='concluido'?'Concluido':m.status==='em_andamento'?'Em andamento':'Pendente';
+        return `<tr>
+          <td><strong>${esc(m.titulo)}</strong>${frente ? `<br><span style="font-size:11px;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}</td>
+          <td style="white-space:nowrap">${m.dataInicio||m.data||'?'}<br>${m.dataFim||m.data||'?'}</td>
+          <td><span class="report-status" style="background:${stColor}20;color:${stColor}">${stLabel}</span></td>
+          <td>${linkedActs.length ? `<div class="report-bar"><div class="report-bar-fill" style="width:${linkedPct}%;background:${stColor}"></div></div><span style="font-size:11px">${linkedDone}/${linkedActs.length}</span>` : '<span style="color:var(--tx3)">—</span>'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades em andamento
+  if (activeActs.length) {
+    html += `<div class="report-section"><div class="report-section-title">Atividades em Andamento</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th><th>Prazo</th><th>Status</th></tr></thead><tbody>
+      ${activeActs.map(a => {
+        const f = S.frentes[a.frente];
+        const ov = a.prazo && a.prazo < today;
+        return `<tr>
+          <td>${esc(a.titulo)}</td>
+          <td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td>
+          <td>${esc(a.responsavel||'—')}</td>
+          <td style="white-space:nowrap;${ov?'color:#de350b;font-weight:600':''}">${a.prazo||'—'}${ov?' (atrasado)':''}</td>
+          <td><span class="report-status" style="background:${statusColors[a.coluna]}20;color:${statusColors[a.coluna]}">${COL_LABELS[a.coluna]}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades atrasadas
+  if (overdueActs.length) {
+    html += `<div class="report-section"><div class="report-section-title" style="color:#de350b;border-color:#de350b">Atividades Atrasadas (${overdueActs.length})</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th><th>Prazo</th><th>Dias atraso</th></tr></thead><tbody>
+      ${overdueActs.map(a => {
+        const f = S.frentes[a.frente];
+        const dias = Math.floor((new Date(today) - new Date(a.prazo)) / (1000*60*60*24));
+        return `<tr>
+          <td>${esc(a.titulo)}</td>
+          <td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td>
+          <td>${esc(a.responsavel||'—')}</td>
+          <td style="white-space:nowrap">${a.prazo}</td>
+          <td style="color:#de350b;font-weight:700">${dias}d</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades concluidas
+  if (doneActs.length) {
+    html += `<div class="report-section"><div class="report-section-title" style="color:#00875a;border-color:#00875a">Atividades Concluidas (${doneActs.length})</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th></tr></thead><tbody>
+      ${doneActs.map(a => {
+        const f = S.frentes[a.frente];
+        return `<tr><td>${esc(a.titulo)}</td><td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td><td>${esc(a.responsavel||'—')}</td></tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Riscos
+  if (risks.length) {
+    html += `<div class="report-section"><div class="report-section-title">Riscos (${risksOpen} abertos de ${risks.length})</div>
+      <div class="report-risk-matrix">
+      ${risks.map(r => {
+        const f = S.frentes[r.frente];
+        const sevColor = priColors[r.severidade] || '#ff991f';
+        return `<div class="report-risk-item">
+          <div class="report-risk-title">${esc(r.titulo)}</div>
+          <div class="report-risk-badges">
+            <span class="report-status" style="background:${sevColor}20;color:${sevColor}">Sev: ${PRIORITIES[r.severidade]||'Media'}</span>
+            <span class="report-status" style="background:${priColors[r.probabilidade]||'#ff991f'}20;color:${priColors[r.probabilidade]||'#ff991f'}">Prob: ${PRIORITIES[r.probabilidade]||'Media'}</span>
+            <span class="report-status" style="background:var(--bg3);color:var(--tx2)">${RISK_STATUS[r.status]||'Aberto'}</span>
+          </div>
+          ${r.impacto ? `<div style="font-size:12px;color:var(--tx2)"><strong>Impacto:</strong> ${esc(r.impacto)}</div>` : ''}
+          ${r.mitigacao ? `<div style="font-size:12px;color:var(--tx2)"><strong>Mitigacao:</strong> ${esc(r.mitigacao)}</div>` : ''}
+          ${r.responsavel ? `<div style="font-size:11px;color:var(--tx3);margin-top:4px">${esc(r.responsavel)}</div>` : ''}
+        </div>`;
+      }).join('')}
+      </div></div>`;
+  }
+
+  // Footer
+  html += `<div class="report-footer">SWIFT OS — Status Report gerado em ${dateLabel} por ${esc(S.user)}<br>Plataforma de Gestao de Projetos | IONIX</div>`;
+  html += `</div>`;
+  return html;
+}
+
 // ---------- MODALS ----------
 function modalOverlay() {
   return `<div class="modal-overlay" id="modal-overlay">${S.modal}</div>`;
@@ -829,6 +1036,7 @@ function attachAll() {
   const ba = $('#btn-add-act'); if (ba) ba.onclick = () => { S.modal = activityModal(null); render(); };
   const bm = $('#btn-add-mile'); if (bm) bm.onclick = () => { S.modal = milestoneModal(null); render(); };
   const br = $('#btn-add-risk'); if (br) br.onclick = () => { S.modal = riskModal(null); render(); };
+  const bp = $('#btn-print-pdf'); if (bp) bp.onclick = () => window.print();
 
   attachView();
   attachModal();
