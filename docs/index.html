@@ -382,11 +382,12 @@ function render() {
 }
 
 function rerender() {
-  const vb = document.getElementById('vb');
-  if (vb) { vb.innerHTML = viewBody(); attachView(); }
-  // Update sidebar counts
-  const el = document.getElementById('nav-act-count');
-  if (el) el.textContent = Object.keys(S.activities).length;
+  if (!S.user) return;
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = `<div class="shell">${sidebar()}
+    <div class="content">${topbar()}<div class="view-body" id="vb">${viewBody()}</div></div></div>${S.modal ? modalOverlay() : ''}`;
+  attachAll();
 }
 
 function updateConn() {
