@@ -291,6 +291,18 @@ a{color:var(--ac);text-decoration:none}
 .import-diff-upd{color:var(--wr)}
 .import-diff-del{color:var(--dg)}
 
+/* COMMENTS */
+.comments-section{border-top:1px solid var(--bd2);padding-top:12px;margin-top:8px}
+.comments-list{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.comments-empty{font-size:12px;color:var(--tx3);padding:8px 0}
+.comment-item{background:var(--bg3);border-radius:var(--r2);padding:8px 10px}
+.comment-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.comment-header strong{font-size:12px;color:var(--tx)}
+.comment-date{font-size:10px;color:var(--tx3)}
+.comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
+.comment-input-row{display:flex;gap:6px;align-items:center}
+.card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
+
 /* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{display:none}
@@ -540,6 +552,7 @@ function kanbanCard(a) {
     <div class="kanban-card-meta" style="margin-top:4px">
       ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
       ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
+      ${a.comentarios ? `<span class="card-comments">\u{1F4AC} ${Object.keys(a.comentarios).length}</span>` : ''}
     </div>
   </div>`;
 }
@@ -947,6 +960,16 @@ function frenteOptions(selected) {
   return `<option value="">Sem frente</option>${Object.values(S.frentes).map(f => `<option value="${f.id}" ${selected===f.id?'selected':''}>${esc(f.nome)}</option>`).join('')}`;
 }
 
+function renderComments(comentarios) {
+  if (!comentarios || !Object.keys(comentarios).length) return '<div class="comments-empty">Nenhum comentario ainda</div>';
+  return Object.values(comentarios).sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(c =>
+    `<div class="comment-item">
+      <div class="comment-header"><strong>${esc(c.autor)}</strong><span class="comment-date">${c.data ? new Date(c.data).toLocaleString('pt-BR') : ''}</span></div>
+      <div class="comment-text">${esc(c.texto)}</div>
+    </div>`
+  ).join('');
+}
+
 function activityModal(act) {
   const isEdit = !!act;
   const a = act || { titulo:'', descricao:'', frente:'', coluna:'backlog', prioridade:'media', responsavel:'', inicio:'', prazo:'', dependencias:'', criteriosAceite:'' };
@@ -968,6 +991,14 @@ function activityModal(act) {
       </div>
       <div class="form-group"><label class="form-label">Criterios de Aceite</label><textarea class="form-textarea" id="f-criterios" placeholder="Liste os criterios de aceite (um por linha)...">${esc(a.criteriosAceite||'')}</textarea></div>
       <div class="form-group"><label class="form-label">Dependencias</label><input class="form-input" id="f-deps" value="${esc(a.dependencias||'')}" placeholder="IDs separados por virgula"><div class="form-hint">Ex: abc123, def456</div></div>
+      ${isEdit ? `<div class="form-group comments-section">
+        <label class="form-label">Comentarios</label>
+        <div id="comments-list" class="comments-list">${renderComments(a.comentarios)}</div>
+        <div class="comment-input-row">
+          <input class="form-input" id="f-comment" placeholder="Escreva um comentario..." style="flex:1">
+          <button class="btn btn-primary btn-sm" id="btn-add-comment" data-id="${act.id}">Enviar</button>
+        </div>
+      </div>` : ''}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
@@ -1268,6 +1299,30 @@ function attachModal() {
   const cf = $('#modal-confirm');
   if (cf) cf.onclick = () => { if (window._confirmYes) window._confirmYes(); closeModal(); };
 
+  // Add comment
+  const bc = $('#btn-add-comment');
+  if (bc) {
+    const actId = bc.dataset.id;
+    // Live listener for comments
+    const commentsRef = db.ref('activities/' + actId + '/comentarios');
+    const commentsListener = commentsRef.on('value', snap => {
+      const cl = $('#comments-list');
+      if (cl) cl.innerHTML = renderComments(snap.val());
+    });
+    // Clean up listener when modal closes
+    const origClose = window._closeModalCleanup;
+    window._closeModalCleanup = () => { commentsRef.off('value', commentsListener); if (origClose) origClose(); };
+    const sendComment = () => {
+      const input = $('#f-comment'); if (!input) return;
+      const texto = input.value.trim(); if (!texto) { input.focus(); return; }
+      const cid = genId();
+      fbSet('activities/' + actId + '/comentarios/' + cid, { id: cid, texto, autor: S.user, data: new Date().toISOString() });
+      input.value = '';
+    };
+    bc.onclick = sendComment;
+    const ci = $('#f-comment');
+    if (ci) ci.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); sendComment(); } };
+  }
   // Save activity
   const sv = $('#modal-save');
   if (sv && S.view === 'kanban') {
@@ -1334,7 +1389,7 @@ function attachModal() {
   setTimeout(() => { const fi = $('#f-titulo'); if (fi) fi.focus(); }, 100);
 }
 
-function closeModal() { S.modal = null; render(); }
+function closeModal() { if (window._closeModalCleanup) { window._closeModalCleanup(); window._closeModalCleanup = null; } S.modal = null; render(); }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
