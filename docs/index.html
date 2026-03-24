@@ -304,6 +304,15 @@ a{color:var(--ac);text-decoration:none}
 .comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
 .comment-input-row{display:flex;gap:6px;align-items:center}
 .card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
+.trash-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:8px;color:var(--tx2)}
+.trash-view{padding:0}
+.trash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.trash-list{display:flex;flex-direction:column;gap:8px}
+.trash-item{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 16px;gap:16px}
+.trash-item-info{flex:1;min-width:0}
+.trash-item-info strong{font-size:14px;color:var(--tx);display:block;margin-bottom:4px}
+.trash-item-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--tx3);align-items:center}
+.trash-item-actions{display:flex;gap:6px;flex-shrink:0}
 
 /* RESPONSIVE */
 @media(max-width:768px){
@@ -369,7 +378,8 @@ let S = {
   // UI
   modal: null,
   dragId: null,
-  expandedMilestones: {}
+  expandedMilestones: {},
+  trash: {}
 };
 
 // ============================================================
@@ -390,6 +400,7 @@ function initSync() {
   db.ref('activities').on('value', s => { S.activities = s.val() || {}; rerender(); });
   db.ref('milestones').on('value', s => { S.milestones = s.val() || {}; rerender(); });
   db.ref('risks').on('value', s => { S.risks = s.val() || {}; rerender(); });
+  db.ref('trash').on('value', s => { S.trash = s.val() || {}; rerender(); });
 }
 
 function fbSet(path, val) { db.ref(path).set(val); }
@@ -443,7 +454,8 @@ function sidebar() {
     { id:'roadmap', icon:'\u2691', label:'Roadmap', count: Object.keys(S.milestones).length },
     { id:'riscos', icon:'\u26A0', label:'Riscos', count: Object.keys(S.risks).length },
     { id:'dashboard', icon:'\u25A3', label:'Dashboard' },
-    { id:'report', icon:'\u2399', label:'Status Report' }
+    { id:'report', icon:'\u2399', label:'Status Report' },
+    { id:'lixeira', icon:'\uD83D\uDDD1', label:'Lixeira', count: Object.keys(S.trash).length || undefined }
   ];
   const frentesHtml = Object.values(S.frentes).map(f =>
     `<div class="nav-item" style="padding-left:20px" data-frente="${f.id}">
@@ -501,6 +513,7 @@ function viewBody() {
   if (S.view === 'riscos') return riscosView();
   if (S.view === 'dashboard') return dashboardView();
   if (S.view === 'report') return reportView();
+  if (S.view === 'lixeira') return lixeiraView();
   return '';
 }
 
@@ -791,6 +804,37 @@ function dashboardView() {
 }
 
 // ---------- STATUS REPORT ----------
+// ---------- LIXEIRA ----------
+function lixeiraView() {
+  const items = Object.values(S.trash).sort((a,b) => (b._deletedAt||'').localeCompare(a._deletedAt||''));
+  if (!items.length) return `<div class="trash-empty"><span style="font-size:48px">\uD83D\uDDD1</span><h3>Lixeira vazia</h3><p style="color:var(--tx3)">Atividades excluidas aparecerão aqui e poderão ser restauradas.</p></div>`;
+  return `<div class="trash-view">
+    <div class="trash-header">
+      <span style="color:var(--tx3);font-size:13px">${items.length} ${items.length===1?'item':'itens'} na lixeira</span>
+      <button class="btn btn-danger btn-sm" id="trash-empty-all">Esvaziar lixeira</button>
+    </div>
+    <div class="trash-list">${items.map(a => {
+      const frente = S.frentes[a.frente];
+      const deletedDate = a._deletedAt ? new Date(a._deletedAt).toLocaleString('pt-BR') : '';
+      return `<div class="trash-item">
+        <div class="trash-item-info">
+          <strong>${esc(a.titulo)}</strong>
+          <div class="trash-item-meta">
+            ${frente ? `<span class="card-tag card-tag-frente" style="background:${frente.cor}20;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}
+            ${a.responsavel ? `<span>\uD83D\uDC64 ${esc(a.responsavel)}</span>` : ''}
+            <span>Excluido em ${deletedDate}</span>
+            ${a._deletedBy ? `<span>por ${esc(a._deletedBy)}</span>` : ''}
+          </div>
+        </div>
+        <div class="trash-item-actions">
+          <button class="btn btn-primary btn-sm" data-restore="${a.id}" title="Restaurar">\u21A9 Restaurar</button>
+          <button class="btn btn-danger btn-sm" data-perma-del="${a.id}" title="Excluir permanentemente">\u2715</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
 function reportView() {
   const acts = Object.values(S.activities);
   const miles = Object.values(S.milestones);
@@ -1147,7 +1191,7 @@ function attachAll() {
   // Export
   const bex = $('#btn-export');
   if (bex) bex.onclick = () => {
-    const data = { frentes: S.frentes, activities: S.activities, milestones: S.milestones, risks: S.risks };
+    const data = { frentes: S.frentes, activities: S.activities, milestones: S.milestones, risks: S.risks, trash: S.trash };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'swift-os-backup.json'; a.click();
@@ -1214,6 +1258,7 @@ function attachView() {
   if (S.view === 'kanban') attachKanban();
   if (S.view === 'roadmap') attachRoadmap();
   if (S.view === 'riscos') attachRiscos();
+  if (S.view === 'lixeira') attachLixeira();
 }
 
 function attachKanban() {
@@ -1253,7 +1298,11 @@ function attachKanban() {
   // Delete card
   $$('[data-del]').forEach(el => el.onclick = e => {
     e.stopPropagation();
-    S.modal = confirmModal('Excluir esta atividade?', () => fbRemove('activities/' + el.dataset.del));
+    S.modal = confirmModal('Mover esta atividade para a lixeira?', () => {
+      const act = S.activities[el.dataset.del]; if (!act) return;
+      fbSet('trash/' + act.id, { ...act, _deletedAt: new Date().toISOString(), _deletedBy: S.user });
+      fbRemove('activities/' + act.id);
+    });
     render();
   });
 }
@@ -1289,6 +1338,31 @@ function attachRiscos() {
     S.modal = confirmModal('Excluir este risco?', () => fbRemove('risks/' + el.dataset.delRisk));
     render();
   });
+}
+
+function attachLixeira() {
+  $$('[data-restore]').forEach(el => el.onclick = () => {
+    const item = S.trash[el.dataset.restore]; if (!item) return;
+    const restored = { ...item }; delete restored._deletedAt; delete restored._deletedBy;
+    fbSet('activities/' + restored.id, restored);
+    fbRemove('trash/' + restored.id);
+    toast('Atividade restaurada');
+  });
+  $$('[data-perma-del]').forEach(el => el.onclick = () => {
+    S.modal = confirmModal('Excluir permanentemente? Esta acao nao pode ser desfeita.', () => {
+      fbRemove('trash/' + el.dataset.permaDel);
+      toast('Atividade excluida permanentemente');
+    });
+    render();
+  });
+  const ea = $('#trash-empty-all');
+  if (ea) ea.onclick = () => {
+    S.modal = confirmModal(`Excluir permanentemente ${Object.keys(S.trash).length} ${Object.keys(S.trash).length===1?'item':'itens'}? Esta acao nao pode ser desfeita.`, () => {
+      fbRemove('trash');
+      toast('Lixeira esvaziada');
+    });
+    render();
+  };
 }
 
 function attachModal() {
