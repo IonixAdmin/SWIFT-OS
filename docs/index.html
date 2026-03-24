@@ -299,6 +299,8 @@ a{color:var(--ac);text-decoration:none}
 .comment-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .comment-header strong{font-size:12px;color:var(--tx)}
 .comment-date{font-size:10px;color:var(--tx3)}
+.comment-del{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;opacity:.5;transition:opacity .2s,color .2s}
+.comment-del:hover{opacity:1;color:var(--danger,#e74c3c)}
 .comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
 .comment-input-row{display:flex;gap:6px;align-items:center}
 .card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
@@ -964,7 +966,7 @@ function renderComments(comentarios) {
   if (!comentarios || !Object.keys(comentarios).length) return '<div class="comments-empty">Nenhum comentario ainda</div>';
   return Object.values(comentarios).sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(c =>
     `<div class="comment-item">
-      <div class="comment-header"><strong>${esc(c.autor)}</strong><span class="comment-date">${c.data ? new Date(c.data).toLocaleString('pt-BR') : ''}</span></div>
+      <div class="comment-header"><strong>${esc(c.autor)}</strong><span class="comment-date">${c.data ? new Date(c.data).toLocaleString('pt-BR') : ''}</span><button class="comment-del" data-del-comment="${c.id}" title="Excluir">\u2715</button></div>
       <div class="comment-text">${esc(c.texto)}</div>
     </div>`
   ).join('');
@@ -1307,7 +1309,12 @@ function attachModal() {
     const commentsRef = db.ref('activities/' + actId + '/comentarios');
     const commentsListener = commentsRef.on('value', snap => {
       const cl = $('#comments-list');
-      if (cl) cl.innerHTML = renderComments(snap.val());
+      if (cl) {
+        cl.innerHTML = renderComments(snap.val());
+        cl.querySelectorAll('[data-del-comment]').forEach(btn => {
+          btn.onclick = e => { e.stopPropagation(); fbRemove('activities/' + actId + '/comentarios/' + btn.dataset.delComment); };
+        });
+      }
     });
     // Clean up listener when modal closes
     const origClose = window._closeModalCleanup;
