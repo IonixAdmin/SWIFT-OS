@@ -431,17 +431,25 @@ function kanbanView() {
   }).join('')}</div>`;
 }
 
+function findMilestoneForActivity(actId) {
+  return Object.values(S.milestones).find(m => (m.atividades || []).includes(actId));
+}
+
 function kanbanCard(a) {
   const frente = S.frentes[a.frente];
   const today = new Date().toISOString().slice(0,10);
   const overdue = a.prazo && a.prazo < today && a.coluna !== 'concluido';
+  const marco = findMilestoneForActivity(a.id);
   return `<div class="kanban-card" draggable="true" data-id="${a.id}" id="card-${a.id}">
     <span class="card-delete" data-del="${a.id}">\u2715</span>
     <div class="kanban-card-title" data-edit="${a.id}">${esc(a.titulo)}</div>
     <div class="kanban-card-meta">
       ${frente ? `<span class="card-tag card-tag-frente" style="background:${frente.cor}20;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}
       ${a.prioridade ? `<span class="card-tag card-tag-priority-${a.prioridade}">${PRIORITIES[a.prioridade]}</span>` : ''}
-      ${a.responsavel ? `<span class="card-resp">${esc(a.responsavel)}</span>` : ''}
+      ${marco ? `<span class="card-tag" style="background:var(--bl2);color:var(--bl)">\u2691 ${esc(marco.titulo)}</span>` : ''}
+    </div>
+    <div class="kanban-card-meta" style="margin-top:4px">
+      ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
       ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
     </div>
   </div>`;
