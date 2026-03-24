@@ -127,11 +127,11 @@ a{color:var(--ac);text-decoration:none}
 .gantt-row-meta{font-size:11px;color:var(--tx3);display:flex;gap:8px;align-items:center}
 .gantt-row-actions{display:flex;gap:2px;opacity:0;transition:opacity .1s}
 .gantt-row:hover .gantt-row-actions{opacity:1}
-.gantt-timeline{flex:1;position:relative;display:flex;align-items:center;min-width:500px}
+.gantt-timeline{flex:1;position:relative;display:flex;align-items:flex-start;min-width:500px}
 .gantt-bar-track{position:absolute;top:0;bottom:0;left:0;right:0;display:flex}
 .gantt-bar-month{flex:1;border-left:1px solid var(--bd2);min-width:60px}
 .gantt-bar-today{position:absolute;top:0;bottom:0;width:2px;background:var(--dg);z-index:1;opacity:.6}
-.gantt-bar{position:absolute;height:24px;border-radius:4px;top:50%;transform:translateY(-50%);min-width:8px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;z-index:1;transition:opacity .12s;box-shadow:var(--sh1)}
+.gantt-bar{position:absolute;height:24px;border-radius:4px;top:10px;min-width:8px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;z-index:1;transition:opacity .12s;box-shadow:var(--sh1)}
 .gantt-bar:hover{opacity:.85}
 .gantt-bar-progress{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.3;background:#fff}
 .gantt-expand{margin-top:-1px}
