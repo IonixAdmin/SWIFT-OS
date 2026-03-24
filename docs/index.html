@@ -113,20 +113,32 @@ a{color:var(--ac);text-decoration:none}
 .kanban-add button{width:100%;padding:6px;color:var(--tx3);font-size:12px;border-radius:var(--r2)}
 .kanban-add button:hover{background:var(--bg);color:var(--tx)}
 
-/* ROADMAP */
-.roadmap{position:relative}
-.roadmap-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.roadmap-timeline{position:relative;padding-left:24px}
-.roadmap-line{position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--bd2)}
-.roadmap-item{position:relative;margin-bottom:16px;display:flex;gap:16px;align-items:flex-start}
-.roadmap-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--bd);background:var(--bg2);flex-shrink:0;margin-top:4px;z-index:1;position:relative;left:-24px;margin-right:-24px}
-.roadmap-dot.done{background:var(--ok);border-color:var(--ok)}
-.roadmap-dot.active{background:var(--ac);border-color:var(--ac)}
-.roadmap-content{flex:1;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px 16px;transition:box-shadow .12s}
-.roadmap-content:hover{box-shadow:var(--sh1)}
-.roadmap-content h4{font-size:14px;margin-bottom:4px}
-.roadmap-content .meta{font-size:12px;color:var(--tx3);display:flex;gap:12px;flex-wrap:wrap}
-.roadmap-actions{display:flex;gap:4px;margin-top:8px}
+/* ROADMAP GANTT */
+.gantt{overflow-x:auto;padding-bottom:12px}
+.gantt-header{display:flex;border-bottom:2px solid var(--bd);position:sticky;top:0;z-index:2;background:var(--bg)}
+.gantt-label-col{width:260px;min-width:260px;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);flex-shrink:0}
+.gantt-timeline-col{flex:1;display:flex;position:relative;min-width:500px}
+.gantt-month{flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;color:var(--tx3);border-left:1px solid var(--bd2);min-width:60px}
+.gantt-row{display:flex;border-bottom:1px solid var(--bd2);min-height:48px;transition:background .1s}
+.gantt-row:hover{background:var(--bg3)}
+.gantt-row-label{width:260px;min-width:260px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;flex-shrink:0;flex-direction:column;justify-content:center}
+.gantt-row-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
+.gantt-row-meta{font-size:11px;color:var(--tx3);display:flex;gap:8px;align-items:center}
+.gantt-row-actions{display:flex;gap:2px;opacity:0;transition:opacity .1s}
+.gantt-row:hover .gantt-row-actions{opacity:1}
+.gantt-timeline{flex:1;position:relative;display:flex;align-items:center;min-width:500px}
+.gantt-bar-track{position:absolute;top:0;bottom:0;left:0;right:0;display:flex}
+.gantt-bar-month{flex:1;border-left:1px solid var(--bd2);min-width:60px}
+.gantt-bar-today{position:absolute;top:0;bottom:0;width:2px;background:var(--dg);z-index:1;opacity:.6}
+.gantt-bar{position:absolute;height:24px;border-radius:4px;top:50%;transform:translateY(-50%);min-width:8px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;z-index:1;transition:opacity .12s;box-shadow:var(--sh1)}
+.gantt-bar:hover{opacity:.85}
+.gantt-bar-progress{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.3;background:#fff}
+.gantt-expand{margin-top:-1px}
+.gantt-sub-row{display:flex;border-bottom:1px solid var(--bd2);min-height:32px;background:var(--bg4)}
+.gantt-sub-label{width:260px;min-width:260px;padding:4px 12px 4px 32px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-shrink:0}
+.gantt-sub-status{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
+.gantt-sub-timeline{flex:1;position:relative;min-width:500px}
+.gantt-empty-msg{text-align:center;padding:20px;color:var(--tx3);font-size:12px;border-bottom:1px solid var(--bd2)}
 
 /* RISKS */
 .risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
@@ -277,7 +289,8 @@ let S = {
   risks: {},
   // UI
   modal: null,
-  dragId: null
+  dragId: null,
+  expandedMilestones: {}
 };
 
 // ============================================================
@@ -434,52 +447,120 @@ function kanbanCard(a) {
   </div>`;
 }
 
-// ---------- ROADMAP ----------
+// ---------- ROADMAP (GANTT) ----------
 function roadmapView() {
-  const items = Object.values(S.milestones).sort((a,b) => (a.data||'').localeCompare(b.data||''));
+  const items = Object.values(S.milestones).sort((a,b) => (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
   if (!items.length) return `<div class="empty"><div class="empty-icon">\u2691</div><h3>Nenhum marco no roadmap</h3><p>Clique em "+ Marco" para adicionar o primeiro</p></div>`;
-  const today = new Date().toISOString().slice(0,10);
-  return `<div class="roadmap"><div class="roadmap-timeline"><div class="roadmap-line"></div>
-    ${items.map(m => {
-      const done = m.status === 'concluido';
-      const active = !done && m.data && m.data <= today;
-      const frente = S.frentes[m.frente];
-      const linkedIds = m.atividades || [];
-      const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
-      const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
-      const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
-      const statusColors = {backlog:'var(--tx3)',a_fazer:'var(--ac)',em_andamento:'var(--wr)',revisao:'var(--bl)',concluido:'var(--ok)'};
 
-      return `<div class="roadmap-item">
-        <div class="roadmap-dot ${done?'done':active?'active':''}"></div>
-        <div class="roadmap-content">
-          <h4>${esc(m.titulo)}</h4>
-          <div class="meta">
-            <span>\u{1F4C5} ${m.data||'Sem data'}</span>
-            ${frente ? `<span style="color:${frente.cor}">\u25CF ${esc(frente.nome)}</span>` : ''}
-            <span>${m.status === 'concluido' ? '\u2714 Concluido' : m.status === 'em_andamento' ? '\u25D1 Em andamento' : '\u25CB Pendente'}</span>
-            ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length} atividades</span>` : ''}
-          </div>
-          ${m.descricao ? `<p style="font-size:13px;color:var(--tx2);margin-top:6px">${esc(m.descricao)}</p>` : ''}
-          ${linkedActs.length ? `<div class="roadmap-progress">
-            <div class="roadmap-progress-bar"><div class="roadmap-progress-fill" style="width:${linkedPct}%"></div></div>
-            <div class="linked-acts">${linkedActs.map(a => {
-              const af = S.frentes[a.frente];
-              return `<div class="linked-act">
-                <span class="linked-act-status" style="background:${statusColors[a.coluna]||'var(--tx3)'}20;color:${statusColors[a.coluna]||'var(--tx3)'}">${COL_LABELS[a.coluna]||''}</span>
-                <span class="linked-act-title">${esc(a.titulo)}</span>
-                ${a.responsavel ? `<span style="font-size:11px;color:var(--tx3)">${esc(a.responsavel)}</span>` : ''}
-              </div>`;
-            }).join('')}</div>
-          </div>` : ''}
-          <div class="roadmap-actions">
-            <button class="btn btn-ghost btn-sm" data-edit-mile="${m.id}">Editar</button>
-            <button class="btn btn-danger btn-sm" data-del-mile="${m.id}">Excluir</button>
+  const today = new Date().toISOString().slice(0,10);
+
+  // Calculate date range for Gantt
+  let allDates = [];
+  items.forEach(m => {
+    if (m.dataInicio || m.data) allDates.push(m.dataInicio || m.data);
+    if (m.dataFim || m.data) allDates.push(m.dataFim || m.data);
+  });
+  allDates.push(today);
+  allDates.sort();
+  let rangeStart = new Date(allDates[0]);
+  let rangeEnd = new Date(allDates[allDates.length - 1]);
+  // Add 1 month padding on each side
+  rangeStart.setDate(1);
+  rangeStart.setMonth(rangeStart.getMonth() - 1);
+  rangeEnd.setDate(1);
+  rangeEnd.setMonth(rangeEnd.getMonth() + 2);
+
+  // Generate months
+  const months = [];
+  const cur = new Date(rangeStart);
+  while (cur < rangeEnd) {
+    months.push({ year: cur.getFullYear(), month: cur.getMonth(), label: cur.toLocaleDateString('pt-BR', { month:'short', year:'2-digit' }) });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const totalDays = (rangeEnd - rangeStart) / (1000*60*60*24);
+  function dateToPct(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return ((d - rangeStart) / (1000*60*60*24)) / totalDays * 100;
+  }
+  const todayPct = dateToPct(today);
+
+  const statusColors = {backlog:'var(--tx3)',a_fazer:'var(--ac)',em_andamento:'var(--wr)',revisao:'var(--bl)',concluido:'var(--ok)'};
+  const barColors = {pendente:'var(--ac)',em_andamento:'var(--wr)',concluido:'var(--ok)'};
+
+  let html = `<div class="gantt">`;
+  // Header
+  html += `<div class="gantt-header"><div class="gantt-label-col">Marco</div><div class="gantt-timeline-col">${months.map(m => `<div class="gantt-month">${m.label}</div>`).join('')}</div></div>`;
+
+  // Rows
+  items.forEach(m => {
+    const frente = S.frentes[m.frente];
+    const start = m.dataInicio || m.data;
+    const end = m.dataFim || m.data;
+    const linkedIds = m.atividades || [];
+    const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
+    const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
+    const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
+    const expanded = S.expandedMilestones && S.expandedMilestones[m.id];
+
+    const leftPct = dateToPct(start);
+    const rightPct = dateToPct(end);
+    const barColor = barColors[m.status] || 'var(--ac)';
+
+    html += `<div class="gantt-row" data-mile-row="${m.id}">
+      <div class="gantt-row-label">
+        <div style="display:flex;align-items:center;gap:6px;width:100%">
+          ${linkedActs.length ? `<button class="btn-icon btn-sm" data-toggle-mile="${m.id}" style="width:20px;height:20px;font-size:10px;flex-shrink:0">${expanded?'\u25BC':'\u25B6'}</button>` : '<span style="width:20px;flex-shrink:0"></span>'}
+          <span class="gantt-row-title" title="${esc(m.titulo)}">${esc(m.titulo)}</span>
+          <div class="gantt-row-actions">
+            <button class="btn-icon btn-sm" data-edit-mile="${m.id}" title="Editar" style="width:22px;height:22px;font-size:11px">\u270E</button>
+            <button class="btn-icon btn-sm btn-danger" data-del-mile="${m.id}" title="Excluir" style="width:22px;height:22px;font-size:11px">\u2715</button>
           </div>
         </div>
-      </div>`;
-    }).join('')}
-  </div></div>`;
+        <div class="gantt-row-meta">
+          ${frente ? `<span style="color:${frente.cor}">\u25CF ${esc(frente.nome)}</span>` : ''}
+          ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length}</span>` : ''}
+          <span>${start||'?'} \u2192 ${end||'?'}</span>
+        </div>
+      </div>
+      <div class="gantt-timeline">
+        <div class="gantt-bar-track">${months.map(() => '<div class="gantt-bar-month"></div>').join('')}</div>
+        ${todayPct !== null ? `<div class="gantt-bar-today" style="left:${todayPct}%"></div>` : ''}
+        ${leftPct !== null && rightPct !== null ? `<div class="gantt-bar" style="left:${Math.min(leftPct,rightPct)}%;width:${Math.max(Math.abs(rightPct-leftPct),0.5)}%;background:${barColor}" data-edit-mile="${m.id}">
+          ${linkedActs.length ? `<div class="gantt-bar-progress" style="width:${linkedPct}%"></div>` : ''}
+          ${esc(m.titulo)}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+    // Expanded sub-rows for linked activities
+    if (expanded && linkedActs.length) {
+      linkedActs.forEach(a => {
+        const aStart = dateToPct(a.inicio);
+        const aEnd = dateToPct(a.prazo);
+        const aFrente = S.frentes[a.frente];
+        const aColor = statusColors[a.coluna] || 'var(--tx3)';
+        html += `<div class="gantt-sub-row">
+          <div class="gantt-sub-label">
+            <span class="gantt-sub-status" style="background:${aColor}20;color:${aColor}">${COL_LABELS[a.coluna]||''}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${esc(a.titulo)}">${esc(a.titulo)}</span>
+            ${a.responsavel ? `<span style="font-size:10px;color:var(--tx3);flex-shrink:0">${esc(a.responsavel)}</span>` : ''}
+          </div>
+          <div class="gantt-sub-timeline" style="position:relative">
+            <div class="gantt-bar-track">${months.map(() => '<div class="gantt-bar-month"></div>').join('')}</div>
+            ${todayPct !== null ? `<div class="gantt-bar-today" style="left:${todayPct}%"></div>` : ''}
+            ${aStart !== null && aEnd !== null ? `<div class="gantt-bar" style="left:${Math.min(aStart,aEnd)}%;width:${Math.max(Math.abs(aEnd-aStart),0.5)}%;background:${aColor};height:16px;font-size:9px" data-edit="${a.id}">${esc(a.titulo)}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    } else if (expanded) {
+      html += `<div class="gantt-empty-msg">Nenhuma atividade vinculada</div>`;
+    }
+  });
+
+  html += `</div>`;
+  return html;
 }
 
 // ---------- RISCOS ----------
@@ -631,7 +712,7 @@ function activityModal(act) {
 
 function milestoneModal(m) {
   const isEdit = !!m;
-  const d = m || { titulo:'', descricao:'', data:'', frente:'', status:'pendente', atividades:[] };
+  const d = m || { titulo:'', descricao:'', dataInicio:'', dataFim:'', frente:'', status:'pendente', atividades:[] };
   const linked = d.atividades || [];
   const allActs = Object.values(S.activities);
   const actPickerHtml = allActs.length ? allActs.map(a => {
@@ -650,7 +731,10 @@ function milestoneModal(m) {
       <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(d.titulo)}" placeholder="Nome do marco"></div>
       <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="f-desc">${esc(d.descricao||'')}</textarea></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="f-data" value="${d.data||''}"></div>
+        <div class="form-group"><label class="form-label">Data Inicio</label><input type="date" class="form-input" id="f-data-inicio" value="${d.dataInicio||d.data||''}"></div>
+        <div class="form-group"><label class="form-label">Data Fim</label><input type="date" class="form-input" id="f-data-fim" value="${d.dataFim||d.data||''}"></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label class="form-label">Frente</label><select class="form-select" id="f-frente">${frenteOptions(d.frente)}</select></div>
       </div>
       <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="f-status">
@@ -784,6 +868,12 @@ function attachKanban() {
 }
 
 function attachRoadmap() {
+  $$('[data-toggle-mile]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const id = el.dataset.toggleMile;
+    S.expandedMilestones[id] = !S.expandedMilestones[id];
+    rerender();
+  });
   $$('[data-edit-mile]').forEach(el => el.onclick = () => {
     const m = S.milestones[el.dataset.editMile]; if (!m) return;
     S.modal = milestoneModal(m); render();
@@ -791,6 +881,11 @@ function attachRoadmap() {
   $$('[data-del-mile]').forEach(el => el.onclick = () => {
     S.modal = confirmModal('Excluir este marco?', () => fbRemove('milestones/' + el.dataset.delMile));
     render();
+  });
+  // Edit activity from gantt sub-row
+  $$('.gantt-sub-row [data-edit]').forEach(el => el.onclick = () => {
+    const a = S.activities[el.dataset.edit]; if (!a) return;
+    S.view = 'kanban'; S.modal = activityModal(a); render();
   });
 }
 
@@ -860,7 +955,7 @@ function attachModal() {
       const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
       const id = sv.dataset.id || genId();
       const atividades = Array.from($$('.act-check:checked')).map(cb => cb.value);
-      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, data: $('#f-data').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades });
+      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, dataInicio: $('#f-data-inicio').value, dataFim: $('#f-data-fim').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades });
       toast(sv.dataset.id ? 'Marco atualizado' : 'Marco criado');
       closeModal();
     };
