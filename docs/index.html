@@ -87,7 +87,14 @@ a{color:var(--ac);text-decoration:none}
 .btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r2);color:var(--tx2)}.btn-icon:hover{background:var(--bg3)}
 
 /* KANBAN */
-.kanban{display:flex;gap:12px;height:calc(100vh - 68px - 40px);padding-bottom:12px;overflow-x:auto}
+.kanban-lanes{display:flex;flex-direction:column;gap:0;height:calc(100vh - 68px - 40px);overflow-y:auto}
+.kanban-lane{border:1px solid var(--bd2);border-radius:var(--r);overflow:hidden}
+.kanban-lane-high{flex-shrink:0}
+.kanban-lane-other{flex:1;min-height:200px}
+.kanban-lane-header{padding:8px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);background:var(--bg3);border-bottom:1px solid var(--bd2);display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2}
+.kanban-lane-high .kanban-lane-header{background:var(--dg2);color:var(--dg)}
+.kanban-lane-count{font-size:11px;font-weight:600;background:var(--bg);padding:1px 8px;border-radius:10px}
+.kanban{display:flex;gap:12px;padding-bottom:12px;overflow-x:auto}
 .kanban-col{min-width:280px;width:280px;background:var(--bg3);border-radius:var(--r);display:flex;flex-direction:column;max-height:100%}
 .kanban-col-header{padding:10px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .kanban-col-count{background:var(--bg);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
@@ -471,16 +478,31 @@ function viewBody() {
 // ---------- KANBAN ----------
 function kanbanView() {
   const acts = Object.values(S.activities);
-  return `<div class="kanban">${COLUMNS.map(col => {
-    const cards = acts.filter(a => a.coluna === col).sort((a,b) => (a.ordem||0) - (b.ordem||0));
-    return `<div class="kanban-col" data-col="${col}">
-      <div class="kanban-col-header">${COL_LABELS[col]}<span class="kanban-col-count">${cards.length}</span></div>
-      <div class="kanban-cards" data-col="${col}" id="col-${col}">
-        ${cards.map(a => kanbanCard(a)).join('')}
+  const highActs = acts.filter(a => a.prioridade === 'alta');
+  const otherActs = acts.filter(a => a.prioridade !== 'alta');
+
+  function renderLane(laneActs, laneId, laneLabel, laneClass) {
+    return `<div class="kanban-lane ${laneClass}">
+      <div class="kanban-lane-header">${laneLabel}<span class="kanban-lane-count">${laneActs.length}</span></div>
+      <div class="kanban" style="height:auto;flex:1">
+        ${COLUMNS.map(col => {
+          const cards = laneActs.filter(a => a.coluna === col).sort((a,b) => (a.ordem||0) - (b.ordem||0));
+          return `<div class="kanban-col" data-col="${col}" data-lane="${laneId}">
+            <div class="kanban-col-header">${COL_LABELS[col]}<span class="kanban-col-count">${cards.length}</span></div>
+            <div class="kanban-cards" data-col="${col}" data-lane="${laneId}" id="col-${col}-${laneId}">
+              ${cards.map(a => kanbanCard(a)).join('')}
+            </div>
+            ${laneId === 'other' ? `<div class="kanban-add"><button data-add-col="${col}">+ Adicionar</button></div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
-      <div class="kanban-add"><button data-add-col="${col}">+ Adicionar</button></div>
     </div>`;
-  }).join('')}</div>`;
+  }
+
+  return `<div class="kanban-lanes">
+    ${renderLane(highActs, 'high', '\u{1F525} Prioridade Alta', 'kanban-lane-high')}
+    ${renderLane(otherActs, 'other', 'Demais Atividades', 'kanban-lane-other')}
+  </div>`;
 }
 
 function findMilestoneForActivity(actId) {
@@ -1083,7 +1105,14 @@ function attachKanban() {
     zone.ondrop = e => {
       e.preventDefault(); zone.classList.remove('drag-over');
       if (S.dragId) {
-        fbUpdate('activities/' + S.dragId, { coluna: zone.dataset.col });
+        const updates = { coluna: zone.dataset.col };
+        const targetLane = zone.dataset.lane;
+        if (targetLane === 'high') updates.prioridade = 'alta';
+        else if (targetLane === 'other') {
+          const act = S.activities[S.dragId];
+          if (act && act.prioridade === 'alta') updates.prioridade = 'media';
+        }
+        fbUpdate('activities/' + S.dragId, updates);
         toast(`Movido para ${COL_LABELS[zone.dataset.col]}`);
       }
     };
