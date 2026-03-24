@@ -163,6 +163,26 @@ a{color:var(--ac);text-decoration:none}
 .chart-value{font-size:12px;font-weight:600;color:var(--tx2);width:40px;flex-shrink:0}
 .dash-empty{text-align:center;padding:40px;color:var(--tx3);font-size:13px}
 
+/* LINKED ACTIVITIES */
+.linked-acts{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.linked-act{display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--bg3);border-radius:var(--r2);font-size:12px}
+.linked-act-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linked-act-status{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px}
+.linked-count{font-size:11px;color:var(--tx3);margin-top:4px}
+.act-picker{border:1px solid var(--bd);border-radius:var(--r2);max-height:180px;overflow-y:auto;background:var(--bg)}
+.act-picker-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--bd2)}
+.act-picker-item:last-child{border-bottom:none}
+.act-picker-item:hover{background:var(--bg3)}
+.act-picker-item input[type="checkbox"]{flex-shrink:0}
+.act-picker-item .act-pick-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-picker-item .act-pick-col{font-size:10px;color:var(--tx3);flex-shrink:0}
+.act-picker-search{width:100%;padding:6px 10px;border:none;border-bottom:1px solid var(--bd2);background:var(--bg);color:var(--tx);font-size:12px}
+.act-picker-search:focus{outline:none}
+.act-picker-empty{padding:16px;text-align:center;color:var(--tx3);font-size:12px}
+.roadmap-progress{margin-top:6px}
+.roadmap-progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
+.roadmap-progress-fill{height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
+
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .15s}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -424,6 +444,12 @@ function roadmapView() {
       const done = m.status === 'concluido';
       const active = !done && m.data && m.data <= today;
       const frente = S.frentes[m.frente];
+      const linkedIds = m.atividades || [];
+      const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
+      const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
+      const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
+      const statusColors = {backlog:'var(--tx3)',a_fazer:'var(--ac)',em_andamento:'var(--wr)',revisao:'var(--bl)',concluido:'var(--ok)'};
+
       return `<div class="roadmap-item">
         <div class="roadmap-dot ${done?'done':active?'active':''}"></div>
         <div class="roadmap-content">
@@ -432,8 +458,20 @@ function roadmapView() {
             <span>\u{1F4C5} ${m.data||'Sem data'}</span>
             ${frente ? `<span style="color:${frente.cor}">\u25CF ${esc(frente.nome)}</span>` : ''}
             <span>${m.status === 'concluido' ? '\u2714 Concluido' : m.status === 'em_andamento' ? '\u25D1 Em andamento' : '\u25CB Pendente'}</span>
+            ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length} atividades</span>` : ''}
           </div>
           ${m.descricao ? `<p style="font-size:13px;color:var(--tx2);margin-top:6px">${esc(m.descricao)}</p>` : ''}
+          ${linkedActs.length ? `<div class="roadmap-progress">
+            <div class="roadmap-progress-bar"><div class="roadmap-progress-fill" style="width:${linkedPct}%"></div></div>
+            <div class="linked-acts">${linkedActs.map(a => {
+              const af = S.frentes[a.frente];
+              return `<div class="linked-act">
+                <span class="linked-act-status" style="background:${statusColors[a.coluna]||'var(--tx3)'}20;color:${statusColors[a.coluna]||'var(--tx3)'}">${COL_LABELS[a.coluna]||''}</span>
+                <span class="linked-act-title">${esc(a.titulo)}</span>
+                ${a.responsavel ? `<span style="font-size:11px;color:var(--tx3)">${esc(a.responsavel)}</span>` : ''}
+              </div>`;
+            }).join('')}</div>
+          </div>` : ''}
           <div class="roadmap-actions">
             <button class="btn btn-ghost btn-sm" data-edit-mile="${m.id}">Editar</button>
             <button class="btn btn-danger btn-sm" data-del-mile="${m.id}">Excluir</button>
@@ -593,8 +631,21 @@ function activityModal(act) {
 
 function milestoneModal(m) {
   const isEdit = !!m;
-  const d = m || { titulo:'', descricao:'', data:'', frente:'', status:'pendente' };
-  return `<div class="modal"><div class="modal-header"><h3>${isEdit?'Editar':'Novo'} Marco</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+  const d = m || { titulo:'', descricao:'', data:'', frente:'', status:'pendente', atividades:[] };
+  const linked = d.atividades || [];
+  const allActs = Object.values(S.activities);
+  const actPickerHtml = allActs.length ? allActs.map(a => {
+    const checked = linked.includes(a.id) ? 'checked' : '';
+    const frente = S.frentes[a.frente];
+    return `<label class="act-picker-item">
+      <input type="checkbox" value="${a.id}" ${checked} class="act-check">
+      <span class="act-pick-title">${esc(a.titulo)}</span>
+      ${frente ? `<span style="color:${frente.cor};font-size:10px">${esc(frente.nome)}</span>` : ''}
+      <span class="act-pick-col">${COL_LABELS[a.coluna]||''}</span>
+    </label>`;
+  }).join('') : '<div class="act-picker-empty">Nenhuma atividade criada ainda</div>';
+
+  return `<div class="modal" style="max-width:560px"><div class="modal-header"><h3>${isEdit?'Editar':'Novo'} Marco</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(d.titulo)}" placeholder="Nome do marco"></div>
       <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="f-desc">${esc(d.descricao||'')}</textarea></div>
@@ -607,6 +658,13 @@ function milestoneModal(m) {
         <option value="em_andamento" ${d.status==='em_andamento'?'selected':''}>Em andamento</option>
         <option value="concluido" ${d.status==='concluido'?'selected':''}>Concluido</option>
       </select></div>
+      <div class="form-group">
+        <label class="form-label">Atividades Vinculadas</label>
+        <div class="form-hint" style="margin-bottom:6px">Selecione as atividades do Kanban que compoem este marco</div>
+        <input class="act-picker-search" id="act-search" placeholder="Buscar atividade..." type="text">
+        <div class="act-picker" id="act-picker">${actPickerHtml}</div>
+        <div class="linked-count" id="linked-count">${linked.length} atividade${linked.length!==1?'s':''} vinculada${linked.length!==1?'s':''}</div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
       <button class="btn btn-primary" id="modal-save" data-id="${isEdit?m.id:''}">${isEdit?'Salvar':'Criar'}</button></div></div>`;
@@ -778,10 +836,31 @@ function attachModal() {
   }
   // Save milestone
   if (sv && S.view === 'roadmap') {
+    // Activity picker search filter
+    const actSearch = $('#act-search');
+    if (actSearch) {
+      actSearch.oninput = () => {
+        const q = actSearch.value.toLowerCase();
+        $$('.act-picker-item').forEach(item => {
+          const title = item.querySelector('.act-pick-title')?.textContent?.toLowerCase() || '';
+          item.style.display = title.includes(q) ? '' : 'none';
+        });
+      };
+    }
+    // Update linked count on checkbox change
+    const picker = $('#act-picker');
+    if (picker) {
+      picker.onchange = () => {
+        const count = $$('.act-check:checked').length;
+        const lc = $('#linked-count');
+        if (lc) lc.textContent = `${count} atividade${count!==1?'s':''} vinculada${count!==1?'s':''}`;
+      };
+    }
     sv.onclick = () => {
       const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
       const id = sv.dataset.id || genId();
-      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, data: $('#f-data').value, frente: $('#f-frente').value, status: $('#f-status').value });
+      const atividades = Array.from($$('.act-check:checked')).map(cb => cb.value);
+      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, data: $('#f-data').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades });
       toast(sv.dataset.id ? 'Marco atualizado' : 'Marco criado');
       closeModal();
     };
