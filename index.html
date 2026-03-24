@@ -130,6 +130,11 @@ a{color:var(--ac);text-decoration:none}
 .gantt-month{flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;color:var(--tx3);border-left:1px solid var(--bd2);min-width:60px}
 .gantt-row{display:flex;border-bottom:1px solid var(--bd2);min-height:48px;transition:background .1s}
 .gantt-row:hover{background:var(--bg3)}
+.gantt-row.dragging{opacity:.4;background:var(--bg3)}
+.gantt-row.drag-over-top{border-top:2px solid var(--ac)}
+.gantt-row.drag-over-bottom{border-bottom:2px solid var(--ac)}
+.gantt-drag-handle{cursor:grab;color:var(--tx3);font-size:14px;user-select:none;flex-shrink:0;padding:0 2px;display:flex;align-items:center}
+.gantt-drag-handle:active{cursor:grabbing}
 .gantt-row-label{width:300px;min-width:300px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;flex-shrink:0;flex-direction:column;justify-content:center}
 .gantt-row-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .gantt-row-meta{font-size:11px;color:var(--tx3);display:flex;gap:8px;align-items:center}
@@ -574,7 +579,7 @@ function kanbanCard(a) {
 
 // ---------- ROADMAP (GANTT) ----------
 function roadmapView() {
-  const items = Object.values(S.milestones).sort((a,b) => (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+  const items = Object.values(S.milestones).sort((a,b) => (a.ordem||0) - (b.ordem||0) || (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
   if (!items.length) return `<div class="empty"><div class="empty-icon">\u2691</div><h3>Nenhum marco no roadmap</h3><p>Clique em "+ Marco" para adicionar o primeiro</p></div>`;
 
   const today = new Date().toISOString().slice(0,10);
@@ -633,9 +638,10 @@ function roadmapView() {
     const rightPct = dateToPct(end);
     const barColor = barColors[m.status] || 'var(--ac)';
 
-    html += `<div class="gantt-row" data-mile-row="${m.id}">
+    html += `<div class="gantt-row" data-mile-row="${m.id}" draggable="true" data-mile-drag="${m.id}">
       <div class="gantt-row-label">
         <div style="display:flex;align-items:center;gap:6px;width:100%">
+          <span class="gantt-drag-handle" title="Arrastar para reordenar">⠿</span>
           ${linkedActs.length ? `<button class="btn-icon btn-sm" data-toggle-mile="${m.id}" style="width:20px;height:20px;font-size:10px;flex-shrink:0">${expanded?'\u25BC':'\u25B6'}</button>` : '<span style="width:20px;flex-shrink:0"></span>'}
           <span class="gantt-row-title" title="${esc(m.titulo)}">${esc(m.titulo)}</span>
           <div class="gantt-row-actions">
@@ -1326,6 +1332,54 @@ function attachRoadmap() {
   $$('.gantt-sub-row [data-edit]').forEach(el => el.onclick = () => {
     const a = S.activities[el.dataset.edit]; if (!a) return;
     S.view = 'kanban'; S.modal = activityModal(a); render();
+  });
+  // Drag and drop reorder milestones
+  let dragId = null;
+  $$('[data-mile-drag]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragId = row.dataset.mileDrag;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragId);
+    });
+    row.addEventListener('dragend', () => {
+      dragId = null;
+      row.classList.remove('dragging');
+      $$('.drag-over-top,.drag-over-bottom').forEach(el => { el.classList.remove('drag-over-top','drag-over-bottom'); });
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragId || row.dataset.mileDrag === dragId) return;
+      e.dataTransfer.dropEffect = 'move';
+      $$('.drag-over-top,.drag-over-bottom').forEach(el => { el.classList.remove('drag-over-top','drag-over-bottom'); });
+      const rect = row.getBoundingClientRect();
+      const half = (e.clientY - rect.top) / rect.height < 0.5;
+      row.classList.add(half ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('drag-over-top','drag-over-bottom');
+      const fromId = e.dataTransfer.getData('text/plain');
+      const toId = row.dataset.mileDrag;
+      if (!fromId || fromId === toId) return;
+      // Build ordered list, reorder, assign ordem values
+      const sorted = Object.values(S.milestones).sort((a,b) => (a.ordem||0) - (b.ordem||0) || (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+      const ids = sorted.map(m => m.id);
+      const fromIdx = ids.indexOf(fromId);
+      if (fromIdx === -1) return;
+      ids.splice(fromIdx, 1);
+      const toIdx = ids.indexOf(toId);
+      const rect = row.getBoundingClientRect();
+      const insertBefore = (e.clientY - rect.top) / rect.height < 0.5;
+      ids.splice(insertBefore ? toIdx : toIdx + 1, 0, fromId);
+      // Save new order
+      const updates = {};
+      ids.forEach((id, i) => { updates['milestones/' + id + '/ordem'] = i; });
+      db.ref().update(updates);
+    });
   });
 }
 
