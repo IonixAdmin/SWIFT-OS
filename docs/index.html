@@ -103,6 +103,7 @@ a{color:var(--ac);text-decoration:none}
 .card-tag-priority-alta{background:var(--dg2);color:var(--dg)}
 .card-tag-priority-media{background:var(--wr2);color:var(--wr)}
 .card-tag-priority-baixa{background:var(--ok2);color:var(--ok)}
+.card-criterios{font-size:11px;color:var(--tx3);margin-top:6px;padding:3px 6px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac)}
 .card-resp{font-size:11px;color:var(--tx3)}
 .card-date{font-size:11px;color:var(--tx3);font-family:var(--mono)}
 .card-date.overdue{color:var(--dg);font-weight:600}
@@ -116,13 +117,13 @@ a{color:var(--ac);text-decoration:none}
 /* ROADMAP GANTT */
 .gantt{overflow-x:auto;padding-bottom:12px}
 .gantt-header{display:flex;border-bottom:2px solid var(--bd);position:sticky;top:0;z-index:2;background:var(--bg)}
-.gantt-label-col{width:260px;min-width:260px;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);flex-shrink:0}
+.gantt-label-col{width:300px;min-width:300px;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);flex-shrink:0}
 .gantt-timeline-col{flex:1;display:flex;position:relative;min-width:500px}
 .gantt-month{flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;color:var(--tx3);border-left:1px solid var(--bd2);min-width:60px}
 .gantt-row{display:flex;border-bottom:1px solid var(--bd2);min-height:48px;transition:background .1s}
 .gantt-row:hover{background:var(--bg3)}
-.gantt-row-label{width:260px;min-width:260px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;flex-shrink:0;flex-direction:column;justify-content:center}
-.gantt-row-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
+.gantt-row-label{width:300px;min-width:300px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;flex-shrink:0;flex-direction:column;justify-content:center}
+.gantt-row-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .gantt-row-meta{font-size:11px;color:var(--tx3);display:flex;gap:8px;align-items:center}
 .gantt-row-actions{display:flex;gap:2px;opacity:0;transition:opacity .1s}
 .gantt-row:hover .gantt-row-actions{opacity:1}
@@ -135,10 +136,16 @@ a{color:var(--ac);text-decoration:none}
 .gantt-bar-progress{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.3;background:#fff}
 .gantt-expand{margin-top:-1px}
 .gantt-sub-row{display:flex;border-bottom:1px solid var(--bd2);min-height:32px;background:var(--bg4)}
-.gantt-sub-label{width:260px;min-width:260px;padding:4px 12px 4px 32px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-shrink:0}
+.gantt-sub-label{width:300px;min-width:300px;padding:4px 12px 4px 32px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-shrink:0}
 .gantt-sub-status{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
 .gantt-sub-timeline{flex:1;position:relative;min-width:500px}
 .gantt-empty-msg{text-align:center;padding:20px;color:var(--tx3);font-size:12px;border-bottom:1px solid var(--bd2)}
+.gantt-linked-acts{display:flex;flex-direction:column;gap:3px;margin-top:4px;width:100%}
+.gantt-linked-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);cursor:pointer;padding:2px 4px;border-radius:4px;transition:background .1s}
+.gantt-linked-item:hover{background:var(--bg3)}
+.gantt-linked-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.gantt-linked-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;max-width:150px}
+.gantt-linked-status{font-size:9px;font-weight:600;padding:1px 5px;border-radius:6px;flex-shrink:0;white-space:nowrap}
 
 /* RISKS */
 .risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
@@ -409,7 +416,7 @@ function sidebar() {
   const frentesHtml = Object.values(S.frentes).map(f =>
     `<div class="nav-item" style="padding-left:20px" data-frente="${f.id}">
       <span style="width:10px;height:10px;border-radius:50%;background:${esc(f.cor)};display:inline-block;flex-shrink:0"></span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.nome)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" data-edit-frente="${f.id}" title="Clique para editar">${esc(f.nome)}</span>
       <button class="card-delete" data-del-frente="${f.id}" title="Excluir" style="opacity:1;position:static;font-size:12px">\u2715</button>
     </div>`
   ).join('');
@@ -492,6 +499,7 @@ function kanbanCard(a) {
       ${a.prioridade ? `<span class="card-tag card-tag-priority-${a.prioridade}">${PRIORITIES[a.prioridade]}</span>` : ''}
       ${marco ? `<span class="card-tag" style="background:var(--bl2);color:var(--bl)">\u2691 ${esc(marco.titulo)}</span>` : ''}
     </div>
+    ${a.criteriosAceite ? `<div class="card-criterios">\u2611 ${esc(a.criteriosAceite).split('\\n').filter(l=>l.trim()).length} criterio${esc(a.criteriosAceite).split('\\n').filter(l=>l.trim()).length!==1?'s':''} de aceite</div>` : ''}
     <div class="kanban-card-meta" style="margin-top:4px">
       ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
       ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
@@ -575,6 +583,10 @@ function roadmapView() {
           ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length}</span>` : ''}
           <span>${start||'?'} \u2192 ${end||'?'}</span>
         </div>
+        ${linkedActs.length ? `<div class="gantt-linked-acts">${linkedActs.map(a => {
+          const aColor = statusColors[a.coluna] || 'var(--tx3)';
+          return `<div class="gantt-linked-item" data-edit="${a.id}"><span class="gantt-linked-dot" style="background:${aColor}"></span><span class="gantt-linked-title">${esc(a.titulo)}</span><span class="gantt-linked-status" style="background:${aColor}20;color:${aColor}">${COL_LABELS[a.coluna]||''}</span></div>`;
+        }).join('')}</div>` : ''}
       </div>
       <div class="gantt-timeline">
         <div class="gantt-bar-track">${months.map(() => '<div class="gantt-bar-month"></div>').join('')}</div>
@@ -900,7 +912,7 @@ function frenteOptions(selected) {
 
 function activityModal(act) {
   const isEdit = !!act;
-  const a = act || { titulo:'', descricao:'', frente:'', coluna:'backlog', prioridade:'media', responsavel:'', inicio:'', prazo:'', dependencias:'' };
+  const a = act || { titulo:'', descricao:'', frente:'', coluna:'backlog', prioridade:'media', responsavel:'', inicio:'', prazo:'', dependencias:'', criteriosAceite:'' };
   return `<div class="modal"><div class="modal-header"><h3>${isEdit?'Editar':'Nova'} Atividade</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(a.titulo)}" placeholder="Nome da atividade" required></div>
@@ -917,6 +929,7 @@ function activityModal(act) {
         <div class="form-group"><label class="form-label">Inicio</label><input type="date" class="form-input" id="f-inicio" value="${a.inicio||''}"></div>
         <div class="form-group"><label class="form-label">Prazo</label><input type="date" class="form-input" id="f-prazo" value="${a.prazo||''}"></div>
       </div>
+      <div class="form-group"><label class="form-label">Criterios de Aceite</label><textarea class="form-textarea" id="f-criterios" placeholder="Liste os criterios de aceite (um por linha)...">${esc(a.criteriosAceite||'')}</textarea></div>
       <div class="form-group"><label class="form-label">Dependencias</label><input class="form-input" id="f-deps" value="${esc(a.dependencias||'')}" placeholder="IDs separados por virgula"><div class="form-hint">Ex: abc123, def456</div></div>
     </div>
     <div class="modal-footer">
@@ -1026,6 +1039,15 @@ function attachAll() {
     const id = genId();
     fbSet('frentes/' + id, { id, nome, cor: cor || '#0052cc' });
   };
+  // Edit frente
+  $$('[data-edit-frente]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const fid = el.dataset.editFrente;
+    const f = S.frentes[fid]; if (!f) return;
+    const nome = prompt('Nome da frente:', f.nome); if (nome === null || !nome.trim()) return;
+    const cor = prompt('Cor (hex):', f.cor); if (cor === null) return;
+    fbUpdate('frentes/' + fid, { nome: nome.trim(), cor: cor || f.cor });
+  });
   // Delete frente
   $$('[data-del-frente]').forEach(el => el.onclick = e => {
     e.stopPropagation();
@@ -1134,7 +1156,7 @@ function attachModal() {
       const data = {
         titulo, descricao: $('#f-desc').value, frente: $('#f-frente').value, coluna: $('#f-coluna').value,
         prioridade: $('#f-pri').value, responsavel: $('#f-resp').value, inicio: $('#f-inicio').value,
-        prazo: $('#f-prazo').value, dependencias: $('#f-deps').value, editadoPor: S.user,
+        prazo: $('#f-prazo').value, criteriosAceite: $('#f-criterios').value, dependencias: $('#f-deps').value, editadoPor: S.user,
         editadoEm: new Date().toISOString()
       };
       const id = sv.dataset.id || genId();
