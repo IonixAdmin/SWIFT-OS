@@ -307,7 +307,8 @@ a{color:var(--ac);text-decoration:none}
 .comment-del{background:none;border:none;color:var(--danger,#e74c3c);cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;opacity:.7;transition:opacity .2s,background .2s;border-radius:4px;margin-left:auto}
 .comment-del:hover{opacity:1;background:rgba(231,76,60,.12)}
 .comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
-.comment-input-row{display:flex;gap:6px;align-items:center}
+.comment-input-row{display:flex;gap:6px;align-items:flex-end}
+.comment-textarea{flex:1;resize:vertical;min-height:60px;max-height:200px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r2);background:var(--bg);color:var(--tx);font-family:var(--f);font-size:13px;line-height:1.5}
 .card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
 .trash-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:8px;color:var(--tx2)}
 .trash-view{padding:0}
@@ -1047,7 +1048,7 @@ function activityModal(act) {
         <label class="form-label">Comentarios</label>
         <div id="comments-list" class="comments-list">${renderComments(a.comentarios)}</div>
         <div class="comment-input-row">
-          <input class="form-input" id="f-comment" placeholder="Escreva um comentario..." style="flex:1">
+          <textarea class="comment-textarea" id="f-comment" placeholder="Escreva um comentario..." rows="3"></textarea>
           <button class="btn btn-primary btn-sm" id="btn-add-comment" data-id="${act.id}">Enviar</button>
         </div>
       </div>` : ''}
@@ -1456,7 +1457,7 @@ function attachModal() {
     };
     bc.onclick = sendComment;
     const ci = $('#f-comment');
-    if (ci) ci.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); sendComment(); } };
+    if (ci) ci.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendComment(); } };
   }
   // Save activity
   const sv = $('#modal-save');
