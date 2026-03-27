@@ -306,9 +306,19 @@ a{color:var(--ac);text-decoration:none}
 .comment-date{font-size:10px;color:var(--tx3)}
 .comment-del{background:none;border:none;color:var(--danger,#e74c3c);cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;opacity:.7;transition:opacity .2s,background .2s;border-radius:4px;margin-left:auto}
 .comment-del:hover{opacity:1;background:rgba(231,76,60,.12)}
-.comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
+.comment-text{font-size:13px;color:var(--tx2);word-break:break-word}
+.comment-text b,.comment-text strong{font-weight:700}
+.comment-text i,.comment-text em{font-style:italic}
 .comment-input-row{display:flex;gap:6px;align-items:flex-end}
-.comment-textarea{flex:1;resize:vertical;min-height:60px;max-height:200px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r2);background:var(--bg);color:var(--tx);font-family:var(--f);font-size:13px;line-height:1.5}
+.comment-editor-wrap{flex:1;border:1px solid var(--bd);border-radius:var(--r2);background:var(--bg);overflow:hidden}
+.comment-toolbar{display:flex;gap:2px;padding:4px 6px;border-bottom:1px solid var(--bd2);background:var(--bg4);flex-wrap:wrap;align-items:center}
+.comment-toolbar button{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:none;border-radius:var(--r2);cursor:pointer;font-size:13px;font-weight:700;color:var(--tx2);transition:all .12s}
+.comment-toolbar button:hover{background:var(--bg3);color:var(--tx)}
+.comment-toolbar button.active{background:var(--ac2);color:var(--ac)}
+.comment-toolbar .toolbar-sep{width:1px;height:18px;background:var(--bd2);margin:0 4px}
+.comment-toolbar input[type="color"]{width:28px;height:28px;border:none;padding:0;cursor:pointer;background:none;border-radius:var(--r2)}
+.comment-editable{min-height:60px;max-height:200px;overflow-y:auto;padding:8px 10px;font-family:var(--f);font-size:13px;line-height:1.5;color:var(--tx);outline:none;word-break:break-word}
+.comment-editable:empty::before{content:attr(data-placeholder);color:var(--tx3)}
 .card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
 .trash-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:8px;color:var(--tx2)}
 .trash-view{padding:0}
@@ -1018,7 +1028,7 @@ function renderComments(comentarios) {
   return Object.values(comentarios).sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(c =>
     `<div class="comment-item">
       <div class="comment-header"><strong>${esc(c.autor)}</strong><span class="comment-date">${c.data ? new Date(c.data).toLocaleString('pt-BR') : ''}</span><button class="comment-del" data-del-comment="${c.id}" title="Excluir">\u2715</button></div>
-      <div class="comment-text">${esc(c.texto)}</div>
+      <div class="comment-text">${c.html ? c.html : esc(c.texto)}</div>
     </div>`
   ).join('');
 }
@@ -1048,7 +1058,15 @@ function activityModal(act) {
         <label class="form-label">Comentarios</label>
         <div id="comments-list" class="comments-list">${renderComments(a.comentarios)}</div>
         <div class="comment-input-row">
-          <textarea class="comment-textarea" id="f-comment" placeholder="Escreva um comentario..." rows="3"></textarea>
+          <div class="comment-editor-wrap">
+            <div class="comment-toolbar">
+              <button type="button" data-cmd="bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italico (Ctrl+I)"><i>I</i></button>
+              <span class="toolbar-sep"></span>
+              <input type="color" id="f-comment-color" value="#000000" title="Cor do texto">
+            </div>
+            <div class="comment-editable" id="f-comment" contenteditable="true" data-placeholder="Escreva um comentario..."></div>
+          </div>
           <button class="btn btn-primary btn-sm" id="btn-add-comment" data-id="${act.id}">Enviar</button>
         </div>
       </div>` : ''}
@@ -1450,14 +1468,25 @@ function attachModal() {
     window._closeModalCleanup = () => { commentsRef.off('value', commentsListener); if (origClose) origClose(); };
     const sendComment = () => {
       const input = $('#f-comment'); if (!input) return;
-      const texto = input.value.trim(); if (!texto) { input.focus(); return; }
+      const html = input.innerHTML.trim();
+      const texto = input.innerText.trim();
+      if (!texto) { input.focus(); return; }
       const cid = genId();
-      fbSet('activities/' + actId + '/comentarios/' + cid, { id: cid, texto, autor: S.user, data: new Date().toISOString() });
-      input.value = '';
+      fbSet('activities/' + actId + '/comentarios/' + cid, { id: cid, texto, html: sanitizeHtml(html), autor: S.user, data: new Date().toISOString() });
+      input.innerHTML = '';
     };
     bc.onclick = sendComment;
     const ci = $('#f-comment');
     if (ci) ci.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendComment(); } };
+    // Toolbar buttons
+    document.querySelectorAll('.comment-toolbar [data-cmd]').forEach(btn => {
+      btn.onmousedown = e => e.preventDefault();
+      btn.onclick = () => { document.execCommand(btn.dataset.cmd, false, null); ci.focus(); };
+    });
+    const colorPicker = $('#f-comment-color');
+    if (colorPicker) {
+      colorPicker.oninput = () => { document.execCommand('foreColor', false, colorPicker.value); ci.focus(); };
+    }
   }
   // Save activity
   const sv = $('#modal-save');
@@ -1528,6 +1557,23 @@ function attachModal() {
 function closeModal() { if (window._closeModalCleanup) { window._closeModalCleanup(); window._closeModalCleanup = null; } S.modal = null; render(); }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function sanitizeHtml(html) {
+  const allowed = {B:1,STRONG:1,I:1,EM:1,BR:1,SPAN:1,FONT:1,DIV:1,P:1};
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+  function clean(el) {
+    [...el.childNodes].forEach(n => {
+      if (n.nodeType === 1) {
+        if (!allowed[n.tagName]) { el.replaceChild(document.createTextNode(n.textContent), n); }
+        else {
+          [...n.attributes].forEach(a => { if (a.name !== 'style' && a.name !== 'color') n.removeAttribute(a.name); });
+          if (n.style) { const c = n.style.color; const bg = n.style.backgroundColor; n.removeAttribute('style'); if (c) n.style.color = c; if (bg) n.style.backgroundColor = bg; }
+          clean(n);
+        }
+      }
+    });
+  }
+  clean(tmp); return tmp.innerHTML;
+}
 
 // ============================================================
 // INIT
