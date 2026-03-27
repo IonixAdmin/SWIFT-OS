@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWIFT OS — Gestao de Projetos</title>
+<style>
+:root{
+  --bg:     #f5f6f8;
+  --bg2:    #ffffff;
+  --bg3:    #ebedf0;
+  --bg4:    #f0f1f3;
+  --tx:     #1a1a2e;
+  --tx2:    #5e6c84;
+  --tx3:    #97a0af;
+  --bd:     #dfe1e6;
+  --bd2:    #ebecf0;
+  --ac:     #0052cc;
+  --ac2:    #deebff;
+  --ac3:    #0065ff;
+  --ok:     #00875a;
+  --ok2:    #e3fcef;
+  --wr:     #ff991f;
+  --wr2:    #fffae6;
+  --dg:     #de350b;
+  --dg2:    #ffebe6;
+  --bl:     #6554c0;
+  --bl2:    #eae6ff;
+  --sh1:    0 1px 2px rgba(9,30,66,.08);
+  --sh2:    0 4px 12px rgba(9,30,66,.12);
+  --sh3:    0 8px 24px rgba(9,30,66,.16);
+  --r:      8px;
+  --r2:     4px;
+  --f:      -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --mono:   'SF Mono','Fira Code',monospace;
+}
+[data-theme="dark"]{
+  --bg:#0d1b2a;--bg2:#1b2638;--bg3:#253547;--bg4:#1e2d40;
+  --tx:#e2e8f0;--tx2:#a0aec0;--tx3:#718096;
+  --bd:#2d3748;--bd2:#2a3a50;
+  --ac:#4c9aff;--ac2:#0052cc30;--ac3:#6db3ff;
+  --ok:#57d9a3;--ok2:#00875a20;
+  --wr:#ffc400;--wr2:#ff991f20;
+  --dg:#ff7452;--dg2:#de350b20;
+  --bl:#b8acff;--bl2:#6554c020;
+  --sh1:0 1px 2px rgba(0,0,0,.3);--sh2:0 4px 12px rgba(0,0,0,.3);--sh3:0 8px 24px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--f);background:var(--bg);color:var(--tx);line-height:1.5;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:inherit}
+a{color:var(--ac);text-decoration:none}
+
+/* LAYOUT */
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-header{padding:20px 16px 12px;border-bottom:1px solid var(--bd2)}
+.sidebar-logo{font-size:18px;font-weight:700;color:var(--ac);letter-spacing:-.5px}
+.sidebar-logo span{color:var(--tx3);font-weight:400;font-size:14px}
+.sidebar-nav{flex:1;padding:8px}
+.nav-section{margin-top:16px;margin-bottom:4px;padding:0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r2);font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .12s}
+.nav-item:hover{background:var(--bg3);color:var(--tx)}
+.nav-item.active{background:var(--ac2);color:var(--ac);font-weight:600}
+.nav-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--bd2);display:flex;align-items:center;justify-content:space-between}
+.conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.conn-on{background:var(--ok);animation:pulse 2s infinite}
+.conn-off{background:var(--dg)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.user-info{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px}
+
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{height:48px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-actions{display:flex;gap:6px;align-items:center}
+.view-body{flex:1;overflow-y:auto;padding:20px}
+
+/* BUTTONS */
+.btn{padding:6px 14px;border-radius:var(--r2);font-size:13px;font-weight:500;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-primary{background:var(--ac);color:#fff}.btn-primary:hover{background:var(--ac3)}
+.btn-ghost{color:var(--tx2)}.btn-ghost:hover{background:var(--bg3);color:var(--tx)}
+.btn-danger{color:var(--dg)}.btn-danger:hover{background:var(--dg2)}
+.btn-outline{border:1px solid var(--bd);color:var(--tx2)}.btn-outline:hover{border-color:var(--ac);color:var(--ac)}
+.btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r2);color:var(--tx2)}.btn-icon:hover{background:var(--bg3)}
+
+/* KANBAN */
+.kanban-lanes{height:calc(100vh - 68px - 40px);overflow-x:auto;overflow-y:auto}
+.kanban-lanes-inner{display:inline-flex;flex-direction:column;gap:12px;min-width:100%}
+.kanban-lane{border:1px solid var(--bd2);border-radius:var(--r);display:flex;flex-direction:column}
+.kanban-lane-high{flex-shrink:0}
+.kanban-lane-other{flex:1;min-height:200px}
+.kanban-lane-header{padding:8px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);background:var(--bg3);border-bottom:1px solid var(--bd2);display:flex;align-items:center;gap:8px;border-radius:var(--r) var(--r) 0 0}
+.kanban-lane-high .kanban-lane-header{background:var(--dg2);color:var(--dg)}
+.kanban-lane-count{font-size:11px;font-weight:600;background:var(--bg);padding:1px 8px;border-radius:10px}
+.kanban{display:flex;gap:12px;padding:8px}
+.kanban-col{min-width:280px;width:280px;background:var(--bg3);border-radius:var(--r);display:flex;flex-direction:column;max-height:100%}
+.kanban-col-header{padding:10px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.kanban-col-count{background:var(--bg);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.kanban-cards{flex:1;overflow-y:auto;padding:4px 8px 8px;display:flex;flex-direction:column;gap:8px;min-height:60px}
+.kanban-cards.drag-over{background:var(--ac2);border-radius:var(--r)}
+.kanban-card{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px;cursor:grab;transition:box-shadow .12s,transform .12s;position:relative}
+.kanban-card:hover{box-shadow:var(--sh2)}
+.kanban-card.dragging{opacity:.5;transform:rotate(2deg)}
+.kanban-card-title{font-size:13px;font-weight:600;margin-bottom:6px;padding-right:20px}
+.kanban-card-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.card-tag{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.card-tag-frente{background:var(--ac2);color:var(--ac)}
+.card-tag-priority-alta{background:var(--dg2);color:var(--dg)}
+.card-tag-priority-media{background:var(--wr2);color:var(--wr)}
+.card-tag-priority-baixa{background:var(--ok2);color:var(--ok)}
+.card-criterios{font-size:11px;color:var(--tx3);margin-top:6px;padding:3px 6px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac)}
+.card-resp{font-size:11px;color:var(--tx3)}
+.card-date{font-size:11px;color:var(--tx3);font-family:var(--mono)}
+.card-date.overdue{color:var(--dg);font-weight:600}
+.card-delete{position:absolute;top:8px;right:8px;font-size:14px;color:var(--tx3);cursor:pointer;opacity:0;transition:opacity .12s}
+.kanban-card:hover .card-delete{opacity:1}
+.card-delete:hover{color:var(--dg)}
+.kanban-add{padding:8px;text-align:center}
+.kanban-add button{width:100%;padding:6px;color:var(--tx3);font-size:12px;border-radius:var(--r2)}
+.kanban-add button:hover{background:var(--bg);color:var(--tx)}
+
+/* ROADMAP GANTT */
+.gantt{overflow-x:auto;padding-bottom:12px}
+.gantt-header{display:flex;border-bottom:2px solid var(--bd);position:sticky;top:0;z-index:2;background:var(--bg)}
+.gantt-label-col{width:300px;min-width:300px;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);flex-shrink:0}
+.gantt-timeline-col{flex:1;display:flex;position:relative;min-width:500px}
+.gantt-month{flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;color:var(--tx3);border-left:1px solid var(--bd2);min-width:60px}
+.gantt-row{display:flex;border-bottom:1px solid var(--bd2);min-height:48px;transition:background .1s}
+.gantt-row:hover{background:var(--bg3)}
+.gantt-row.dragging{opacity:.4;background:var(--bg3)}
+.gantt-row.drag-over-top{border-top:2px solid var(--ac)}
+.gantt-row.drag-over-bottom{border-bottom:2px solid var(--ac)}
+.gantt-drag-handle{cursor:grab;color:var(--tx3);font-size:14px;user-select:none;flex-shrink:0;padding:0 2px;display:flex;align-items:center}
+.gantt-drag-handle:active{cursor:grabbing}
+.gantt-row-label{width:300px;min-width:300px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;flex-shrink:0;flex-direction:column;justify-content:center}
+.gantt-row-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.gantt-row-meta{font-size:11px;color:var(--tx3);display:flex;gap:8px;align-items:center}
+.gantt-row-actions{display:flex;gap:2px;opacity:0;transition:opacity .1s}
+.gantt-row:hover .gantt-row-actions{opacity:1}
+.gantt-timeline{flex:1;position:relative;display:flex;align-items:flex-start;min-width:500px}
+.gantt-bar-track{position:absolute;top:0;bottom:0;left:0;right:0;display:flex}
+.gantt-bar-month{flex:1;border-left:1px solid var(--bd2);min-width:60px}
+.gantt-bar-today{position:absolute;top:0;bottom:0;width:2px;background:var(--dg);z-index:1;opacity:.6}
+.gantt-bar{position:absolute;height:24px;border-radius:4px;top:10px;min-width:8px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;z-index:1;transition:opacity .12s;box-shadow:var(--sh1)}
+.gantt-bar:hover{opacity:.85}
+.gantt-bar-progress{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.3;background:#fff}
+.gantt-expand{margin-top:-1px}
+.gantt-sub-row{display:flex;border-bottom:1px solid var(--bd2);min-height:32px;background:var(--bg4)}
+.gantt-sub-label{width:300px;min-width:300px;padding:4px 12px 4px 32px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-shrink:0}
+.gantt-sub-status{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
+.gantt-sub-timeline{flex:1;position:relative;min-width:500px}
+.gantt-empty-msg{text-align:center;padding:20px;color:var(--tx3);font-size:12px;border-bottom:1px solid var(--bd2)}
+.gantt-linked-acts{display:flex;flex-direction:column;gap:3px;margin-top:4px;width:100%}
+.gantt-linked-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);cursor:pointer;padding:2px 4px;border-radius:4px;transition:background .1s}
+.gantt-linked-item:hover{background:var(--bg3)}
+.gantt-linked-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.gantt-linked-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;max-width:150px}
+.gantt-linked-status{font-size:9px;font-weight:600;padding:1px 5px;border-radius:6px;flex-shrink:0;white-space:nowrap}
+
+/* RISKS */
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.risk-card{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:16px;position:relative}
+.risk-card:hover{box-shadow:var(--sh1)}
+.risk-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.risk-card-title{font-weight:600;font-size:14px;flex:1}
+.risk-card-actions{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.risk-card:hover .risk-card-actions{opacity:1}
+.risk-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
+.sev-alta{background:var(--dg2);color:var(--dg)}
+.sev-media{background:var(--wr2);color:var(--wr)}
+.sev-baixa{background:var(--ok2);color:var(--ok)}
+.prob-alta{background:var(--dg2);color:var(--dg)}
+.prob-media{background:var(--wr2);color:var(--wr)}
+.prob-baixa{background:var(--ok2);color:var(--ok)}
+.risk-field{margin-top:8px}
+.risk-field-label{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px}
+.risk-field-value{font-size:13px;color:var(--tx2);margin-top:2px}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.dash-card{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:16px}
+.dash-card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-bottom:6px}
+.dash-card-value{font-size:32px;font-weight:700;line-height:1}
+.dash-card-sub{font-size:12px;color:var(--tx3);margin-top:4px}
+.dash-section{margin-bottom:24px}
+.dash-section-title{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--tx2)}
+.chart-bar-h{display:flex;flex-direction:column;gap:8px}
+.chart-row{display:flex;align-items:center;gap:10px}
+.chart-label{width:120px;font-size:12px;color:var(--tx2);text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-bar-bg{flex:1;height:24px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative}
+.chart-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff;min-width:fit-content}
+.chart-value{font-size:12px;font-weight:600;color:var(--tx2);width:40px;flex-shrink:0}
+.dash-empty{text-align:center;padding:40px;color:var(--tx3);font-size:13px}
+
+/* LINKED ACTIVITIES */
+.linked-acts{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.linked-act{display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--bg3);border-radius:var(--r2);font-size:12px}
+.linked-act-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linked-act-status{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px}
+.linked-count{font-size:11px;color:var(--tx3);margin-top:4px}
+.act-picker{border:1px solid var(--bd);border-radius:var(--r2);max-height:180px;overflow-y:auto;background:var(--bg)}
+.act-picker-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--bd2)}
+.act-picker-item:last-child{border-bottom:none}
+.act-picker-item:hover{background:var(--bg3)}
+.act-picker-item input[type="checkbox"]{flex-shrink:0}
+.act-picker-item .act-pick-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-picker-item .act-pick-col{font-size:10px;color:var(--tx3);flex-shrink:0}
+.act-picker-search{width:100%;padding:6px 10px;border:none;border-bottom:1px solid var(--bd2);background:var(--bg);color:var(--tx);font-size:12px}
+.act-picker-search:focus{outline:none}
+.act-picker-empty{padding:16px;text-align:center;color:var(--tx3);font-size:12px}
+.roadmap-progress{margin-top:6px}
+.roadmap-progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
+.roadmap-progress-fill{height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
+
+/* STATUS REPORT */
+.report{max-width:800px;margin:0 auto;font-size:13px}
+.report-cover{text-align:center;margin-bottom:32px;padding:32px 0;border-bottom:3px solid var(--ac)}
+.report-cover h1{font-size:28px;color:var(--ac);margin-bottom:4px}
+.report-cover h2{font-size:16px;color:var(--tx2);font-weight:400}
+.report-cover .report-date{font-size:13px;color:var(--tx3);margin-top:8px}
+.report-section{margin-bottom:28px;page-break-inside:avoid}
+.report-section-title{font-size:16px;font-weight:700;color:var(--ac);border-bottom:2px solid var(--ac);padding-bottom:4px;margin-bottom:12px}
+.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.report-kpi{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;text-align:center}
+.report-kpi-value{font-size:28px;font-weight:700;line-height:1}
+.report-kpi-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.report-table th{background:var(--bg3);padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--tx2);border-bottom:2px solid var(--bd)}
+.report-table td{padding:7px 10px;border-bottom:1px solid var(--bd2);vertical-align:top}
+.report-table tr:nth-child(even){background:var(--bg4)}
+.report-status{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.report-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;width:100%;margin-top:2px}
+.report-bar-fill{height:100%;border-radius:4px}
+.report-risk-matrix{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.report-risk-item{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r2);padding:10px}
+.report-risk-title{font-weight:600;font-size:13px;margin-bottom:4px}
+.report-risk-badges{display:flex;gap:4px;margin-bottom:6px}
+.report-footer{text-align:center;padding:16px 0;border-top:1px solid var(--bd2);font-size:11px;color:var(--tx3);margin-top:32px}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff!important;color:#1a1a2e!important}
+  .shell{display:block!important}
+  .sidebar,.topbar,.nav-item,.btn-icon,.gantt-row-actions,.card-delete{display:none!important}
+  .content{overflow:visible!important}
+  .view-body{padding:0!important;overflow:visible!important}
+  .report{max-width:100%}
+  .report-kpis{grid-template-columns:repeat(4,1fr)}
+  .report-section{page-break-inside:avoid}
+  .report-cover{page-break-after:avoid}
+  .report-table th{background:#f0f1f3!important}
+  .report-table tr:nth-child(even){background:#f8f9fa!important}
+  .report-kpi{border:1px solid #ddd!important}
+}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .15s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--bg2);border-radius:var(--r);width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh3);animation:slideUp .2s}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--bd2);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--bd2);display:flex;justify-content:flex-end;gap:8px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:4px}
+.form-input,.form-select,.form-textarea{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r2);background:var(--bg);color:var(--tx);font-size:13px}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px var(--ac2)}
+.form-textarea{min-height:70px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:11px;color:var(--tx3);margin-top:2px}
+
+/* EMPTY STATES */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--tx3);text-align:center}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.empty h3{font-size:16px;color:var(--tx2);margin-bottom:6px}
+.empty p{font-size:13px;max-width:300px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--tx);color:var(--bg);padding:10px 20px;border-radius:var(--r);font-size:13px;font-weight:500;box-shadow:var(--sh3);z-index:2000;animation:toastIn .3s,toastOut .3s 2.5s forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+/* CONFIRM DIALOG */
+.confirm-msg{font-size:14px;color:var(--tx2);padding:8px 0}
+
+/* IMPORT PREVIEW */
+.import-diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.import-diff-section{background:var(--bg3);border-radius:var(--r2);padding:10px 12px}
+.import-diff-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-bottom:6px}
+.import-diff-row{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);padding:2px 0}
+.import-diff-add{color:var(--ok)}
+.import-diff-upd{color:var(--wr)}
+.import-diff-del{color:var(--dg)}
+
+/* COMMENTS */
+.comments-section{border-top:1px solid var(--bd2);padding-top:12px;margin-top:8px}
+.comments-list{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.comments-empty{font-size:12px;color:var(--tx3);padding:8px 0}
+.comment-item{background:var(--bg3);border-radius:var(--r2);padding:8px 10px}
+.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.comment-header strong{font-size:12px;color:var(--tx)}
+.comment-date{font-size:10px;color:var(--tx3)}
+.comment-del{background:none;border:none;color:var(--danger,#e74c3c);cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;opacity:.7;transition:opacity .2s,background .2s;border-radius:4px;margin-left:auto}
+.comment-del:hover{opacity:1;background:rgba(231,76,60,.12)}
+.comment-text{font-size:13px;color:var(--tx2);white-space:pre-wrap;word-break:break-word}
+.comment-input-row{display:flex;gap:6px;align-items:flex-end}
+.comment-textarea{flex:1;resize:vertical;min-height:60px;max-height:200px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r2);background:var(--bg);color:var(--tx);font-family:var(--f);font-size:13px;line-height:1.5}
+.card-comments{font-size:11px;color:var(--tx3);margin-left:auto}
+.trash-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:8px;color:var(--tx2)}
+.trash-view{padding:0}
+.trash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.trash-list{display:flex;flex-direction:column;gap:8px}
+.trash-item{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 16px;gap:16px}
+.trash-item-info{flex:1;min-width:0}
+.trash-item-info strong{font-size:14px;color:var(--tx);display:block;margin-bottom:4px}
+.trash-item-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--tx3);align-items:center}
+.trash-item-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .topbar{padding:0 12px}
+  .view-body{padding:12px}
+  .kanban-col{min-width:260px;width:260px}
+  .form-row{grid-template-columns:1fr}
+  .risk-grid{grid-template-columns:1fr}
+}
+
+/* SETUP */
+.setup{max-width:440px;margin:100px auto;padding:40px;background:var(--bg2);border-radius:var(--r);box-shadow:var(--sh3);text-align:center}
+.setup h1{font-size:24px;color:var(--ac);margin-bottom:6px}
+.setup p{color:var(--tx2);margin-bottom:24px}
+.setup .form-input{text-align:center;font-size:16px;padding:12px}
+.setup .btn-primary{margin-top:14px;padding:10px 32px;font-size:15px}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ============================================================
+// FIREBASE
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBKqhd7w-1z-yKjIOf1BXts0JvthEwcSg4",
+  authDomain: "swift-os-dashboard.firebaseapp.com",
+  databaseURL: "https://swift-os-dashboard-default-rtdb.firebaseio.com",
+  projectId: "swift-os-dashboard",
+  storageBucket: "swift-os-dashboard.firebasestorage.app",
+  messagingSenderId: "934973471585",
+  appId: "1:934973471585:web:b96f65ad887fab638c2320"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ============================================================
+// STATE
+// ============================================================
+const COLUMNS = ['backlog','a_fazer','em_andamento','revisao','concluido'];
+const COL_LABELS = {backlog:'Backlog',a_fazer:'A Fazer',em_andamento:'Em Andamento',revisao:'Revisao',concluido:'Concluido'};
+const PRIORITIES = {alta:'Alta',media:'Media',baixa:'Baixa'};
+const RISK_STATUS = {aberto:'Aberto',mitigando:'Mitigando',mitigado:'Mitigado',fechado:'Fechado'};
+
+let S = {
+  view: 'kanban',
+  user: localStorage.getItem('swift-user')||'',
+  uid: localStorage.getItem('swift-uid')||(()=>{const u='u_'+Math.random().toString(36).slice(2,9);localStorage.setItem('swift-uid',u);return u})(),
+  theme: localStorage.getItem('swift-theme')||'light',
+  connected: false,
+  onlineUsers: {},
+  // Data from Firebase
+  frentes: {},
+  activities: {},
+  milestones: {},
+  risks: {},
+  // UI
+  modal: null,
+  dragId: null,
+  expandedMilestones: {},
+  trash: {}
+};
+
+// ============================================================
+// FIREBASE SYNC
+// ============================================================
+function initSync() {
+  db.ref('.info/connected').on('value', s => {
+    S.connected = s.val() === true;
+    if (S.connected && S.user) {
+      const ref = db.ref('presence/' + S.uid);
+      ref.set({ name: S.user, t: firebase.database.ServerValue.TIMESTAMP });
+      ref.onDisconnect().remove();
+    }
+    updateConn();
+  });
+  db.ref('presence').on('value', s => { S.onlineUsers = s.val() || {}; updateConn(); });
+  db.ref('frentes').on('value', s => { S.frentes = s.val() || {}; rerender(); });
+  db.ref('activities').on('value', s => { S.activities = s.val() || {}; rerender(); });
+  db.ref('milestones').on('value', s => { S.milestones = s.val() || {}; rerender(); });
+  db.ref('risks').on('value', s => { S.risks = s.val() || {}; rerender(); });
+  db.ref('trash').on('value', s => { S.trash = s.val() || {}; rerender(); });
+}
+
+function fbSet(path, val) { db.ref(path).set(val); }
+function fbUpdate(path, val) { db.ref(path).update(val); }
+function fbRemove(path) { db.ref(path).remove(); }
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ============================================================
+// RENDER ENGINE
+// ============================================================
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function render() {
+  document.documentElement.setAttribute('data-theme', S.theme);
+  const app = document.getElementById('app');
+  if (!S.user) { app.innerHTML = setupScreen(); attachSetup(); return; }
+  app.innerHTML = `<div class="shell">${sidebar()}
+    <div class="content">${topbar()}<div class="view-body" id="vb">${viewBody()}</div></div></div>${S.modal ? modalOverlay() : ''}`;
+  attachAll();
+}
+
+function rerender() {
+  if (!S.user) return;
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = `<div class="shell">${sidebar()}
+    <div class="content">${topbar()}<div class="view-body" id="vb">${viewBody()}</div></div></div>${S.modal ? modalOverlay() : ''}`;
+  attachAll();
+}
+
+function updateConn() {
+  const dot = document.getElementById('conn-dot');
+  if (dot) dot.className = 'conn-dot ' + (S.connected ? 'conn-on' : 'conn-off');
+  const ul = document.getElementById('online-count');
+  if (ul) ul.textContent = Object.keys(S.onlineUsers).length + ' online';
+}
+
+// ============================================================
+// COMPONENTS
+// ============================================================
+function setupScreen() {
+  return `<div class="setup"><h1>SWIFT OS</h1><p>Plataforma de Gestao de Projetos</p>
+    <input class="form-input" id="inp-name" placeholder="Seu nome" maxlength="30" autofocus>
+    <br><button class="btn btn-primary" id="btn-enter">Entrar</button></div>`;
+}
+
+function sidebar() {
+  const items = [
+    { id:'kanban', icon:'\u2630', label:'Kanban', count: Object.keys(S.activities).length },
+    { id:'roadmap', icon:'\u2691', label:'Roadmap', count: Object.keys(S.milestones).length },
+    { id:'riscos', icon:'\u26A0', label:'Riscos', count: Object.keys(S.risks).length },
+    { id:'dashboard', icon:'\u25A3', label:'Dashboard' },
+    { id:'report', icon:'\u2399', label:'Status Report' },
+    { id:'lixeira', icon:'\uD83D\uDDD1', label:'Lixeira', count: Object.keys(S.trash).length || undefined }
+  ];
+  const frentesHtml = Object.values(S.frentes).map(f =>
+    `<div class="nav-item" style="padding-left:20px" data-frente="${f.id}">
+      <span style="width:10px;height:10px;border-radius:50%;background:${esc(f.cor)};display:inline-block;flex-shrink:0"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" data-edit-frente="${f.id}" title="Clique para editar">${esc(f.nome)}</span>
+      <button class="card-delete" data-del-frente="${f.id}" title="Excluir" style="opacity:1;position:static;font-size:12px">\u2715</button>
+    </div>`
+  ).join('');
+
+  return `<aside class="sidebar">
+    <div class="sidebar-header"><div class="sidebar-logo">SWIFT OS <span>Projects</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Menu</div>
+      ${items.map(i => `<div class="nav-item ${S.view===i.id?'active':''}" data-view="${i.id}">
+        <span class="nav-icon">${i.icon}</span>${i.label}
+        ${i.count!==undefined?`<span id="${i.id==='kanban'?'nav-act-count':''}" style="margin-left:auto;font-size:11px;color:var(--tx3)">${i.count}</span>`:''}
+      </div>`).join('')}
+      <div class="nav-section" style="margin-top:24px">Frentes</div>
+      ${frentesHtml}
+      <div class="nav-item" id="add-frente-btn" style="color:var(--tx3)"><span class="nav-icon">+</span>Nova frente</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="display:flex;gap:4px;width:100%;margin-bottom:6px">
+        <button class="btn btn-sm" id="btn-export" title="Exportar dados" style="flex:1;font-size:11px">\u2B07 Exportar</button>
+        <button class="btn btn-sm" id="btn-import" title="Importar dados" style="flex:1;font-size:11px">\u2B06 Importar</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+      <div class="user-info"><span class="conn-dot ${S.connected?'conn-on':'conn-off'}" id="conn-dot"></span>
+        <span id="online-count">${Object.keys(S.onlineUsers).length} online</span></div>
+      <button class="btn-icon" id="btn-theme" title="Tema">${S.theme==='light'?'\u263D':'\u2600'}</button>
+    </div>
+  </aside>`;
+}
+
+function topbar() {
+  const titles = { kanban:'Kanban', roadmap:'Roadmap', riscos:'Riscos', dashboard:'Dashboard', report:'Status Report' };
+  const addBtns = {
+    kanban: `<button class="btn btn-primary btn-sm" id="btn-add-act">+ Atividade</button>`,
+    roadmap: `<button class="btn btn-primary btn-sm" id="btn-add-mile">+ Marco</button>`,
+    riscos: `<button class="btn btn-primary btn-sm" id="btn-add-risk">+ Risco</button>`,
+    dashboard: '',
+    report: `<button class="btn btn-primary btn-sm" id="btn-print-pdf">\u2399 Gerar PDF</button>`
+  };
+  return `<div class="topbar"><div class="topbar-title">${titles[S.view]}</div>
+    <div class="topbar-actions">
+      <span style="font-size:12px;color:var(--tx3)">${esc(S.user)}</span>
+      <button class="btn-icon" id="btn-logout" title="Sair">\u2190</button>
+      ${addBtns[S.view]||''}
+    </div></div>`;
+}
+
+function viewBody() {
+  if (S.view === 'kanban') return kanbanView();
+  if (S.view === 'roadmap') return roadmapView();
+  if (S.view === 'riscos') return riscosView();
+  if (S.view === 'dashboard') return dashboardView();
+  if (S.view === 'report') return reportView();
+  if (S.view === 'lixeira') return lixeiraView();
+  return '';
+}
+
+// ---------- KANBAN ----------
+function kanbanView() {
+  const acts = Object.values(S.activities);
+  const highActs = acts.filter(a => a.prioridade === 'alta');
+  const otherActs = acts.filter(a => a.prioridade !== 'alta');
+
+  function renderLane(laneActs, laneId, laneLabel, laneClass) {
+    return `<div class="kanban-lane ${laneClass}">
+      <div class="kanban-lane-header">${laneLabel}<span class="kanban-lane-count">${laneActs.length}</span></div>
+      <div class="kanban">
+        ${COLUMNS.map(col => {
+          const cards = laneActs.filter(a => a.coluna === col).sort((a,b) => (a.ordem||0) - (b.ordem||0));
+          return `<div class="kanban-col" data-col="${col}" data-lane="${laneId}">
+            <div class="kanban-col-header">${COL_LABELS[col]}<span class="kanban-col-count">${cards.length}</span></div>
+            <div class="kanban-cards" data-col="${col}" data-lane="${laneId}" id="col-${col}-${laneId}">
+              ${cards.map(a => kanbanCard(a)).join('')}
+            </div>
+            ${laneId === 'other' ? `<div class="kanban-add"><button data-add-col="${col}">+ Adicionar</button></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="kanban-lanes"><div class="kanban-lanes-inner">
+    ${renderLane(highActs, 'high', '\u{1F525} Prioridade Alta', 'kanban-lane-high')}
+    ${renderLane(otherActs, 'other', 'Demais Atividades', 'kanban-lane-other')}
+  </div></div>`;
+}
+
+function findMilestoneForActivity(actId) {
+  return Object.values(S.milestones).find(m => (m.atividades || []).includes(actId));
+}
+
+function kanbanCard(a) {
+  const frente = S.frentes[a.frente];
+  const today = new Date().toISOString().slice(0,10);
+  const overdue = a.prazo && a.prazo < today && a.coluna !== 'concluido';
+  const marco = findMilestoneForActivity(a.id);
+  return `<div class="kanban-card" draggable="true" data-id="${a.id}" id="card-${a.id}">
+    <span class="card-delete" data-del="${a.id}">\u2715</span>
+    <div class="kanban-card-title" data-edit="${a.id}">${esc(a.titulo)}</div>
+    <div class="kanban-card-meta">
+      ${frente ? `<span class="card-tag card-tag-frente" style="background:${frente.cor}20;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}
+      ${a.prioridade ? `<span class="card-tag card-tag-priority-${a.prioridade}">${PRIORITIES[a.prioridade]}</span>` : ''}
+      ${marco ? `<span class="card-tag" style="background:var(--bl2);color:var(--bl)">\u2691 ${esc(marco.titulo)}</span>` : ''}
+    </div>
+    <div class="kanban-card-meta" style="margin-top:4px">
+      ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
+      ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
+      ${a.comentarios ? `<span class="card-comments">\u{1F4AC} ${Object.keys(a.comentarios).length}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- ROADMAP (GANTT) ----------
+function roadmapView() {
+  const items = Object.values(S.milestones).sort((a,b) => (a.ordem||0) - (b.ordem||0) || (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+  if (!items.length) return `<div class="empty"><div class="empty-icon">\u2691</div><h3>Nenhum marco no roadmap</h3><p>Clique em "+ Marco" para adicionar o primeiro</p></div>`;
+
+  const today = new Date().toISOString().slice(0,10);
+
+  // Calculate date range for Gantt
+  let allDates = [];
+  items.forEach(m => {
+    if (m.dataInicio || m.data) allDates.push(m.dataInicio || m.data);
+    if (m.dataFim || m.data) allDates.push(m.dataFim || m.data);
+  });
+  allDates.push(today);
+  allDates.sort();
+  let rangeStart = new Date(allDates[0]);
+  let rangeEnd = new Date(allDates[allDates.length - 1]);
+  // Add 1 month padding on each side
+  rangeStart.setDate(1);
+  rangeStart.setMonth(rangeStart.getMonth() - 1);
+  rangeEnd.setDate(1);
+  rangeEnd.setMonth(rangeEnd.getMonth() + 2);
+
+  // Generate months
+  const months = [];
+  const cur = new Date(rangeStart);
+  while (cur < rangeEnd) {
+    months.push({ year: cur.getFullYear(), month: cur.getMonth(), label: cur.toLocaleDateString('pt-BR', { month:'short', year:'2-digit' }) });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const totalDays = (rangeEnd - rangeStart) / (1000*60*60*24);
+  function dateToPct(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return ((d - rangeStart) / (1000*60*60*24)) / totalDays * 100;
+  }
+  const todayPct = dateToPct(today);
+
+  const statusColors = {backlog:'var(--tx3)',a_fazer:'var(--ac)',em_andamento:'var(--wr)',revisao:'var(--bl)',concluido:'var(--ok)'};
+  const barColors = {pendente:'var(--ac)',em_andamento:'var(--wr)',concluido:'var(--ok)'};
+
+  let html = `<div class="gantt">`;
+  // Header
+  html += `<div class="gantt-header"><div class="gantt-label-col">Marco</div><div class="gantt-timeline-col">${months.map(m => `<div class="gantt-month">${m.label}</div>`).join('')}</div></div>`;
+
+  // Rows
+  items.forEach(m => {
+    const frente = S.frentes[m.frente];
+    const start = m.dataInicio || m.data;
+    const end = m.dataFim || m.data;
+    const linkedIds = m.atividades || [];
+    const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
+    const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
+    const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
+    const expanded = S.expandedMilestones && S.expandedMilestones[m.id];
+
+    const leftPct = dateToPct(start);
+    const rightPct = dateToPct(end);
+    const barColor = barColors[m.status] || 'var(--ac)';
+
+    html += `<div class="gantt-row" data-mile-row="${m.id}" draggable="true" data-mile-drag="${m.id}">
+      <div class="gantt-row-label">
+        <div style="display:flex;align-items:center;gap:6px;width:100%">
+          <span class="gantt-drag-handle" title="Arrastar para reordenar">⠿</span>
+          ${linkedActs.length ? `<button class="btn-icon btn-sm" data-toggle-mile="${m.id}" style="width:20px;height:20px;font-size:10px;flex-shrink:0">${expanded?'\u25BC':'\u25B6'}</button>` : '<span style="width:20px;flex-shrink:0"></span>'}
+          <span class="gantt-row-title" title="${esc(m.titulo)}">${esc(m.titulo)}</span>
+          <div class="gantt-row-actions">
+            <button class="btn-icon btn-sm" data-edit-mile="${m.id}" title="Editar" style="width:22px;height:22px;font-size:11px">\u270E</button>
+            <button class="btn-icon btn-sm btn-danger" data-del-mile="${m.id}" title="Excluir" style="width:22px;height:22px;font-size:11px">\u2715</button>
+          </div>
+        </div>
+        <div class="gantt-row-meta">
+          ${frente ? `<span style="color:${frente.cor}">\u25CF ${esc(frente.nome)}</span>` : ''}
+          ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length}</span>` : ''}
+          <span>${start||'?'} \u2192 ${end||'?'}</span>
+        </div>
+        ${linkedActs.length ? `<div class="gantt-linked-acts">${linkedActs.map(a => {
+          const aColor = statusColors[a.coluna] || 'var(--tx3)';
+          return `<div class="gantt-linked-item" data-edit="${a.id}"><span class="gantt-linked-dot" style="background:${aColor}"></span><span class="gantt-linked-title">${esc(a.titulo)}</span><span class="gantt-linked-status" style="background:${aColor}20;color:${aColor}">${COL_LABELS[a.coluna]||''}</span></div>`;
+        }).join('')}</div>` : ''}
+      </div>
+      <div class="gantt-timeline">
+        <div class="gantt-bar-track">${months.map(() => '<div class="gantt-bar-month"></div>').join('')}</div>
+        ${todayPct !== null ? `<div class="gantt-bar-today" style="left:${todayPct}%"></div>` : ''}
+        ${leftPct !== null && rightPct !== null ? `<div class="gantt-bar" style="left:${Math.min(leftPct,rightPct)}%;width:${Math.max(Math.abs(rightPct-leftPct),0.5)}%;background:${barColor}" data-edit-mile="${m.id}">
+          ${linkedActs.length ? `<div class="gantt-bar-progress" style="width:${linkedPct}%"></div>` : ''}
+          ${esc(m.titulo)}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+    // Expanded sub-rows for linked activities
+    if (expanded && linkedActs.length) {
+      linkedActs.forEach(a => {
+        const aStart = dateToPct(a.inicio);
+        const aEnd = dateToPct(a.prazo);
+        const aFrente = S.frentes[a.frente];
+        const aColor = statusColors[a.coluna] || 'var(--tx3)';
+        html += `<div class="gantt-sub-row">
+          <div class="gantt-sub-label">
+            <span class="gantt-sub-status" style="background:${aColor}20;color:${aColor}">${COL_LABELS[a.coluna]||''}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${esc(a.titulo)}">${esc(a.titulo)}</span>
+            ${a.responsavel ? `<span style="font-size:10px;color:var(--tx3);flex-shrink:0">${esc(a.responsavel)}</span>` : ''}
+          </div>
+          <div class="gantt-sub-timeline" style="position:relative">
+            <div class="gantt-bar-track">${months.map(() => '<div class="gantt-bar-month"></div>').join('')}</div>
+            ${todayPct !== null ? `<div class="gantt-bar-today" style="left:${todayPct}%"></div>` : ''}
+            ${aStart !== null && aEnd !== null ? `<div class="gantt-bar" style="left:${Math.min(aStart,aEnd)}%;width:${Math.max(Math.abs(aEnd-aStart),0.5)}%;background:${aColor};height:16px;font-size:9px" data-edit="${a.id}">${esc(a.titulo)}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    } else if (expanded) {
+      html += `<div class="gantt-empty-msg">Nenhuma atividade vinculada</div>`;
+    }
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+// ---------- RISCOS ----------
+function riscosView() {
+  const items = Object.values(S.risks);
+  if (!items.length) return `<div class="empty"><div class="empty-icon">\u26A0</div><h3>Nenhum risco cadastrado</h3><p>Clique em "+ Risco" para adicionar</p></div>`;
+  return `<div class="risk-grid">${items.map(r => {
+    const frente = S.frentes[r.frente];
+    return `<div class="risk-card">
+      <div class="risk-card-header">
+        <div class="risk-card-title">${esc(r.titulo)}</div>
+        <div class="risk-card-actions">
+          <button class="btn-icon btn-sm" data-edit-risk="${r.id}" title="Editar">\u270E</button>
+          <button class="btn-icon btn-sm btn-danger" data-del-risk="${r.id}" title="Excluir">\u2715</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="risk-badge sev-${r.severidade||'media'}">Sev: ${PRIORITIES[r.severidade]||'Media'}</span>
+        <span class="risk-badge prob-${r.probabilidade||'media'}">Prob: ${PRIORITIES[r.probabilidade]||'Media'}</span>
+        <span class="risk-badge" style="background:var(--bg3);color:var(--tx2)">${RISK_STATUS[r.status]||'Aberto'}</span>
+        ${frente ? `<span class="risk-badge" style="background:${frente.cor}20;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}
+      </div>
+      ${r.impacto ? `<div class="risk-field"><div class="risk-field-label">Impacto</div><div class="risk-field-value">${esc(r.impacto)}</div></div>` : ''}
+      ${r.mitigacao ? `<div class="risk-field"><div class="risk-field-label">Mitigacao</div><div class="risk-field-value">${esc(r.mitigacao)}</div></div>` : ''}
+      ${r.responsavel ? `<div class="risk-field"><div class="risk-field-label">Responsavel</div><div class="risk-field-value">${esc(r.responsavel)}</div></div>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ---------- DASHBOARD ----------
+function dashboardView() {
+  const acts = Object.values(S.activities);
+  const risks = Object.values(S.risks);
+  const miles = Object.values(S.milestones);
+  const today = new Date().toISOString().slice(0,10);
+
+  if (!acts.length && !risks.length && !miles.length) {
+    return `<div class="empty"><div class="empty-icon">\u25A3</div><h3>Dashboard vazio</h3><p>Adicione atividades, marcos ou riscos para ver as metricas</p></div>`;
+  }
+
+  const total = acts.length;
+  const done = acts.filter(a => a.coluna === 'concluido').length;
+  const progress = acts.filter(a => a.coluna === 'em_andamento').length;
+  const overdue = acts.filter(a => a.prazo && a.prazo < today && a.coluna !== 'concluido').length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  // By column
+  const byCols = COLUMNS.map(c => ({ label: COL_LABELS[c], count: acts.filter(a => a.coluna === c).length }));
+  const maxCol = Math.max(...byCols.map(b => b.count), 1);
+
+  // By frente
+  const frenteIds = [...new Set(acts.map(a => a.frente).filter(Boolean))];
+  const byFrente = frenteIds.map(fid => {
+    const f = S.frentes[fid];
+    const fa = acts.filter(a => a.frente === fid);
+    const fd = fa.filter(a => a.coluna === 'concluido').length;
+    return { nome: f ? f.nome : fid, cor: f ? f.cor : 'var(--ac)', total: fa.length, done: fd, pct: fa.length ? Math.round((fd / fa.length) * 100) : 0 };
+  });
+
+  // By responsible
+  const resps = [...new Set(acts.map(a => a.responsavel).filter(Boolean))];
+  const byResp = resps.map(r => ({ nome: r, count: acts.filter(a => a.responsavel === r).length })).sort((a,b) => b.count - a.count);
+  const maxResp = Math.max(...byResp.map(b => b.count), 1);
+
+  // By priority
+  const byPri = ['alta','media','baixa'].map(p => ({ label: PRIORITIES[p], count: acts.filter(a => a.prioridade === p).length, cls: p }));
+
+  // Risks open
+  const risksOpen = risks.filter(r => r.status === 'aberto' || r.status === 'mitigando').length;
+
+  const colColors = {backlog:'var(--tx3)',a_fazer:'var(--ac)',em_andamento:'var(--wr)',revisao:'var(--bl)',concluido:'var(--ok)'};
+
+  return `
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-card-label">Total Atividades</div><div class="dash-card-value">${total}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Concluidas</div><div class="dash-card-value" style="color:var(--ok)">${done}</div><div class="dash-card-sub">${pct}% do total</div></div>
+      <div class="dash-card"><div class="dash-card-label">Em Andamento</div><div class="dash-card-value" style="color:var(--wr)">${progress}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Atrasadas</div><div class="dash-card-value" style="color:var(--dg)">${overdue}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Marcos</div><div class="dash-card-value">${miles.length}</div><div class="dash-card-sub">${miles.filter(m=>m.status==='concluido').length} concluidos</div></div>
+      <div class="dash-card"><div class="dash-card-label">Riscos Abertos</div><div class="dash-card-value" style="color:${risksOpen?'var(--dg)':'var(--ok)'}">${risksOpen}</div><div class="dash-card-sub">${risks.length} total</div></div>
+    </div>
+
+    <div class="dash-section"><div class="dash-section-title">Atividades por Coluna</div>
+      <div class="chart-bar-h">${COLUMNS.map((c,i) => `<div class="chart-row">
+        <div class="chart-label">${COL_LABELS[c]}</div>
+        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${byCols[i].count/maxCol*100}%;background:${colColors[c]}">${byCols[i].count}</div></div>
+      </div>`).join('')}</div>
+    </div>
+
+    ${byFrente.length ? `<div class="dash-section"><div class="dash-section-title">Progresso por Frente</div>
+      <div class="chart-bar-h">${byFrente.map(f => `<div class="chart-row">
+        <div class="chart-label">${esc(f.nome)}</div>
+        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${f.pct}%;background:${f.cor}">${f.pct}%</div></div>
+        <div class="chart-value">${f.done}/${f.total}</div>
+      </div>`).join('')}</div>
+    </div>` : ''}
+
+    ${byResp.length ? `<div class="dash-section"><div class="dash-section-title">Atividades por Responsavel</div>
+      <div class="chart-bar-h">${byResp.slice(0,10).map(r => `<div class="chart-row">
+        <div class="chart-label">${esc(r.nome)}</div>
+        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${r.count/maxResp*100}%;background:var(--ac)">${r.count}</div></div>
+      </div>`).join('')}</div>
+    </div>` : ''}
+
+    <div class="dash-section"><div class="dash-section-title">Atividades por Prioridade</div>
+      <div class="chart-bar-h">${byPri.map(p => `<div class="chart-row">
+        <div class="chart-label">${p.label}</div>
+        <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${total?p.count/total*100:0}%;background:var(${p.cls==='alta'?'--dg':p.cls==='media'?'--wr':'--ok'})">${p.count}</div></div>
+      </div>`).join('')}</div>
+    </div>
+  `;
+}
+
+// ---------- STATUS REPORT ----------
+// ---------- LIXEIRA ----------
+function lixeiraView() {
+  const items = Object.values(S.trash).sort((a,b) => (b._deletedAt||'').localeCompare(a._deletedAt||''));
+  if (!items.length) return `<div class="trash-empty"><span style="font-size:48px">\uD83D\uDDD1</span><h3>Lixeira vazia</h3><p style="color:var(--tx3)">Atividades excluidas aparecerão aqui e poderão ser restauradas.</p></div>`;
+  return `<div class="trash-view">
+    <div class="trash-header">
+      <span style="color:var(--tx3);font-size:13px">${items.length} ${items.length===1?'item':'itens'} na lixeira</span>
+      <button class="btn btn-danger btn-sm" id="trash-empty-all">Esvaziar lixeira</button>
+    </div>
+    <div class="trash-list">${items.map(a => {
+      const frente = S.frentes[a.frente];
+      const deletedDate = a._deletedAt ? new Date(a._deletedAt).toLocaleString('pt-BR') : '';
+      return `<div class="trash-item">
+        <div class="trash-item-info">
+          <strong>${esc(a.titulo)}</strong>
+          <div class="trash-item-meta">
+            ${frente ? `<span class="card-tag card-tag-frente" style="background:${frente.cor}20;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}
+            ${a.responsavel ? `<span>\uD83D\uDC64 ${esc(a.responsavel)}</span>` : ''}
+            <span>Excluido em ${deletedDate}</span>
+            ${a._deletedBy ? `<span>por ${esc(a._deletedBy)}</span>` : ''}
+          </div>
+        </div>
+        <div class="trash-item-actions">
+          <button class="btn btn-primary btn-sm" data-restore="${a.id}" title="Restaurar">\u21A9 Restaurar</button>
+          <button class="btn btn-danger btn-sm" data-perma-del="${a.id}" title="Excluir permanentemente">\u2715</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function reportView() {
+  const acts = Object.values(S.activities);
+  const miles = Object.values(S.milestones);
+  const risks = Object.values(S.risks);
+  const today = new Date().toISOString().slice(0,10);
+  const dateLabel = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+  const total = acts.length;
+  const done = acts.filter(a => a.coluna === 'concluido').length;
+  const progress = acts.filter(a => a.coluna === 'em_andamento').length;
+  const overdue = acts.filter(a => a.prazo && a.prazo < today && a.coluna !== 'concluido').length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const risksOpen = risks.filter(r => r.status === 'aberto' || r.status === 'mitigando').length;
+
+  const statusColors = {backlog:'#97a0af',a_fazer:'#0052cc',em_andamento:'#ff991f',revisao:'#6554c0',concluido:'#00875a'};
+  const priColors = {alta:'#de350b',media:'#ff991f',baixa:'#00875a'};
+
+  // By frente
+  const frenteIds = [...new Set(acts.map(a => a.frente).filter(Boolean))];
+  const byFrente = frenteIds.map(fid => {
+    const f = S.frentes[fid];
+    const fa = acts.filter(a => a.frente === fid);
+    const fd = fa.filter(a => a.coluna === 'concluido').length;
+    return { nome: f ? f.nome : fid, cor: f ? f.cor : '#0052cc', total: fa.length, done: fd, pct: fa.length ? Math.round((fd / fa.length) * 100) : 0 };
+  });
+
+  // Milestones sorted
+  const milesSorted = [...miles].sort((a,b) => (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+
+  // Recent activities (em andamento or concluido recently)
+  const activeActs = acts.filter(a => a.coluna === 'em_andamento' || a.coluna === 'revisao').sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+  const overdueActs = acts.filter(a => a.prazo && a.prazo < today && a.coluna !== 'concluido');
+  const doneActs = acts.filter(a => a.coluna === 'concluido');
+
+  let html = `<div class="report" id="report-content">`;
+
+  // Cover
+  html += `<div class="report-cover">
+    <h1>SWIFT OS</h1>
+    <h2>Status Report do Projeto</h2>
+    <div class="report-date">${dateLabel}</div>
+    <div style="font-size:12px;color:var(--tx3);margin-top:4px">Gerado por ${esc(S.user)}</div>
+  </div>`;
+
+  // KPIs
+  html += `<div class="report-kpis">
+    <div class="report-kpi"><div class="report-kpi-value">${total}</div><div class="report-kpi-label">Atividades</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#00875a">${pct}%</div><div class="report-kpi-label">Concluido</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#ff991f">${progress}</div><div class="report-kpi-label">Em Andamento</div></div>
+    <div class="report-kpi"><div class="report-kpi-value" style="color:#de350b">${overdue}</div><div class="report-kpi-label">Atrasadas</div></div>
+  </div>`;
+
+  // Progress by frente
+  if (byFrente.length) {
+    html += `<div class="report-section"><div class="report-section-title">Progresso por Frente</div>
+      <table class="report-table"><thead><tr><th>Frente</th><th>Progresso</th><th>Concluidas</th><th>Total</th></tr></thead><tbody>
+      ${byFrente.map(f => `<tr>
+        <td><span style="color:${f.cor}">\u25CF</span> ${esc(f.nome)}</td>
+        <td><div class="report-bar"><div class="report-bar-fill" style="width:${f.pct}%;background:${f.cor}"></div></div><span style="font-size:11px;color:var(--tx3)">${f.pct}%</span></td>
+        <td>${f.done}</td><td>${f.total}</td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Roadmap / Milestones
+  if (milesSorted.length) {
+    html += `<div class="report-section"><div class="report-section-title">Roadmap — Marcos</div>
+      <table class="report-table"><thead><tr><th>Marco</th><th>Periodo</th><th>Status</th><th>Progresso</th></tr></thead><tbody>
+      ${milesSorted.map(m => {
+        const linkedIds = m.atividades || [];
+        const linkedActs = linkedIds.map(id => S.activities[id]).filter(Boolean);
+        const linkedDone = linkedActs.filter(a => a.coluna === 'concluido').length;
+        const linkedPct = linkedActs.length ? Math.round((linkedDone / linkedActs.length) * 100) : 0;
+        const frente = S.frentes[m.frente];
+        const stColor = m.status==='concluido'?'#00875a':m.status==='em_andamento'?'#ff991f':'#97a0af';
+        const stLabel = m.status==='concluido'?'Concluido':m.status==='em_andamento'?'Em andamento':'Pendente';
+        return `<tr>
+          <td><strong>${esc(m.titulo)}</strong>${frente ? `<br><span style="font-size:11px;color:${frente.cor}">${esc(frente.nome)}</span>` : ''}</td>
+          <td style="white-space:nowrap">${m.dataInicio||m.data||'?'}<br>${m.dataFim||m.data||'?'}</td>
+          <td><span class="report-status" style="background:${stColor}20;color:${stColor}">${stLabel}</span></td>
+          <td>${linkedActs.length ? `<div class="report-bar"><div class="report-bar-fill" style="width:${linkedPct}%;background:${stColor}"></div></div><span style="font-size:11px">${linkedDone}/${linkedActs.length}</span>` : '<span style="color:var(--tx3)">—</span>'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades em andamento
+  if (activeActs.length) {
+    html += `<div class="report-section"><div class="report-section-title">Atividades em Andamento</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th><th>Prazo</th><th>Status</th></tr></thead><tbody>
+      ${activeActs.map(a => {
+        const f = S.frentes[a.frente];
+        const ov = a.prazo && a.prazo < today;
+        return `<tr>
+          <td>${esc(a.titulo)}</td>
+          <td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td>
+          <td>${esc(a.responsavel||'—')}</td>
+          <td style="white-space:nowrap;${ov?'color:#de350b;font-weight:600':''}">${a.prazo||'—'}${ov?' (atrasado)':''}</td>
+          <td><span class="report-status" style="background:${statusColors[a.coluna]}20;color:${statusColors[a.coluna]}">${COL_LABELS[a.coluna]}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades atrasadas
+  if (overdueActs.length) {
+    html += `<div class="report-section"><div class="report-section-title" style="color:#de350b;border-color:#de350b">Atividades Atrasadas (${overdueActs.length})</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th><th>Prazo</th><th>Dias atraso</th></tr></thead><tbody>
+      ${overdueActs.map(a => {
+        const f = S.frentes[a.frente];
+        const dias = Math.floor((new Date(today) - new Date(a.prazo)) / (1000*60*60*24));
+        return `<tr>
+          <td>${esc(a.titulo)}</td>
+          <td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td>
+          <td>${esc(a.responsavel||'—')}</td>
+          <td style="white-space:nowrap">${a.prazo}</td>
+          <td style="color:#de350b;font-weight:700">${dias}d</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Atividades concluidas
+  if (doneActs.length) {
+    html += `<div class="report-section"><div class="report-section-title" style="color:#00875a;border-color:#00875a">Atividades Concluidas (${doneActs.length})</div>
+      <table class="report-table"><thead><tr><th>Atividade</th><th>Frente</th><th>Responsavel</th></tr></thead><tbody>
+      ${doneActs.map(a => {
+        const f = S.frentes[a.frente];
+        return `<tr><td>${esc(a.titulo)}</td><td>${f ? `<span style="color:${f.cor}">${esc(f.nome)}</span>` : '—'}</td><td>${esc(a.responsavel||'—')}</td></tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  }
+
+  // Riscos
+  if (risks.length) {
+    html += `<div class="report-section"><div class="report-section-title">Riscos (${risksOpen} abertos de ${risks.length})</div>
+      <div class="report-risk-matrix">
+      ${risks.map(r => {
+        const f = S.frentes[r.frente];
+        const sevColor = priColors[r.severidade] || '#ff991f';
+        return `<div class="report-risk-item">
+          <div class="report-risk-title">${esc(r.titulo)}</div>
+          <div class="report-risk-badges">
+            <span class="report-status" style="background:${sevColor}20;color:${sevColor}">Sev: ${PRIORITIES[r.severidade]||'Media'}</span>
+            <span class="report-status" style="background:${priColors[r.probabilidade]||'#ff991f'}20;color:${priColors[r.probabilidade]||'#ff991f'}">Prob: ${PRIORITIES[r.probabilidade]||'Media'}</span>
+            <span class="report-status" style="background:var(--bg3);color:var(--tx2)">${RISK_STATUS[r.status]||'Aberto'}</span>
+          </div>
+          ${r.impacto ? `<div style="font-size:12px;color:var(--tx2)"><strong>Impacto:</strong> ${esc(r.impacto)}</div>` : ''}
+          ${r.mitigacao ? `<div style="font-size:12px;color:var(--tx2)"><strong>Mitigacao:</strong> ${esc(r.mitigacao)}</div>` : ''}
+          ${r.responsavel ? `<div style="font-size:11px;color:var(--tx3);margin-top:4px">${esc(r.responsavel)}</div>` : ''}
+        </div>`;
+      }).join('')}
+      </div></div>`;
+  }
+
+  // Footer
+  html += `<div class="report-footer">SWIFT OS — Status Report gerado em ${dateLabel} por ${esc(S.user)}<br>Plataforma de Gestao de Projetos | IONIX</div>`;
+  html += `</div>`;
+  return html;
+}
+
+// ---------- MODALS ----------
+function modalOverlay() {
+  return `<div class="modal-overlay" id="modal-overlay">${S.modal}</div>`;
+}
+
+function frenteOptions(selected) {
+  return `<option value="">Sem frente</option>${Object.values(S.frentes).map(f => `<option value="${f.id}" ${selected===f.id?'selected':''}>${esc(f.nome)}</option>`).join('')}`;
+}
+
+function renderComments(comentarios) {
+  if (!comentarios || !Object.keys(comentarios).length) return '<div class="comments-empty">Nenhum comentario ainda</div>';
+  return Object.values(comentarios).sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(c =>
+    `<div class="comment-item">
+      <div class="comment-header"><strong>${esc(c.autor)}</strong><span class="comment-date">${c.data ? new Date(c.data).toLocaleString('pt-BR') : ''}</span><button class="comment-del" data-del-comment="${c.id}" title="Excluir">\u2715</button></div>
+      <div class="comment-text">${esc(c.texto)}</div>
+    </div>`
+  ).join('');
+}
+
+function activityModal(act) {
+  const isEdit = !!act;
+  const a = act || { titulo:'', descricao:'', frente:'', coluna:'backlog', prioridade:'media', responsavel:'', inicio:'', prazo:'', dependencias:'', criteriosAceite:'' };
+  return `<div class="modal"><div class="modal-header"><h3>${isEdit?'Editar':'Nova'} Atividade</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(a.titulo)}" placeholder="Nome da atividade" required></div>
+      <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="f-desc" placeholder="Detalhes...">${esc(a.descricao||'')}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Frente</label><select class="form-select" id="f-frente">${frenteOptions(a.frente)}</select></div>
+        <div class="form-group"><label class="form-label">Coluna</label><select class="form-select" id="f-coluna">${COLUMNS.map(c=>`<option value="${c}" ${a.coluna===c?'selected':''}>${COL_LABELS[c]}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Prioridade</label><select class="form-select" id="f-pri">${Object.entries(PRIORITIES).map(([k,v])=>`<option value="${k}" ${a.prioridade===k?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Responsavel</label><input class="form-input" id="f-resp" value="${esc(a.responsavel||'')}" placeholder="Nome"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Inicio</label><input type="date" class="form-input" id="f-inicio" value="${a.inicio||''}"></div>
+        <div class="form-group"><label class="form-label">Prazo</label><input type="date" class="form-input" id="f-prazo" value="${a.prazo||''}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Criterios de Aceite</label><textarea class="form-textarea" id="f-criterios" placeholder="Liste os criterios de aceite (um por linha)...">${esc(a.criteriosAceite||'')}</textarea></div>
+      <div class="form-group"><label class="form-label">Dependencias</label><input class="form-input" id="f-deps" value="${esc(a.dependencias||'')}" placeholder="IDs separados por virgula"><div class="form-hint">Ex: abc123, def456</div></div>
+      ${isEdit ? `<div class="form-group comments-section">
+        <label class="form-label">Comentarios</label>
+        <div id="comments-list" class="comments-list">${renderComments(a.comentarios)}</div>
+        <div class="comment-input-row">
+          <textarea class="comment-textarea" id="f-comment" placeholder="Escreva um comentario..." rows="3"></textarea>
+          <button class="btn btn-primary btn-sm" id="btn-add-comment" data-id="${act.id}">Enviar</button>
+        </div>
+      </div>` : ''}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save" data-id="${isEdit?act.id:''}">${isEdit?'Salvar':'Criar'}</button>
+    </div></div>`;
+}
+
+function milestoneModal(m) {
+  const isEdit = !!m;
+  const d = m || { titulo:'', descricao:'', dataInicio:'', dataFim:'', frente:'', status:'pendente', atividades:[] };
+  const linked = d.atividades || [];
+  const allActs = Object.values(S.activities);
+  const actPickerHtml = allActs.length ? allActs.map(a => {
+    const checked = linked.includes(a.id) ? 'checked' : '';
+    const frente = S.frentes[a.frente];
+    return `<label class="act-picker-item">
+      <input type="checkbox" value="${a.id}" ${checked} class="act-check">
+      <span class="act-pick-title">${esc(a.titulo)}</span>
+      ${frente ? `<span style="color:${frente.cor};font-size:10px">${esc(frente.nome)}</span>` : ''}
+      <span class="act-pick-col">${COL_LABELS[a.coluna]||''}</span>
+    </label>`;
+  }).join('') : '<div class="act-picker-empty">Nenhuma atividade criada ainda</div>';
+
+  return `<div class="modal" style="max-width:560px"><div class="modal-header"><h3>${isEdit?'Editar':'Novo'} Marco</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(d.titulo)}" placeholder="Nome do marco"></div>
+      <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="f-desc">${esc(d.descricao||'')}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data Inicio</label><input type="date" class="form-input" id="f-data-inicio" value="${d.dataInicio||d.data||''}"></div>
+        <div class="form-group"><label class="form-label">Data Fim</label><input type="date" class="form-input" id="f-data-fim" value="${d.dataFim||d.data||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Frente</label><select class="form-select" id="f-frente">${frenteOptions(d.frente)}</select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="f-status">
+        <option value="pendente" ${d.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="em_andamento" ${d.status==='em_andamento'?'selected':''}>Em andamento</option>
+        <option value="concluido" ${d.status==='concluido'?'selected':''}>Concluido</option>
+      </select></div>
+      <div class="form-group">
+        <label class="form-label">Atividades Vinculadas</label>
+        <div class="form-hint" style="margin-bottom:6px">Selecione as atividades do Kanban que compoem este marco</div>
+        <input class="act-picker-search" id="act-search" placeholder="Buscar atividade..." type="text">
+        <div class="act-picker" id="act-picker">${actPickerHtml}</div>
+        <div class="linked-count" id="linked-count">${linked.length} atividade${linked.length!==1?'s':''} vinculada${linked.length!==1?'s':''}</div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save" data-id="${isEdit?m.id:''}">${isEdit?'Salvar':'Criar'}</button></div></div>`;
+}
+
+function riskModal(r) {
+  const isEdit = !!r;
+  const d = r || { titulo:'', impacto:'', mitigacao:'', frente:'', severidade:'media', probabilidade:'media', status:'aberto', responsavel:'' };
+  return `<div class="modal"><div class="modal-header"><h3>${isEdit?'Editar':'Novo'} Risco</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Titulo *</label><input class="form-input" id="f-titulo" value="${esc(d.titulo)}" placeholder="Descricao do risco"></div>
+      <div class="form-group"><label class="form-label">Impacto</label><textarea class="form-textarea" id="f-impacto">${esc(d.impacto||'')}</textarea></div>
+      <div class="form-group"><label class="form-label">Mitigacao</label><textarea class="form-textarea" id="f-mitigacao">${esc(d.mitigacao||'')}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Severidade</label><select class="form-select" id="f-sev">${Object.entries(PRIORITIES).map(([k,v])=>`<option value="${k}" ${d.severidade===k?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Probabilidade</label><select class="form-select" id="f-prob">${Object.entries(PRIORITIES).map(([k,v])=>`<option value="${k}" ${d.probabilidade===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Frente</label><select class="form-select" id="f-frente">${frenteOptions(d.frente)}</select></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="f-status">${Object.entries(RISK_STATUS).map(([k,v])=>`<option value="${k}" ${d.status===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Responsavel</label><input class="form-input" id="f-resp" value="${esc(d.responsavel||'')}" placeholder="Nome"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save" data-id="${isEdit?r.id:''}">${isEdit?'Salvar':'Criar'}</button></div></div>`;
+}
+
+function importPreviewModal(data) {
+  const imp = { frentes: data.frentes || {}, activities: data.activities || {}, milestones: data.milestones || {}, risks: data.risks || {} };
+  const cur = { frentes: S.frentes, activities: S.activities, milestones: S.milestones, risks: S.risks };
+  function diff(label, curObj, impObj) {
+    const curKeys = Object.keys(curObj);
+    const impKeys = Object.keys(impObj);
+    const added = impKeys.filter(k => !curObj[k]).length;
+    const removed = curKeys.filter(k => !impObj[k]).length;
+    const updated = impKeys.filter(k => curObj[k] && JSON.stringify(curObj[k]) !== JSON.stringify(impObj[k])).length;
+    const unchanged = impKeys.filter(k => curObj[k] && JSON.stringify(curObj[k]) === JSON.stringify(impObj[k])).length;
+    return `<div class="import-diff-section">
+      <div class="import-diff-title">${label}</div>
+      <div class="import-diff-row"><span>Atual</span><strong>${curKeys.length}</strong></div>
+      <div class="import-diff-row"><span>No arquivo</span><strong>${impKeys.length}</strong></div>
+      ${added ? `<div class="import-diff-row import-diff-add"><span>+ Novos</span><strong>${added}</strong></div>` : ''}
+      ${updated ? `<div class="import-diff-row import-diff-upd"><span>~ Alterados</span><strong>${updated}</strong></div>` : ''}
+      ${removed ? `<div class="import-diff-row import-diff-del"><span>- Removidos</span><strong>${removed}</strong></div>` : ''}
+      ${unchanged ? `<div class="import-diff-row"><span>= Sem alteracao</span><strong>${unchanged}</strong></div>` : ''}
+    </div>`;
+  }
+  window._confirmYes = () => {
+    const updates = {};
+    if (data.frentes) updates.frentes = imp.frentes;
+    if (data.activities) updates.activities = imp.activities;
+    if (data.milestones) updates.milestones = imp.milestones;
+    if (data.risks) updates.risks = imp.risks;
+    db.ref().update(updates, err => {
+      if (err) toast('Erro ao importar: ' + err.message);
+      else toast('Dados importados com sucesso');
+    });
+  };
+  return `<div class="modal" style="max-width:480px"><div class="modal-header"><h3>Previa da Importacao</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--tx3);margin-bottom:12px">Comparacao entre os dados atuais e o arquivo selecionado:</p>
+      <div class="import-diff-grid">
+        ${diff('Frentes', cur.frentes, imp.frentes)}
+        ${diff('Atividades', cur.activities, imp.activities)}
+        ${diff('Marcos', cur.milestones, imp.milestones)}
+        ${diff('Riscos', cur.risks, imp.risks)}
+      </div>
+      <p style="font-size:12px;color:var(--dg);margin-top:12px">\u26A0 Esta acao substituira todos os dados atuais pelos do arquivo.</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-confirm">Confirmar Importacao</button></div></div>`;
+}
+
+function confirmModal(msg, onYes) {
+  window._confirmYes = onYes;
+  return `<div class="modal" style="max-width:380px"><div class="modal-header"><h3>Confirmar</h3><button class="btn-icon" id="modal-close">\u2715</button></div>
+    <div class="modal-body"><div class="confirm-msg">${msg}</div></div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-danger" id="modal-confirm">Excluir</button></div></div>`;
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+function attachSetup() {
+  const inp = $('#inp-name'), btn = $('#btn-enter');
+  const go = () => { const n = inp.value.trim(); if (!n) return inp.focus(); S.user = n; localStorage.setItem('swift-user', n); render(); initSync(); };
+  btn.onclick = go;
+  inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+
+function attachAll() {
+  // Nav
+  $$('.nav-item[data-view]').forEach(el => el.onclick = () => { S.view = el.dataset.view; render(); });
+  // Theme
+  const bt = $('#btn-theme');
+  if (bt) bt.onclick = () => { S.theme = S.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('swift-theme', S.theme); render(); };
+  // Export
+  const bex = $('#btn-export');
+  if (bex) bex.onclick = () => {
+    const data = { frentes: S.frentes, activities: S.activities, milestones: S.milestones, risks: S.risks, trash: S.trash };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'swift-os-backup.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup exportado com sucesso');
+  };
+  // Import
+  const bim = $('#btn-import');
+  const impFile = $('#import-file');
+  if (bim && impFile) {
+    bim.onclick = () => impFile.click();
+    impFile.onchange = e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.frentes && !data.activities && !data.milestones && !data.risks) { toast('Arquivo JSON invalido'); return; }
+          S.modal = importPreviewModal(data);
+          render();
+        } catch (err) { toast('Erro ao ler arquivo JSON'); }
+      };
+      reader.readAsText(file);
+      impFile.value = '';
+    };
+  }
+  // Logout
+  const bl = $('#btn-logout');
+  if (bl) bl.onclick = () => { db.ref('presence/' + S.uid).remove(); S.user = ''; localStorage.removeItem('swift-user'); render(); };
+  // Add frente
+  const af = $('#add-frente-btn');
+  if (af) af.onclick = () => {
+    const nome = prompt('Nome da frente:'); if (!nome) return;
+    const cor = prompt('Cor (hex, ex: #0052cc):', '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));
+    const id = genId();
+    fbSet('frentes/' + id, { id, nome, cor: cor || '#0052cc' });
+  };
+  // Edit frente
+  $$('[data-edit-frente]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const fid = el.dataset.editFrente;
+    const f = S.frentes[fid]; if (!f) return;
+    const nome = prompt('Nome da frente:', f.nome); if (nome === null || !nome.trim()) return;
+    const cor = prompt('Cor (hex):', f.cor); if (cor === null) return;
+    fbUpdate('frentes/' + fid, { nome: nome.trim(), cor: cor || f.cor });
+  });
+  // Delete frente
+  $$('[data-del-frente]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    S.modal = confirmModal(`Excluir esta frente?`, () => fbRemove('frentes/' + el.dataset.delFrente));
+    render();
+  });
+  // Topbar buttons
+  const ba = $('#btn-add-act'); if (ba) ba.onclick = () => { S.modal = activityModal(null); render(); };
+  const bm = $('#btn-add-mile'); if (bm) bm.onclick = () => { S.modal = milestoneModal(null); render(); };
+  const br = $('#btn-add-risk'); if (br) br.onclick = () => { S.modal = riskModal(null); render(); };
+  const bp = $('#btn-print-pdf'); if (bp) bp.onclick = () => window.print();
+
+  attachView();
+  attachModal();
+}
+
+function attachView() {
+  if (S.view === 'kanban') attachKanban();
+  if (S.view === 'roadmap') attachRoadmap();
+  if (S.view === 'riscos') attachRiscos();
+  if (S.view === 'lixeira') attachLixeira();
+}
+
+function attachKanban() {
+  // Drag & drop
+  $$('.kanban-card').forEach(card => {
+    card.ondragstart = e => { S.dragId = card.dataset.id; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; };
+    card.ondragend = () => { S.dragId = null; card.classList.remove('dragging'); $$('.kanban-cards').forEach(c => c.classList.remove('drag-over')); };
+  });
+  $$('.kanban-cards').forEach(zone => {
+    zone.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zone.classList.add('drag-over'); };
+    zone.ondragleave = () => zone.classList.remove('drag-over');
+    zone.ondrop = e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      if (S.dragId) {
+        const updates = { coluna: zone.dataset.col };
+        const targetLane = zone.dataset.lane;
+        if (targetLane === 'high') updates.prioridade = 'alta';
+        else if (targetLane === 'other') {
+          const act = S.activities[S.dragId];
+          if (act && act.prioridade === 'alta') updates.prioridade = 'media';
+        }
+        fbUpdate('activities/' + S.dragId, updates);
+        toast(`Movido para ${COL_LABELS[zone.dataset.col]}`);
+      }
+    };
+  });
+  // Add from column
+  $$('[data-add-col]').forEach(btn => btn.onclick = () => {
+    S.modal = activityModal({ titulo:'', descricao:'', frente:'', coluna: btn.dataset.addCol, prioridade:'media', responsavel:'', inicio:'', prazo:'', dependencias:'' });
+    render();
+  });
+  // Edit card
+  $$('[data-edit]').forEach(el => el.onclick = () => {
+    const a = S.activities[el.dataset.edit]; if (!a) return;
+    S.modal = activityModal(a); render();
+  });
+  // Delete card
+  $$('[data-del]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    S.modal = confirmModal('Mover esta atividade para a lixeira?', () => {
+      const act = S.activities[el.dataset.del]; if (!act) return;
+      fbSet('trash/' + act.id, { ...act, _deletedAt: new Date().toISOString(), _deletedBy: S.user });
+      fbRemove('activities/' + act.id);
+    });
+    render();
+  });
+}
+
+function attachRoadmap() {
+  $$('[data-toggle-mile]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const id = el.dataset.toggleMile;
+    S.expandedMilestones[id] = !S.expandedMilestones[id];
+    rerender();
+  });
+  $$('[data-edit-mile]').forEach(el => el.onclick = () => {
+    const m = S.milestones[el.dataset.editMile]; if (!m) return;
+    S.modal = milestoneModal(m); render();
+  });
+  $$('[data-del-mile]').forEach(el => el.onclick = () => {
+    S.modal = confirmModal('Excluir este marco?', () => fbRemove('milestones/' + el.dataset.delMile));
+    render();
+  });
+  // Edit activity from gantt sub-row
+  $$('.gantt-sub-row [data-edit]').forEach(el => el.onclick = () => {
+    const a = S.activities[el.dataset.edit]; if (!a) return;
+    S.view = 'kanban'; S.modal = activityModal(a); render();
+  });
+  // Drag and drop reorder milestones
+  let dragId = null;
+  $$('[data-mile-drag]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragId = row.dataset.mileDrag;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragId);
+    });
+    row.addEventListener('dragend', () => {
+      dragId = null;
+      row.classList.remove('dragging');
+      $$('.drag-over-top,.drag-over-bottom').forEach(el => { el.classList.remove('drag-over-top','drag-over-bottom'); });
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragId || row.dataset.mileDrag === dragId) return;
+      e.dataTransfer.dropEffect = 'move';
+      $$('.drag-over-top,.drag-over-bottom').forEach(el => { el.classList.remove('drag-over-top','drag-over-bottom'); });
+      const rect = row.getBoundingClientRect();
+      const half = (e.clientY - rect.top) / rect.height < 0.5;
+      row.classList.add(half ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('drag-over-top','drag-over-bottom');
+      const fromId = e.dataTransfer.getData('text/plain');
+      const toId = row.dataset.mileDrag;
+      if (!fromId || fromId === toId) return;
+      // Build ordered list, reorder, assign ordem values
+      const sorted = Object.values(S.milestones).sort((a,b) => (a.ordem||0) - (b.ordem||0) || (a.dataInicio||a.data||'').localeCompare(b.dataInicio||b.data||''));
+      const ids = sorted.map(m => m.id);
+      const fromIdx = ids.indexOf(fromId);
+      if (fromIdx === -1) return;
+      ids.splice(fromIdx, 1);
+      const toIdx = ids.indexOf(toId);
+      const rect = row.getBoundingClientRect();
+      const insertBefore = (e.clientY - rect.top) / rect.height < 0.5;
+      ids.splice(insertBefore ? toIdx : toIdx + 1, 0, fromId);
+      // Save new order
+      const updates = {};
+      ids.forEach((id, i) => { updates['milestones/' + id + '/ordem'] = i; });
+      db.ref().update(updates);
+    });
+  });
+}
+
+function attachRiscos() {
+  $$('[data-edit-risk]').forEach(el => el.onclick = () => {
+    const r = S.risks[el.dataset.editRisk]; if (!r) return;
+    S.modal = riskModal(r); render();
+  });
+  $$('[data-del-risk]').forEach(el => el.onclick = () => {
+    S.modal = confirmModal('Excluir este risco?', () => fbRemove('risks/' + el.dataset.delRisk));
+    render();
+  });
+}
+
+function attachLixeira() {
+  $$('[data-restore]').forEach(el => el.onclick = () => {
+    const item = S.trash[el.dataset.restore]; if (!item) return;
+    const restored = { ...item }; delete restored._deletedAt; delete restored._deletedBy;
+    fbSet('activities/' + restored.id, restored);
+    fbRemove('trash/' + restored.id);
+    toast('Atividade restaurada');
+  });
+  $$('[data-perma-del]').forEach(el => el.onclick = () => {
+    S.modal = confirmModal('Excluir permanentemente? Esta acao nao pode ser desfeita.', () => {
+      fbRemove('trash/' + el.dataset.permaDel);
+      toast('Atividade excluida permanentemente');
+    });
+    render();
+  });
+  const ea = $('#trash-empty-all');
+  if (ea) ea.onclick = () => {
+    S.modal = confirmModal(`Excluir permanentemente ${Object.keys(S.trash).length} ${Object.keys(S.trash).length===1?'item':'itens'}? Esta acao nao pode ser desfeita.`, () => {
+      fbRemove('trash');
+      toast('Lixeira esvaziada');
+    });
+    render();
+  };
+}
+
+function attachModal() {
+  const ov = $('#modal-overlay'); if (!ov) return;
+  ov.onclick = e => { if (e.target === ov) closeModal(); };
+  const cl = $('#modal-close'); if (cl) cl.onclick = closeModal;
+  const ca = $('#modal-cancel'); if (ca) ca.onclick = closeModal;
+
+  // Confirm modal
+  const cf = $('#modal-confirm');
+  if (cf) cf.onclick = () => { if (window._confirmYes) window._confirmYes(); closeModal(); };
+
+  // Add comment
+  const bc = $('#btn-add-comment');
+  if (bc) {
+    const actId = bc.dataset.id;
+    // Live listener for comments
+    const commentsRef = db.ref('activities/' + actId + '/comentarios');
+    const commentsListener = commentsRef.on('value', snap => {
+      const cl = $('#comments-list');
+      if (cl) {
+        cl.innerHTML = renderComments(snap.val());
+        cl.querySelectorAll('[data-del-comment]').forEach(btn => {
+          btn.onclick = e => { e.stopPropagation(); fbRemove('activities/' + actId + '/comentarios/' + btn.dataset.delComment); };
+        });
+      }
+    });
+    // Clean up listener when modal closes
+    const origClose = window._closeModalCleanup;
+    window._closeModalCleanup = () => { commentsRef.off('value', commentsListener); if (origClose) origClose(); };
+    const sendComment = () => {
+      const input = $('#f-comment'); if (!input) return;
+      const texto = input.value.trim(); if (!texto) { input.focus(); return; }
+      const cid = genId();
+      fbSet('activities/' + actId + '/comentarios/' + cid, { id: cid, texto, autor: S.user, data: new Date().toISOString() });
+      input.value = '';
+    };
+    bc.onclick = sendComment;
+    const ci = $('#f-comment');
+    if (ci) ci.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendComment(); } };
+  }
+  // Save activity
+  const sv = $('#modal-save');
+  if (sv && S.view === 'kanban') {
+    sv.onclick = () => {
+      const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
+      const data = {
+        titulo, descricao: $('#f-desc').value, frente: $('#f-frente').value, coluna: $('#f-coluna').value,
+        prioridade: $('#f-pri').value, responsavel: $('#f-resp').value, inicio: $('#f-inicio').value,
+        prazo: $('#f-prazo').value, criteriosAceite: $('#f-criterios').value, dependencias: $('#f-deps').value, editadoPor: S.user,
+        editadoEm: new Date().toISOString()
+      };
+      const id = sv.dataset.id || genId();
+      if (!sv.dataset.id) data.criadoPor = S.user;
+      data.id = id;
+      fbSet('activities/' + id, { ...(S.activities[id]||{}), ...data });
+      toast(sv.dataset.id ? 'Atividade atualizada' : 'Atividade criada');
+      closeModal();
+    };
+  }
+  // Save milestone
+  if (sv && S.view === 'roadmap') {
+    // Activity picker search filter
+    const actSearch = $('#act-search');
+    if (actSearch) {
+      actSearch.oninput = () => {
+        const q = actSearch.value.toLowerCase();
+        $$('.act-picker-item').forEach(item => {
+          const title = item.querySelector('.act-pick-title')?.textContent?.toLowerCase() || '';
+          item.style.display = title.includes(q) ? '' : 'none';
+        });
+      };
+    }
+    // Update linked count on checkbox change
+    const picker = $('#act-picker');
+    if (picker) {
+      picker.onchange = () => {
+        const count = $$('.act-check:checked').length;
+        const lc = $('#linked-count');
+        if (lc) lc.textContent = `${count} atividade${count!==1?'s':''} vinculada${count!==1?'s':''}`;
+      };
+    }
+    sv.onclick = () => {
+      const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
+      const id = sv.dataset.id || genId();
+      const atividades = Array.from($$('.act-check:checked')).map(cb => cb.value);
+      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, dataInicio: $('#f-data-inicio').value, dataFim: $('#f-data-fim').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades });
+      toast(sv.dataset.id ? 'Marco atualizado' : 'Marco criado');
+      closeModal();
+    };
+  }
+  // Save risk
+  if (sv && S.view === 'riscos') {
+    sv.onclick = () => {
+      const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
+      const id = sv.dataset.id || genId();
+      fbSet('risks/' + id, { id, titulo, impacto: $('#f-impacto').value, mitigacao: $('#f-mitigacao').value,
+        severidade: $('#f-sev').value, probabilidade: $('#f-prob').value, frente: $('#f-frente').value,
+        status: $('#f-status').value, responsavel: $('#f-resp').value });
+      toast(sv.dataset.id ? 'Risco atualizado' : 'Risco criado');
+      closeModal();
+    };
+  }
+  // Focus first input
+  setTimeout(() => { const fi = $('#f-titulo'); if (fi) fi.focus(); }, 100);
+}
+
+function closeModal() { if (window._closeModalCleanup) { window._closeModalCleanup(); window._closeModalCleanup = null; } S.modal = null; render(); }
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+if (S.user) initSync();
+</script>
+</body>
+</html>
