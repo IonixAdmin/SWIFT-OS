@@ -523,6 +523,8 @@ function topbar() {
     </div></div>`;
 }
 
+const fmtDDMM = d => { if (!d) return '—'; const p = d.split('-'); return p.length>=3 ? p[2]+'/'+p[1] : d; };
+
 function viewBody() {
   if (S.view === 'kanban') return kanbanView();
   if (S.view === 'roadmap') return roadmapView();
@@ -582,7 +584,7 @@ function kanbanCard(a) {
     </div>
     <div class="kanban-card-meta" style="margin-top:4px">
       ${a.responsavel ? `<span class="card-resp">\u{1F464} ${esc(a.responsavel)}</span>` : ''}
-      ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${a.prazo}</span>` : ''}
+      ${a.prazo ? `<span class="card-date ${overdue?'overdue':''}">${fmtDDMM(a.prazo)}</span>` : ''}
       ${a.comentarios ? `<span class="card-comments">\u{1F4AC} ${Object.keys(a.comentarios).length}</span>` : ''}
     </div>
   </div>`;
@@ -663,7 +665,7 @@ function roadmapView() {
         <div class="gantt-row-meta">
           ${frente ? `<span style="color:${frente.cor}">\u25CF ${esc(frente.nome)}</span>` : ''}
           ${linkedActs.length ? `<span>${linkedDone}/${linkedActs.length}</span>` : ''}
-          <span>${start||'?'} \u2192 ${end||'?'}</span>
+          <span>${fmtDDMM(start)} \u2192 ${fmtDDMM(end)}</span>
         </div>
         ${linkedActs.length ? `<div class="gantt-linked-acts">${linkedActs.map(a => {
           const aColor = statusColors[a.coluna] || 'var(--tx3)';
@@ -858,7 +860,6 @@ function reportView() {
   const risks = Object.values(S.risks);
   const today = new Date().toISOString().slice(0,10);
   const dateLabel = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
-  const fmtDDMM = d => { if (!d) return '—'; const p = d.split('-'); return p.length>=3 ? p[2]+'/'+p[1] : d; };
 
   const total = acts.length;
   const done = acts.filter(a => a.coluna === 'concluido').length;
