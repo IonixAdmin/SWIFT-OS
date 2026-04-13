@@ -436,9 +436,9 @@ function initSync() {
   db.ref('trash').on('value', s => { S.trash = s.val() || {}; rerender(); });
 }
 
-function fbSet(path, val) { db.ref(path).set(val); }
-function fbUpdate(path, val) { db.ref(path).update(val); }
-function fbRemove(path) { db.ref(path).remove(); }
+function fbSet(path, val) { return db.ref(path).set(val).catch(err => { console.error('fbSet failed:', path, err); toast('Erro ao salvar. Tente novamente.'); }); }
+function fbUpdate(path, val) { return db.ref(path).update(val).catch(err => { console.error('fbUpdate failed:', path, err); toast('Erro ao atualizar. Tente novamente.'); }); }
+function fbRemove(path) { return db.ref(path).remove().catch(err => { console.error('fbRemove failed:', path, err); toast('Erro ao remover. Tente novamente.'); }); }
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 // ============================================================
@@ -1349,6 +1349,7 @@ function attachKanban() {
           const act = S.activities[S.dragId];
           if (act && act.prioridade === 'alta') updates.prioridade = 'media';
         }
+        if (S.activities[S.dragId]) Object.assign(S.activities[S.dragId], updates);
         fbUpdate('activities/' + S.dragId, updates);
         toast(`Movido para ${COL_LABELS[zone.dataset.col]}`);
       }
@@ -1578,10 +1579,14 @@ function attachModal() {
         editadoEm: new Date().toISOString()
       };
       const id = sv.dataset.id || genId();
-      if (!sv.dataset.id) data.criadoPor = S.user;
+      const isEdit = !!sv.dataset.id;
+      if (!isEdit) data.criadoPor = S.user;
       data.id = id;
-      fbSet('activities/' + id, { ...(S.activities[id]||{}), ...data });
-      toast(sv.dataset.id ? 'Atividade atualizada' : 'Atividade criada');
+      // Atualiza estado local imediatamente para evitar que o card suma
+      S.activities[id] = { ...(S.activities[id]||{}), ...data };
+      // Usa fbUpdate para preservar subtarefas/comentarios existentes
+      fbUpdate('activities/' + id, data);
+      toast(isEdit ? 'Atividade atualizada' : 'Atividade criada');
       closeModal();
     };
   }
@@ -1611,7 +1616,9 @@ function attachModal() {
       const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
       const id = sv.dataset.id || genId();
       const atividades = Array.from($$('.act-check:checked')).map(cb => cb.value);
-      fbSet('milestones/' + id, { id, titulo, descricao: $('#f-desc').value, dataInicio: $('#f-data-inicio').value, dataFim: $('#f-data-fim').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades });
+      const milestoneData = { id, titulo, descricao: $('#f-desc').value, dataInicio: $('#f-data-inicio').value, dataFim: $('#f-data-fim').value, frente: $('#f-frente').value, status: $('#f-status').value, atividades };
+      S.milestones[id] = { ...(S.milestones[id]||{}), ...milestoneData };
+      fbUpdate('milestones/' + id, milestoneData);
       toast(sv.dataset.id ? 'Marco atualizado' : 'Marco criado');
       closeModal();
     };
@@ -1621,9 +1628,11 @@ function attachModal() {
     sv.onclick = () => {
       const titulo = $('#f-titulo').value.trim(); if (!titulo) { $('#f-titulo').focus(); return; }
       const id = sv.dataset.id || genId();
-      fbSet('risks/' + id, { id, titulo, impacto: $('#f-impacto').value, mitigacao: $('#f-mitigacao').value,
+      const riskData = { id, titulo, impacto: $('#f-impacto').value, mitigacao: $('#f-mitigacao').value,
         severidade: $('#f-sev').value, probabilidade: $('#f-prob').value, frente: $('#f-frente').value,
-        status: $('#f-status').value, responsavel: $('#f-resp').value });
+        status: $('#f-status').value, responsavel: $('#f-resp').value };
+      S.risks[id] = { ...(S.risks[id]||{}), ...riskData };
+      fbUpdate('risks/' + id, riskData);
       toast(sv.dataset.id ? 'Risco atualizado' : 'Risco criado');
       closeModal();
     };
